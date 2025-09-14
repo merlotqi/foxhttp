@@ -49,7 +49,7 @@ struct ssl_config
     std::string certificate_chain_file;
     std::string dh_file;
     std::string password;
-    std::string cipher_list = "HIGH:!aNULL:!MD5";
+    std::string cipher_list = "high:!aNULL:!MD5";
     bool require_verification = false;
     std::string ca_certificate_file;
     std::string tls_version = "TLSv1.2";

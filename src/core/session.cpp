@@ -8,6 +8,7 @@
 #include <foxhttp/core/request_context.hpp>
 #include <foxhttp/core/session.hpp>
 #include <foxhttp/handler/api_handler.hpp>
+#include <foxhttp/middleware/middleware.hpp>
 #include <foxhttp/middleware/middleware_chain.hpp>
 #include <foxhttp/router/router.hpp>
 #include <iostream>
@@ -65,20 +66,66 @@ void Session::process_request()
 
     if (handler)
     {
-        global_chain_->execute_async(ctx, res_, [self = shared_from_this(), handler, &ctx]() {
-            handler->handle_request(ctx, self->res_);
-            self->write_response();
-        });
+        global_chain_->execute_async(
+                ctx, res_,
+                [self = shared_from_this(), handler, &ctx](middleware_result result, const std::string &error_message) {
+                    if (result == middleware_result::continue_)
+                    {
+                        handler->handle_request(ctx, self->res_);
+                    }
+                    else if (result == middleware_result::error)
+                    {
+                        self->res_.result(http::status::internal_server_error);
+                        self->res_.set(http::field::content_type, "application/json");
+                        self->res_.body() =
+                                R"({"code":500,"message":"Internal Server Error","error":")" + error_message + R"("})";
+                    }
+                    else if (result == middleware_result::timeout)
+                    {
+                        self->res_.result(http::status::gateway_timeout);
+                        self->res_.set(http::field::content_type, "application/json");
+                        self->res_.body() = R"({"code":504,"message":"Gateway Timeout"})";
+                    }
+                    else if (result == middleware_result::stop)
+                    {
+                        // Middleware chain was stopped, but we still need to send a response
+                        // The response should already be set by the middleware
+                    }
+                    self->res_.prepare_payload();
+                    self->write_response();
+                });
     }
     else
     {
-        global_chain_->execute_async(ctx, res_, [self = shared_from_this()]() {
-            self->res_.result(http::status::not_found);
-            self->res_.set(http::field::content_type, "application/json");
-            self->res_.body() = R"({"code":404,"message":"Not Found"})";
-            self->res_.prepare_payload();
-            self->write_response();
-        });
+        global_chain_->execute_async(
+                ctx, res_, [self = shared_from_this()](middleware_result result, const std::string &error_message) {
+                    if (result == middleware_result::continue_)
+                    {
+                        self->res_.result(http::status::not_found);
+                        self->res_.set(http::field::content_type, "application/json");
+                        self->res_.body() = R"({"code":404,"message":"Not Found"})";
+                    }
+                    else if (result == middleware_result::error)
+                    {
+                        self->res_.result(http::status::internal_server_error);
+                        self->res_.set(http::field::content_type, "application/json");
+                        self->res_.body() =
+                                R"({"code":500,"message":"Internal Server Error","error":")" + error_message + R"("})";
+                    }
+                    else if (result == middleware_result::timeout)
+                    {
+                        self->res_.result(http::status::gateway_timeout);
+                        self->res_.set(http::field::content_type, "application/json");
+                        self->res_.body() = R"({"code":504,"message":"Gateway Timeout"})";
+                    }
+                    else if (result == middleware_result::stop)
+                    {
+                        // Middleware chain was stopped, but we still need to send a response
+                        // The response should already be set by the middleware
+                    }
+                    self->res_.prepare_payload();
+                    self->write_response();
+                });
     }
 }
 

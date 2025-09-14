@@ -3,6 +3,8 @@ project(FoxHttp LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+option(FOXHTTP_BUILD_EXAMPLES "Build examples" ON)
+
 
 find_package(Boost REQUIRED COMPONENTS system json)
 find_package(spdlog REQUIRED)
@@ -14,3 +16,7 @@ add_subdirectory(include)
 add_subdirectory(src)
 
 target_link_libraries(foxhttplib ${Boost_LIBRARIES} spdlog::spdlog nlohmann_json::nlohmann_json)
+
+if(FOXHTTP_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()

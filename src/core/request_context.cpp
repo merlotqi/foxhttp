@@ -96,16 +96,16 @@ std::string RequestContext::body() const
     return req_.body();
 }
 
-std::string RequestContext::header(const std::string &key) const
+std::string RequestContext::header(const std::string &key, const std::string &default_value) const
 {
     auto it = req_.find(key);
-    return (it != req_.end()) ? std::string(it->value()) : "";
+    return (it != req_.end()) ? std::string(it->value()) : default_value;
 }
 
-std::string RequestContext::header(http::field key) const
+std::string RequestContext::header(http::field key, const std::string &default_value) const
 {
     auto it = req_.find(key);
-    return (it != req_.end()) ? std::string(it->value()) : "";
+    return (it != req_.end()) ? std::string(it->value()) : default_value;
 }
 
 // ------------------- path / query -------------------
