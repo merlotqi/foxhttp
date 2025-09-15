@@ -13,17 +13,17 @@
 
 namespace foxhttp {
 
-class ResponseTimeMiddleware : public PriorityMiddleware<middleware_priority::low>
+class response_time_middleware : public priority_middleware<middleware_priority::low>
 {
 public:
-    explicit ResponseTimeMiddleware(const std::string &header_name = "X-Response-Time") : header_name_(header_name) {}
+    explicit response_time_middleware(const std::string &header_name = "X-Response-Time") : header_name_(header_name) {}
 
     std::string name() const override
     {
         return "ResponseTimeMiddleware";
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override
     {
         auto start = std::chrono::steady_clock::now();
 
@@ -34,8 +34,8 @@ public:
         res.set(header_name_, std::to_string(duration.count()) + "ms");
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
-                    AsyncMiddlewareCallback callback) override
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
+                    async_middleware_callback callback) override
     {
         auto start = std::chrono::steady_clock::now();
 

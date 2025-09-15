@@ -19,36 +19,36 @@
 
 namespace foxhttp {
 
-class MiddlewareChain
+class middleware_chain
 {
 public:
-    using errorHandler =
-            std::function<void(RequestContext &, http::response<http::string_body> &, const std::exception &)>;
-    using timeoutHandler = std::function<void(RequestContext &, http::response<http::string_body> &)>;
-    using completionCallback = std::function<void(middleware_result result, const std::string &error_message)>;
+    using error_handler =
+            std::function<void(request_context &, http::response<http::string_body> &, const std::exception &)>;
+    using timeout_handler = std::function<void(request_context &, http::response<http::string_body> &)>;
+    using completion_callback = std::function<void(middleware_result result, const std::string &error_message)>;
 
-    explicit MiddlewareChain(boost::asio::io_context &io_context);
-    MiddlewareChain() = default;
+    explicit middleware_chain(boost::asio::io_context &io_context);
+    middleware_chain() = default;
 
-    // Middleware management
-    void use(std::shared_ptr<Middleware> mw);
-    void use(std::initializer_list<std::shared_ptr<Middleware>> mws);
-    void insert(std::size_t index, std::shared_ptr<Middleware> mw);
-    void insert_by_priority(std::shared_ptr<Middleware> mw);
+    // middleware management
+    void use(std::shared_ptr<middleware> mw);
+    void use(std::initializer_list<std::shared_ptr<middleware>> mws);
+    void insert(std::size_t index, std::shared_ptr<middleware> mw);
+    void insert_by_priority(std::shared_ptr<middleware> mw);
     void remove(const std::string &middleware_name);
     void clear();
 
     // Configuration
-    void set_error_handler(errorHandler handler);
-    void set_timeout_handler(timeoutHandler handler);
+    void set_error_handler(error_handler handler);
+    void set_timeout_handler(timeout_handler handler);
     void set_global_timeout(std::chrono::milliseconds timeout);
     void set_io_context(boost::asio::io_context &io_context);
     void enable_statistics(bool enable = true);
 
     // Execution methods
-    void execute(RequestContext &ctx, http::response<http::string_body> &res);
-    void execute_async(RequestContext &ctx, http::response<http::string_body> &res,
-                       completionCallback callback = nullptr);
+    void execute(request_context &ctx, http::response<http::string_body> &res);
+    void execute_async(request_context &ctx, http::response<http::string_body> &res,
+                       completion_callback callback = nullptr);
 
     // Control methods
     void cancel();
@@ -62,41 +62,41 @@ public:
     std::vector<std::string> get_middleware_names() const;
 
     // Statistics
-    std::unordered_map<std::string, MiddlewareStats> get_statistics() const;
+    std::unordered_map<std::string, middleware_stats> get_statistics() const;
     void reset_statistics();
     void print_statistics() const;
 
 private:
-    struct MiddlewareInfo
+    struct middleware_info
     {
-        std::shared_ptr<Middleware> middleware;
+        std::shared_ptr<middleware> middleware;
         std::chrono::steady_clock::time_point execution_start;
         std::shared_ptr<boost::asio::steady_timer> timeout_timer;
     };
 
-    void execute_next(RequestContext &ctx, http::response<http::string_body> &res);
-    void execute_next_async(RequestContext &ctx, http::response<http::string_body> &res, completionCallback callback);
-    void handle_error(RequestContext &ctx, http::response<http::string_body> &res, const std::exception &e,
-                      completionCallback callback = nullptr);
-    void handle_timeout(RequestContext &ctx, http::response<http::string_body> &res,
-                        completionCallback callback = nullptr);
-    void handle_middleware_result(RequestContext &ctx, http::response<http::string_body> &res, middleware_result result,
-                                  const std::string &error_message, completionCallback callback);
+    void _execute_next(request_context &ctx, http::response<http::string_body> &res);
+    void _execute_next_async(request_context &ctx, http::response<http::string_body> &res, completion_callback callback);
+    void _handle_error(request_context &ctx, http::response<http::string_body> &res, const std::exception &e,
+                      completion_callback callback = nullptr);
+    void _handle_timeout(request_context &ctx, http::response<http::string_body> &res,
+                        completion_callback callback = nullptr);
+    void _handle_middleware_result(request_context &ctx, http::response<http::string_body> &res, middleware_result result,
+                                  const std::string &error_message, completion_callback callback);
 
-    void sort_middlewares_by_priority();
-    void setup_middleware_timeout(std::shared_ptr<Middleware> mw, RequestContext &ctx,
-                                  http::response<http::string_body> &res, completionCallback callback);
+    void _sort_middlewares_by_priority();
+    void _setup_middleware_timeout(std::shared_ptr<middleware> mw, request_context &ctx,
+                                  http::response<http::string_body> &res, completion_callback callback);
 
 private:
     mutable std::mutex mutex_;
-    std::vector<MiddlewareInfo> middlewares_;
+    std::vector<middleware_info> middlewares_;
     std::size_t current_index_ = 0;
     bool statistics_enabled_ = true;
     bool auto_sort_by_priority_ = true;
 
     // Handlers
-    errorHandler error_handler_;
-    timeoutHandler timeout_handler_;
+    error_handler error_handler_;
+    timeout_handler timeout_handler_;
 
     // Timeouts
     std::chrono::milliseconds global_timeout_{0};
@@ -113,7 +113,7 @@ private:
     std::shared_ptr<boost::asio::steady_timer> global_timeout_timer_;
 
     // Current execution context
-    std::weak_ptr<MiddlewareInfo> current_middleware_;
+    std::weak_ptr<middleware_info> current_middleware_;
 };
 
 }// namespace foxhttp

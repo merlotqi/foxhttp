@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -50,31 +50,32 @@ static std::string url_decode(const std::string &str)
     return ret;
 }
 
-RequestContext::RequestContext(const http::request<http::string_body> &req) : req_(req)
+request_context::request_context(const http::request<http::string_body> &req) : req_(req)
 {
     auto target = req_.target();
     auto pos = target.find('?');
     if (pos != std::string::npos)
-        parse_query_(target.substr(pos + 1));
+        _parse_query(target.substr(pos + 1));
 
-    parse_cookies_();
+    _parse_cookies();
 }
 
-const http::request<http::string_body> &RequestContext::raw_request() const
+const http::request<http::string_body> &request_context::raw_request() const
 {
     return req_;
 }
 
-http::verb RequestContext::method() const
+http::verb request_context::method() const
 {
     return req_.method();
 }
-std::string RequestContext::method_string() const
+
+std::string request_context::method_string() const
 {
     return req_.method_string();
 }
 
-std::string RequestContext::path() const
+std::string request_context::path() const
 {
     auto target = req_.target();
     auto pos = target.find('?');
@@ -83,59 +84,58 @@ std::string RequestContext::path() const
     return std::string(target);
 }
 
-
-std::string RequestContext::query() const
+std::string request_context::query() const
 {
     auto target = req_.target();
     auto pos = target.find('?');
     return (pos != std::string::npos) ? target.substr(pos + 1) : "";
 }
 
-std::string RequestContext::body() const
+std::string request_context::body() const
 {
     return req_.body();
 }
 
-std::string RequestContext::header(const std::string &key, const std::string &default_value) const
+std::string request_context::header(const std::string &key, const std::string &default_value) const
 {
     auto it = req_.find(key);
     return (it != req_.end()) ? std::string(it->value()) : default_value;
 }
 
-std::string RequestContext::header(http::field key, const std::string &default_value) const
+std::string request_context::header(http::field key, const std::string &default_value) const
 {
     auto it = req_.find(key);
     return (it != req_.end()) ? std::string(it->value()) : default_value;
 }
 
 // ------------------- path / query -------------------
-void RequestContext::set_path_parameters(const std::unordered_map<std::string, std::string> &params)
+void request_context::set_path_parameters(const std::unordered_map<std::string, std::string> &params)
 {
     path_params_ = params;
 }
 
-bool RequestContext::contains_path_parameter(const std::string &key) const
+bool request_context::contains_path_parameter(const std::string &key) const
 {
     return path_params_.find(key) != path_params_.end();
 }
 
-std::string RequestContext::path_parameter(const std::string &key) const
+std::string request_context::path_parameter(const std::string &key) const
 {
     auto it = path_params_.find(key);
     return it != path_params_.end() ? it->second : "";
 }
 
-std::unordered_map<std::string, std::string> RequestContext::path_parameters() const
+std::unordered_map<std::string, std::string> request_context::path_parameters() const
 {
     return path_params_;
 }
 
-const std::unordered_map<std::string, std::vector<std::string>> &RequestContext::query_parameters() const
+const std::unordered_map<std::string, std::vector<std::string>> &request_context::query_parameters() const
 {
     return query_params_;
 }
 
-void RequestContext::parse_query_(const std::string &query)
+void request_context::_parse_query(const std::string &query)
 {
     query_params_.clear();
     std::istringstream iss(query);
@@ -168,7 +168,7 @@ void RequestContext::parse_query_(const std::string &query)
 }
 
 // ------------------- cookies -------------------
-void RequestContext::parse_cookies_()
+void request_context::_parse_cookies()
 {
     cookies_.clear();
     auto it = req_.find(http::field::cookie);
@@ -195,18 +195,18 @@ void RequestContext::parse_cookies_()
     }
 }
 
-std::string RequestContext::cookie(const std::string &key) const
+std::string request_context::cookie(const std::string &key) const
 {
     auto it = cookies_.find(key);
     return it != cookies_.end() ? it->second : "";
 }
 
-const std::unordered_map<std::string, std::string> &RequestContext::cookies() const
+const std::unordered_map<std::string, std::string> &request_context::cookies() const
 {
     return cookies_;
 }
 
-bool RequestContext::has(const std::string &key) const
+bool request_context::has(const std::string &key) const
 {
     std::shared_lock lock(items_mutex_);
     return items_.find(key) != items_.end();

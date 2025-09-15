@@ -8,37 +8,25 @@
 #pragma once
 
 #include <foxhttp/parser/parser.hpp>
+#include <foxhttp/config/configs.hpp>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace foxhttp {
 
-// Forward declarations
-class PlainTextParser;
+class plain_text_parser;
+using plain_text_config = ::foxhttp::plain_text_config;
 
-/**
- * @brief Configuration for plain text parsing
- */
-struct PlainTextConfig
-{
-    std::size_t max_size = 10 * 1024 * 1024;       // 10MB max text size
-    bool normalize_line_endings = true;            // Convert CRLF to LF
-    bool trim_whitespace = false;                  // Trim leading/trailing whitespace
-    bool validate_encoding = true;                 // Validate UTF-8 encoding
-    std::string charset = "UTF-8";                 // Expected charset
-    std::vector<std::string> allowed_content_types;// Allowed content types
-    bool strict_mode = false;                      // Strict content type checking
-};
+namespace details {
+class plain_text_parser_core;
+}// namespace details
 
-/**
- * @brief Enhanced plain text parser with configuration and validation
- */
-class PlainTextParser : public Parser<std::string>
+class plain_text_parser : public parser<std::string>
 {
 public:
-    explicit PlainTextParser(const PlainTextConfig &config = PlainTextConfig{});
-    ~PlainTextParser();
+    explicit plain_text_parser(const plain_text_config &config = plain_text_config{});
+    ~plain_text_parser();
 
     // Parser interface
     std::string name() const override;
@@ -47,15 +35,12 @@ public:
     std::string parse(const http::request<http::string_body> &req) const override;
 
     // Configuration
-    const PlainTextConfig &config() const;
-    void set_config(const PlainTextConfig &config);
+    const plain_text_config &config() const;
+    void set_config(const plain_text_config &config);
 
 private:
-    class Impl;
-    std::unique_ptr<Impl> pimpl_;
+    std::unique_ptr<details::plain_text_parser_core> core_;
 };
-
-// Register the parser
-REGISTER_PARSER(std::string, PlainTextParser);
+REGISTER_PARSER(std::string, plain_text_parser);
 
 }// namespace foxhttp

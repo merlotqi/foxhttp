@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -9,38 +9,38 @@
 
 namespace foxhttp {
 
-SignalSet::SignalSet(boost::asio::io_context &io_context)
+signal_set::signal_set(boost::asio::io_context &io_context)
     : signals_(io_context), strand_(io_context.get_executor()), stopped_(false)
 {
 }
 
-void SignalSet::register_handler(int signal_number, SignalHandler handler)
+void signal_set::register_handler(int signal_number, signal_handler handler)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     signal_handlers_[signal_number].push_back(std::move(handler));
     signals_.add(signal_number);
 }
 
-void SignalSet::set_error_handler(ErrorHandler handler)
+void signal_set::set_error_handler(error_handler handler)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     error_handler_ = std::move(handler);
 }
 
-void SignalSet::start()
+void signal_set::start()
 {
     if (stopped_)
         return;
-    do_async_wait();
+    _do_async_wait();
 }
 
-void SignalSet::stop()
+void signal_set::stop()
 {
     stopped_ = true;
     signals_.cancel();
 }
 
-void SignalSet::do_async_wait()
+void signal_set::_do_async_wait()
 {
     signals_.async_wait(
             boost::asio::bind_executor(strand_, [self = shared_from_this()](const std::error_code &ec, int sig) {
@@ -51,15 +51,15 @@ void SignalSet::do_async_wait()
                     return;
                 }
 
-                self->handle_signal(sig);
+                self->_handle_signal(sig);
                 if (!self->stopped_)
-                    self->do_async_wait();
+                    self->_do_async_wait();
             }));
 }
 
-void SignalSet::handle_signal(int sig)
+void signal_set::_handle_signal(int sig)
 {
-    std::vector<SignalHandler> handlers;
+    std::vector<signal_handler> handlers;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         auto it = signal_handlers_.find(sig);
@@ -67,18 +67,24 @@ void SignalSet::handle_signal(int sig)
             handlers = it->second;
     }
 
-    for (auto &h: handlers) h(sig, siganl_name(sig));
+    for (auto &h: handlers) h(sig, _siganl_name(sig));
 }
 
-std::string SignalSet::siganl_name(int sig)
+std::string signal_set::_siganl_name(int sig)
 {
     static const std::unordered_map<int, std::string> names = {
-            { SIGINT,  "SIGINT"},
-            {SIGTERM, "SIGTERM"},
-            { SIGHUP,  "SIGHUP"},
-            {SIGQUIT, "SIGQUIT"},
-            {SIGUSR1, "SIGUSR1"},
-            {SIGUSR2, "SIGUSR2"}
+        { SIGINT,  "SIGINT"},
+        { SIGTERM, "SIGTERM"},
+        #ifndef _WIN32
+        { SIGHUP,  "SIGHUP"},
+        { SIGQUIT, "SIGQUIT"},
+        { SIGUSR1, "SIGUSR1"},
+        { SIGUSR2, "SIGUSR2"},
+        { SIGPIPE, "SIGPIPE"},
+        { SIGALRM, "SIGALRM"},
+        #endif
+        #ifdef _WIN32
+        #endif
     };
     auto it = names.find(sig);
     return it != names.end() ? it->second : "UNKNOWN";

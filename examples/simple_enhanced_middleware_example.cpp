@@ -3,7 +3,7 @@
  * Copyright (C) 2025 Rain Merlot
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
- * Simple Enhanced Middleware Example - Demonstrates the improved middleware system
+ * Simple Enhanced middleware Example - Demonstrates the improved middleware system
  */
 
 #include <chrono>
@@ -21,7 +21,7 @@ int main()
         boost::asio::io_context io_context;
 
         // Create middleware chain with IO context
-        MiddlewareChain chain(io_context);
+        middleware_chain chain(io_context);
 
         // Enable statistics
         chain.enable_statistics(true);
@@ -29,51 +29,9 @@ int main()
         // Set global timeout
         chain.set_global_timeout(std::chrono::milliseconds(5000));
 
-        // Add middlewares using the utility functions
-        chain.use(middleware_utils::create_logger("RequestLogger"));
-        chain.use(middleware_utils::create_cors("*"));
-        chain.use(middleware_utils::create_response_time());
-
-        // Add a custom middleware using the builder pattern
-        auto custom_middleware = MiddlewareBuilder()
-                                         .name("CustomMiddleware")
-                                         .priority(middleware_priority::normal)
-                                         .sync([](RequestContext &ctx, http::response<http::string_body> &res,
-                                                  std::function<void()> next) {
-                                             std::cout << "Custom middleware processing: " << ctx.path() << std::endl;
-                                             next();
-                                         })
-                                         .build();
-
-        chain.use(custom_middleware);
-
-        // Add a route handler
-        auto route_handler =
-                MiddlewareBuilder()
-                        .name("RouteHandler")
-                        .priority(middleware_priority::low)
-                        .sync([](RequestContext &ctx, http::response<http::string_body> &res,
-                                 std::function<void()> next) {
-                            if (ctx.path() == "/api/hello")
-                            {
-                                res.result(http::status::ok);
-                                res.set(http::field::content_type, "application/json");
-                                res.body() =
-                                        R"({"message": "Hello from enhanced FoxHTTP!", "features": ["async", "priority", "statistics", "timeout"]})";
-                            }
-                            else
-                            {
-                                res.result(http::status::not_found);
-                                res.set(http::field::content_type, "text/plain");
-                                res.body() = "Not found";
-                            }
-                        })
-                        .build();
-
-        chain.use(route_handler);
 
         // Print middleware names
-        std::cout << "=== Middleware Chain ===" << std::endl;
+        std::cout << "=== middleware Chain ===" << std::endl;
         for (const auto &name: chain.get_middleware_names())
         {
             std::cout << "  - " << name << std::endl;
@@ -88,7 +46,7 @@ int main()
         req.body() = "";
         req.prepare_payload();
 
-        RequestContext ctx(req);
+        request_context ctx(req);
         http::response<http::string_body> res;
 
         // Test synchronous execution
@@ -124,7 +82,7 @@ int main()
         chain.print_statistics();
 
         // Test middleware removal
-        std::cout << "=== Testing Middleware Removal ===" << std::endl;
+        std::cout << "=== Testing middleware Removal ===" << std::endl;
         chain.remove("CustomMiddleware");
         std::cout << "After removal:" << std::endl;
         for (const auto &name: chain.get_middleware_names())

@@ -1,9 +1,9 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
- * Enhanced Middleware Example - Demonstrates the improved middleware system
+ * Enhanced middleware Example - Demonstrates the improved middleware system
  */
 
 #include <chrono>
@@ -22,7 +22,7 @@ public:
         return "LoggerMiddleware";
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override
     {
         auto start = std::chrono::steady_clock::now();
 
@@ -36,7 +36,7 @@ public:
         std::cout << "Request processed in " << duration.count() << " μs" << std::endl;
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
                     AsyncMiddlewareCallback callback) override
     {
         auto start = std::chrono::steady_clock::now();
@@ -54,7 +54,7 @@ public:
 };
 
 // Example middleware with normal priority and timeout
-class AuthMiddleware : public Middleware
+class AuthMiddleware : public middleware
 {
 public:
     std::string name() const override
@@ -66,7 +66,7 @@ public:
         return std::chrono::milliseconds(1000);
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override
     {
         std::string auth_header = ctx.header("Authorization");
 
@@ -90,7 +90,7 @@ public:
         next();
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
                     AsyncMiddlewareCallback callback) override
     {
         std::string auth_header = ctx.header("Authorization");
@@ -122,7 +122,7 @@ public:
 };
 
 // Example middleware with conditional execution
-class RateLimitMiddleware : public Middleware
+class RateLimitMiddleware : public middleware
 {
 public:
     std::string name() const override
@@ -130,13 +130,13 @@ public:
         return "RateLimitMiddleware";
     }
 
-    bool should_execute(RequestContext &ctx) const override
+    bool should_execute(request_context &ctx) const override
     {
         // Only apply rate limiting to POST requests
         return ctx.method() == http::verb::post;
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override
     {
         std::cout << "Rate limiting applied to POST request" << std::endl;
         next();
@@ -152,20 +152,20 @@ public:
         return "ResponseMiddleware";
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override
     {
         next();
 
         // Add response headers after processing
         res.set(http::field::server, "FoxHTTP/1.0");
-        res.set("X-Processed-By", "FoxHTTP-Middleware");
+        res.set("X-Processed-By", "FoxHTTP-middleware");
 
         std::cout << "Response headers added" << std::endl;
     }
 };
 
 // Example route handler
-class RouteHandler : public Middleware
+class RouteHandler : public middleware
 {
 public:
     std::string name() const override
@@ -173,7 +173,7 @@ public:
         return "RouteHandler";
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override
     {
         if (ctx.path() == "/api/hello")
         {
@@ -203,7 +203,7 @@ int main()
         boost::asio::io_context io_context;
 
         // Create middleware chain with IO context
-        MiddlewareChain chain(io_context);
+        middleware_chain chain(io_context);
 
         // Enable statistics
         chain.enable_statistics(true);
@@ -213,7 +213,7 @@ int main()
 
         // Set error handler
         chain.set_error_handler(
-                [](RequestContext &ctx, http::response<http::string_body> &res, const std::exception &e) {
+                [](request_context &ctx, http::response<http::string_body> &res, const std::exception &e) {
                     std::cout << "Error in middleware: " << e.what() << std::endl;
                     res.result(http::status::internal_server_error);
                     res.set(http::field::content_type, "text/plain");
@@ -221,7 +221,7 @@ int main()
                 });
 
         // Set timeout handler
-        chain.set_timeout_handler([](RequestContext &ctx, http::response<http::string_body> &res) {
+        chain.set_timeout_handler([](request_context &ctx, http::response<http::string_body> &res) {
             std::cout << "Request timeout" << std::endl;
             res.result(http::status::gateway_timeout);
             res.set(http::field::content_type, "text/plain");
@@ -229,14 +229,13 @@ int main()
         });
 
         // Add middlewares (they will be automatically sorted by priority)
-        chain.use(std::make_shared<LoggerMiddleware>());
         chain.use(std::make_shared<AuthMiddleware>());
         chain.use(std::make_shared<RateLimitMiddleware>());
         chain.use(std::make_shared<RouteHandler>());
         chain.use(std::make_shared<ResponseMiddleware>());
 
         // Print middleware names
-        std::cout << "Middleware chain:" << std::endl;
+        std::cout << "middleware chain:" << std::endl;
         for (const auto &name: chain.get_middleware_names())
         {
             std::cout << "  - " << name << std::endl;
@@ -252,7 +251,7 @@ int main()
         req.body() = "";
         req.prepare_payload();
 
-        RequestContext ctx(req);
+        request_context ctx(req);
         http::response<http::string_body> res;
 
         // Test synchronous execution
@@ -288,7 +287,7 @@ int main()
         chain.print_statistics();
 
         // Test conditional middleware
-        std::cout << "=== Testing Conditional Middleware ===" << std::endl;
+        std::cout << "=== Testing Conditional middleware ===" << std::endl;
         http::request<http::string_body> post_req;
         post_req.method(http::verb::post);
         post_req.target("/api/data");
@@ -297,7 +296,7 @@ int main()
         post_req.body() = R"({"data": "test"})";
         post_req.prepare_payload();
 
-        RequestContext post_ctx(post_req);
+        request_context post_ctx(post_req);
         http::response<http::string_body> post_res;
 
         chain.execute(post_ctx, post_res);

@@ -12,30 +12,30 @@
 
 namespace foxhttp {
 
-LoggerMiddleware::LoggerMiddleware(const std::string &name, LogLevel level, LogFormat format,
+logger_middleware::logger_middleware(const std::string &name, log_level level, log_format format,
                                    const std::string &log_file, bool enable_console)
     : name_(name), level_(level), format_(format), log_file_(log_file), enable_console_(enable_console)
 {
-    setup_logger();
+    _setup_logger();
 }
 
-std::string LoggerMiddleware::name() const
+std::string logger_middleware::name() const
 {
     return name_;
 }
 
-void LoggerMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
+void logger_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
                                   std::function<void()> next)
 {
     auto start = std::chrono::steady_clock::now();
-    auto request_id = generate_request_id();
+    auto request_id = _generate_request_id();
 
     // Store request info in context
     ctx.set("request_id", request_id);
     ctx.set("logger_start_time", start);
 
     // Log request start
-    log_request_start(ctx, request_id);
+    _log_request_start(ctx, request_id);
 
     try
     {
@@ -45,7 +45,7 @@ void LoggerMiddleware::operator()(RequestContext &ctx, http::response<http::stri
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
         // Log request completion
-        log_request_complete(ctx, res, request_id, duration, false);
+        _log_request_complete(ctx, res, request_id, duration, false);
     }
     catch (const std::exception &e)
     {
@@ -53,23 +53,23 @@ void LoggerMiddleware::operator()(RequestContext &ctx, http::response<http::stri
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
         // Log request error
-        log_request_error(ctx, res, request_id, duration, e.what());
+        _log_request_error(ctx, res, request_id, duration, e.what());
         throw;// Re-throw the exception
     }
 }
 
-void LoggerMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
-                                  std::function<void()> next, AsyncMiddlewareCallback callback)
+void logger_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+                                  std::function<void()> next, async_middleware_callback callback)
 {
     auto start = std::chrono::steady_clock::now();
-    auto request_id = generate_request_id();
+    auto request_id = _generate_request_id();
 
     // Store request info in context
     ctx.set("request_id", request_id);
     ctx.set("logger_start_time", start);
 
     // Log request start
-    log_request_start(ctx, request_id);
+    _log_request_start(ctx, request_id);
 
     // Create async callback wrapper
     auto async_callback = [this, &ctx, &res, request_id, start, callback](middleware_result result,
@@ -80,16 +80,16 @@ void LoggerMiddleware::operator()(RequestContext &ctx, http::response<http::stri
         switch (result)
         {
             case middleware_result::continue_:
-                log_request_complete(ctx, res, request_id, duration, true);
+                _log_request_complete(ctx, res, request_id, duration, true);
                 break;
             case middleware_result::error:
-                log_request_error(ctx, res, request_id, duration, error_message);
+                _log_request_error(ctx, res, request_id, duration, error_message);
                 break;
             case middleware_result::timeout:
-                log_request_timeout(ctx, res, request_id, duration);
+                _log_request_timeout(ctx, res, request_id, duration);
                 break;
             case middleware_result::stop:
-                log_request_stopped(ctx, res, request_id, duration);
+                _log_request_stopped(ctx, res, request_id, duration);
                 break;
         }
 
@@ -101,29 +101,29 @@ void LoggerMiddleware::operator()(RequestContext &ctx, http::response<http::stri
 }
 
 // Configuration methods
-void LoggerMiddleware::set_log_level(LogLevel level)
+void logger_middleware::set_log_level(log_level level)
 {
     level_ = level;
 }
 
-void LoggerMiddleware::set_log_format(LogFormat format)
+void logger_middleware::set_log_format(log_format format)
 {
     format_ = format;
 }
 
-void LoggerMiddleware::set_log_file(const std::string &file)
+void logger_middleware::set_log_file(const std::string &file)
 {
     log_file_ = file;
-    setup_logger();
+    _setup_logger();
 }
 
-void LoggerMiddleware::set_console_enabled(bool enabled)
+void logger_middleware::set_console_enabled(bool enabled)
 {
     enable_console_ = enabled;
-    setup_logger();
+    _setup_logger();
 }
 
-void LoggerMiddleware::setup_logger()
+void logger_middleware::_setup_logger()
 {
     std::vector<spdlog::sink_ptr> sinks;
 
@@ -159,7 +159,7 @@ void LoggerMiddleware::setup_logger()
     }
 }
 
-std::string LoggerMiddleware::generate_request_id()
+std::string logger_middleware::_generate_request_id()
 {
     static std::atomic<uint64_t> counter{0};
     auto now = std::chrono::system_clock::now();
@@ -167,26 +167,26 @@ std::string LoggerMiddleware::generate_request_id()
     return fmt::format("{}-{}", timestamp, ++counter);
 }
 
-void LoggerMiddleware::log_request_start(const RequestContext &ctx, const std::string &request_id)
+void logger_middleware::_log_request_start(const request_context &ctx, const std::string &request_id)
 {
     if (!logger_)
         return;
 
     switch (format_)
     {
-        case LogFormat::SIMPLE:
+        case log_format::simple:
             logger_->info("{} {} {} [{}]", ctx.method_string(), ctx.path(), ctx.header("User-Agent", "unknown"),
                           request_id);
             break;
 
-        case LogFormat::DETAILED:
+        case log_format::detailed:
             logger_->info("Request started - ID: {}, Method: {}, Path: {}, IP: {}, User-Agent: {}", request_id,
                           ctx.method_string(), ctx.path(),
                           ctx.header("X-Forwarded-For", ctx.header("X-Real-IP", "unknown")),
                           ctx.header("User-Agent", "unknown"));
             break;
 
-        case LogFormat::JSON:
+        case log_format::json:
             logger_->info(
                     R"({{"event":"request_start","id":"{}","method":"{}","path":"{}","ip":"{}","user_agent":"{}","timestamp":"{}"}})",
                     request_id, ctx.method_string(), ctx.path(),
@@ -197,15 +197,15 @@ void LoggerMiddleware::log_request_start(const RequestContext &ctx, const std::s
                             .count());
             break;
 
-        case LogFormat::APACHE:
+        case log_format::apache:
             logger_->info("{} - - [{}] \"{} {} HTTP/1.1\" - - \"{}\" \"{}\"",
-                          ctx.header("X-Forwarded-For", ctx.header("X-Real-IP", "-")), get_apache_timestamp(),
+                          ctx.header("X-Forwarded-For", ctx.header("X-Real-IP", "-")), _get_apache_timestamp(),
                           ctx.method_string(), ctx.path(), ctx.header("Referer", "-"), ctx.header("User-Agent", "-"));
             break;
     }
 }
 
-void LoggerMiddleware::log_request_complete(const RequestContext &ctx, const http::response<http::string_body> &res,
+void logger_middleware::_log_request_complete(const request_context &ctx, const http::response<http::string_body> &res,
                                             const std::string &request_id, std::chrono::microseconds duration,
                                             bool async)
 {
@@ -217,19 +217,19 @@ void LoggerMiddleware::log_request_complete(const RequestContext &ctx, const htt
 
     switch (format_)
     {
-        case LogFormat::SIMPLE:
+        case log_format::simple:
             logger_->info("{} {} {} {} {}ms [{}]", ctx.method_string(), ctx.path(), status_code, res.body().size(),
                           duration_ms, request_id);
             break;
 
-        case LogFormat::DETAILED:
+        case log_format::detailed:
             logger_->info("Request completed - ID: {}, Method: {}, Path: {}, Status: {}, "
                           "Size: {} bytes, Duration: {:.2f}ms, Async: {}",
                           request_id, ctx.method_string(), ctx.path(), status_code, res.body().size(), duration_ms,
                           async);
             break;
 
-        case LogFormat::JSON:
+        case log_format::json:
             logger_->info(
                     R"({{"event":"request_complete","id":"{}","method":"{}","path":"{}","status":{},"size":{},"duration_ms":{:.2f},"async":{},"timestamp":"{}"}})",
                     request_id, ctx.method_string(), ctx.path(), status_code, res.body().size(), duration_ms, async,
@@ -238,16 +238,16 @@ void LoggerMiddleware::log_request_complete(const RequestContext &ctx, const htt
                             .count());
             break;
 
-        case LogFormat::APACHE:
+        case log_format::apache:
             logger_->info("{} - - [{}] \"{} {} HTTP/1.1\" {} {} \"{}\" \"{}\"",
-                          ctx.header("X-Forwarded-For", ctx.header("X-Real-IP", "-")), get_apache_timestamp(),
+                          ctx.header("X-Forwarded-For", ctx.header("X-Real-IP", "-")), _get_apache_timestamp(),
                           ctx.method_string(), ctx.path(), status_code, res.body().size(), ctx.header("Referer", "-"),
                           ctx.header("User-Agent", "-"));
             break;
     }
 }
 
-void LoggerMiddleware::log_request_error(const RequestContext &ctx, const http::response<http::string_body> &res,
+void logger_middleware::_log_request_error(const request_context &ctx, const http::response<http::string_body> &res,
                                          const std::string &request_id, std::chrono::microseconds duration,
                                          const std::string &error)
 {
@@ -259,17 +259,17 @@ void LoggerMiddleware::log_request_error(const RequestContext &ctx, const http::
 
     switch (format_)
     {
-        case LogFormat::SIMPLE:
+        case log_format::simple:
             logger_->error("{} {} {} ERROR: {} [{}]", ctx.method_string(), ctx.path(), status_code, error, request_id);
             break;
 
-        case LogFormat::DETAILED:
+        case log_format::detailed:
             logger_->error("Request error - ID: {}, Method: {}, Path: {}, Status: {}, "
                            "Error: {}, Duration: {:.2f}ms",
                            request_id, ctx.method_string(), ctx.path(), status_code, error, duration_ms);
             break;
 
-        case LogFormat::JSON:
+        case log_format::json:
             logger_->error(
                     R"({{"event":"request_error","id":"{}","method":"{}","path":"{}","status":{},"error":"{}","duration_ms":{:.2f},"timestamp":"{}"}})",
                     request_id, ctx.method_string(), ctx.path(), status_code, error, duration_ms,
@@ -278,16 +278,16 @@ void LoggerMiddleware::log_request_error(const RequestContext &ctx, const http::
                             .count());
             break;
 
-        case LogFormat::APACHE:
+        case log_format::apache:
             logger_->error("{} - - [{}] \"{} {} HTTP/1.1\" {} {} \"{}\" \"{}\" ERROR: {}",
-                           ctx.header("X-Forwarded-For", ctx.header("X-Real-IP", "-")), get_apache_timestamp(),
+                           ctx.header("X-Forwarded-For", ctx.header("X-Real-IP", "-")), _get_apache_timestamp(),
                            ctx.method_string(), ctx.path(), status_code, res.body().size(), ctx.header("Referer", "-"),
                            ctx.header("User-Agent", "-"), error);
             break;
     }
 }
 
-void LoggerMiddleware::log_request_timeout(const RequestContext &ctx, const http::response<http::string_body> &res,
+void logger_middleware::_log_request_timeout(const request_context &ctx, const http::response<http::string_body> &res,
                                            const std::string &request_id, std::chrono::microseconds duration)
 {
     if (!logger_)
@@ -298,7 +298,7 @@ void LoggerMiddleware::log_request_timeout(const RequestContext &ctx, const http
                   ctx.path(), duration_ms);
 }
 
-void LoggerMiddleware::log_request_stopped(const RequestContext &ctx, const http::response<http::string_body> &res,
+void logger_middleware::_log_request_stopped(const request_context &ctx, const http::response<http::string_body> &res,
                                            const std::string &request_id, std::chrono::microseconds duration)
 {
     if (!logger_)
@@ -309,7 +309,7 @@ void LoggerMiddleware::log_request_stopped(const RequestContext &ctx, const http
                   ctx.path(), duration_ms);
 }
 
-std::string LoggerMiddleware::get_apache_timestamp()
+std::string logger_middleware::_get_apache_timestamp()
 {
     auto now = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now);

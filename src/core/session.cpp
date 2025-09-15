@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -15,26 +15,26 @@
 
 namespace foxhttp {
 
-Session::Session(tcp::socket socket, std::shared_ptr<MiddlewareChain> global_chain)
+session::session(tcp::socket socket, std::shared_ptr<middleware_chain> global_chain)
     : socket_(std::move(socket)), global_chain_(std::move(global_chain))
 {
 }
 
-void Session::start()
+void session::start()
 {
-    read_request();
+    _read_request();
 }
 
-void Session::read_request()
+void session::_read_request()
 {
     req_ = {};
     http::async_read(socket_, buffer_, req_,
                      [self = shared_from_this()](boost::beast::error_code ec, size_t bytes_transferred) {
-                         self->handle_read(ec, bytes_transferred);
+                         self->_handle_read(ec, bytes_transferred);
                      });
 }
 
-void Session::handle_read(boost::beast::error_code ec, size_t bytes_transferred)
+void session::_handle_read(boost::beast::error_code ec, size_t bytes_transferred)
 {
     if (ec == http::error::end_of_stream)
     {
@@ -48,10 +48,10 @@ void Session::handle_read(boost::beast::error_code ec, size_t bytes_transferred)
         return;
     }
 
-    process_request();
+    _process_request();
 }
 
-void Session::process_request()
+void session::_process_request()
 {
     res_.version(req_.version());
     res_.keep_alive(req_.keep_alive());
@@ -60,9 +60,9 @@ void Session::process_request()
     if (auto pos = path.find('?'); pos != std::string::npos)
         path = path.substr(0, pos);
 
-    RequestContext ctx(req_);
+    request_context ctx(req_);
 
-    auto handler = Router::route(path, ctx);
+    auto handler = router::resolve_route(path, ctx);
 
     if (handler)
     {
@@ -88,11 +88,11 @@ void Session::process_request()
                     }
                     else if (result == middleware_result::stop)
                     {
-                        // Middleware chain was stopped, but we still need to send a response
+                        // middleware chain was stopped, but we still need to send a response
                         // The response should already be set by the middleware
                     }
                     self->res_.prepare_payload();
-                    self->write_response();
+                    self->_write_response();
                 });
     }
     else
@@ -120,16 +120,16 @@ void Session::process_request()
                     }
                     else if (result == middleware_result::stop)
                     {
-                        // Middleware chain was stopped, but we still need to send a response
+                        // middleware chain was stopped, but we still need to send a response
                         // The response should already be set by the middleware
                     }
                     self->res_.prepare_payload();
-                    self->write_response();
+                    self->_write_response();
                 });
     }
 }
 
-void Session::write_response()
+void session::_write_response()
 {
     auto self = shared_from_this();
     http::async_write(socket_, res_, [self](boost::beast::error_code ec, size_t) {
@@ -141,7 +141,7 @@ void Session::write_response()
 
         if (self->res_.keep_alive())
         {
-            self->read_request();
+            self->_read_request();
         }
         else
         {

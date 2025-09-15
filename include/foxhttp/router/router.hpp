@@ -8,18 +8,19 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 namespace foxhttp {
 
-class RequestContext;
-class APIHandler;
+class request_context;
+class api_handler;
 
-class Router
+class router
 {
 public:
-    static void register_static_handler(const std::string &path, std::shared_ptr<APIHandler> handler);
-    static void register_dynamic_handler(const std::string &path, std::shared_ptr<APIHandler> handler);
-    static std::shared_ptr<APIHandler> route(const std::string &path, RequestContext &ctx);
+    static void register_static_handler(const std::string &path, std::shared_ptr<api_handler> handler);
+    static void register_dynamic_handler(const std::string &path, std::shared_ptr<api_handler> handler);
+    static std::shared_ptr<api_handler> resolve_route(const std::string &path, request_context &ctx);
 };
 
 }// namespace foxhttp
@@ -30,7 +31,7 @@ public:
     {                                                                                         \
         HandlerClass##Register()                                                              \
         {                                                                                     \
-            foxhttp::Router::register_static_handler(Path, std::make_shared<HandlerClass>()); \
+            foxhttp::router::register_static_handler(Path, std::make_shared<HandlerClass>()); \
         }                                                                                     \
     } HandlerClass##_register;                                                                \
     }
@@ -41,7 +42,7 @@ public:
     {                                                                                          \
         HandlerClass##Register()                                                               \
         {                                                                                      \
-            foxhttp::Router::register_dynamic_handler(Path, std::make_shared<HandlerClass>()); \
+            foxhttp::router::register_dynamic_handler(Path, std::make_shared<HandlerClass>()); \
         }                                                                                      \
     } HandlerClass##_register;                                                                 \
     }

@@ -8,6 +8,7 @@
 #pragma once
 
 #include <foxhttp/parser/parser.hpp>
+#include <foxhttp/config/configs.hpp>
 #include <functional>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -16,25 +17,11 @@
 
 namespace foxhttp {
 
-class JsonParser;
+class json_parser;
 
-struct JsonConfig
-{
-    std::size_t max_size = 10 * 1024 * 1024;// 10MB max JSON size
-    std::size_t max_depth = 100;            // Max nesting depth
-    bool strict_mode = true;                // Strict JSON compliance
-    bool allow_comments = false;            // Allow // and /* */ comments
-    bool allow_trailing_commas = false;     // Allow trailing commas
-    bool allow_duplicate_keys = true;       // Allow duplicate object keys
-    bool validate_schema = false;           // Enable schema validation
-    nlohmann::json schema;                  // JSON schema for validation
-    std::string charset = "UTF-8";          // Default charset
-};
+using json_config = ::foxhttp::json_config;
 
-/**
- * @brief JSON validation result
- */
-struct JsonValidationResult
+struct json_validation_result
 {
     bool is_valid = true;
     std::vector<std::string> errors;
@@ -52,11 +39,15 @@ struct JsonValidationResult
     }
 };
 
-class JsonParser : public Parser<nlohmann::json>
+namespace details {
+    class json_parser_core;
+}
+
+class json_parser : public parser<nlohmann::json>
 {
 public:
-    explicit JsonParser(const JsonConfig &config = JsonConfig{});
-    ~JsonParser();
+    explicit json_parser(const json_config &config = json_config{});
+    ~json_parser();
 
     // Parser interface
     std::string name() const override;
@@ -65,13 +56,13 @@ public:
     nlohmann::json parse(const http::request<http::string_body> &req) const override;
 
     // Configuration
-    const JsonConfig &config() const;
-    void set_config(const JsonConfig &config);
+    const json_config &config() const;
+    void set_config(const json_config &config);
 
 private:
-    class Impl;
-    std::unique_ptr<Impl> pimpl_;
+    friend class details::json_parser_core;
+    std::unique_ptr<details::json_parser_core> core_;
 };
-REGISTER_PARSER(nlohmann::json, JsonParser);
+REGISTER_PARSER(nlohmann::json, json_parser);
 
 }// namespace foxhttp

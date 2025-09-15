@@ -12,10 +12,10 @@
 
 namespace foxhttp {
 
-class CorsMiddleware : public PriorityMiddleware<middleware_priority::high>
+class cors_middleware : public priority_middleware<middleware_priority::high>
 {
 public:
-    explicit CorsMiddleware(const std::string &origin = "*",
+    explicit cors_middleware(const std::string &origin = "*",
                             const std::string &methods = "GET, POST, PUT, DELETE, OPTIONS",
                             const std::string &headers = "Content-Type, Authorization")
         : origin_(origin), methods_(methods), headers_(headers)
@@ -27,7 +27,7 @@ public:
         return "CorsMiddleware";
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override
     {
         // Set CORS headers
         res.set("Access-Control-Allow-Origin", origin_);
@@ -45,8 +45,8 @@ public:
         next();
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
-                    AsyncMiddlewareCallback callback) override
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
+                    async_middleware_callback callback) override
     {
         // Set CORS headers
         res.set("Access-Control-Allow-Origin", origin_);

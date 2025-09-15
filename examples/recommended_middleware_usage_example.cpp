@@ -3,7 +3,7 @@
  * Copyright (C) 2025 Rain Merlot
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
- * Recommended Middleware Usage Example
+ * Recommended middleware Usage Example
  * Demonstrates the proper way to use middlewares without MiddlewareBuilder
  */
 
@@ -15,7 +15,7 @@
 using namespace foxhttp;
 
 // Custom middleware using proper inheritance
-class CustomAuthMiddleware : public Middleware
+class CustomAuthMiddleware : public middleware
 {
 public:
     explicit CustomAuthMiddleware(const std::string &secret_key) : secret_key_(secret_key) {}
@@ -29,7 +29,7 @@ public:
         return middleware_priority::high;
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override
     {
         std::string auth_header = ctx.header("Authorization");
 
@@ -53,7 +53,7 @@ public:
         next();
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
                     AsyncMiddlewareCallback callback) override
     {
         std::string auth_header = ctx.header("Authorization");
@@ -96,7 +96,7 @@ public:
         return "RouteHandlerMiddleware";
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override
     {
         if (ctx.path() == "/api/hello")
         {
@@ -131,11 +131,11 @@ int main()
         boost::asio::io_context io_context;
 
         // Create middleware chain
-        MiddlewareChain chain(io_context);
+        middleware_chain chain(io_context);
         chain.enable_statistics(true);
         chain.set_global_timeout(std::chrono::milliseconds(5000));
 
-        std::cout << "=== Recommended Middleware Usage ===" << std::endl;
+        std::cout << "=== Recommended middleware Usage ===" << std::endl;
 
         // Method 1: Use specific middleware classes (RECOMMENDED)
         std::cout << "\n1. Using specific middleware classes:" << std::endl;
@@ -153,7 +153,7 @@ int main()
         // Method 3: Use SimpleFunctionalMiddleware for quick prototyping (DEPRECATED)
         std::cout << "\n3. Using SimpleFunctionalMiddleware (deprecated, for quick prototyping):" << std::endl;
         // auto quick_middleware = std::make_shared<SimpleFunctionalMiddleware>("QuickMW",
-        //     [](const RequestContext& ctx, auto& res, auto next) {
+        //     [](const request_context& ctx, auto& res, auto next) {
         //         std::cout << "Quick middleware: " << ctx.path() << std::endl;
         //         next();
         //     });
@@ -181,7 +181,7 @@ int main()
             req.body() = "";
             req.prepare_payload();
 
-            RequestContext ctx(req);
+            request_context ctx(req);
             http::response<http::string_body> res;
 
             chain.execute_async(ctx, res, [&res](middleware_result result, const std::string &error_message) {

@@ -6,85 +6,51 @@
  */
 
 #include <algorithm>
+#include <foxhttp/parser/details/json_parser_core.hpp>
 #include <foxhttp/parser/json_parser.hpp>
 #include <fstream>
 #include <stdexcept>
 
 namespace foxhttp {
 
-// ============================================================================
-// JsonParser Implementation
-// ============================================================================
-
-class JsonParser::Impl
+json_parser::json_parser(const json_config &config) : core_(std::make_unique<details::json_parser_core>())
 {
-public:
-    JsonConfig config_;
-
-    // Parsing methods
-    nlohmann::json parse_with_validation(const std::string &json_string) const;
-    JsonValidationResult validate_size(const std::string &json_string) const;
-    JsonValidationResult validate_depth(const nlohmann::json &json) const;
-    JsonValidationResult validate_schema(const nlohmann::json &json) const;
-
-    // Utility methods
-    std::size_t calculate_depth(const nlohmann::json &json, std::size_t current_depth = 0) const;
-    std::string preprocess_json(const std::string &json_string) const;
-};
-
-JsonParser::JsonParser(const JsonConfig &config) : pimpl_(std::make_unique<Impl>())
-{
-    pimpl_->config_ = config;
+    core_->config_ = config;
 }
 
-JsonParser::~JsonParser() = default;
+json_parser::~json_parser() = default;
 
-std::string JsonParser::name() const
+std::string json_parser::name() const
 {
     return "json";
 }
 
-std::string JsonParser::content_type() const
+std::string json_parser::content_type() const
 {
     return "application/json";
 }
 
-bool JsonParser::supports(const http::request<http::string_body> &req) const
+bool json_parser::supports(const http::request<http::string_body> &req) const
 {
     auto content_type = req[http::field::content_type];
     return content_type == "application/json" || content_type.starts_with("application/json;");
 }
 
-nlohmann::json JsonParser::parse(const http::request<http::string_body> &req) const
+nlohmann::json json_parser::parse(const http::request<http::string_body> &req) const
 {
     // Validate size
-    if (req.body().size() > pimpl_->config_.max_size)
+    if (req.body().size() > core_->config_.max_size)
     {
         throw std::runtime_error("JSON size exceeds maximum allowed size");
     }
 
-    return pimpl_->parse_with_validation(req.body());
+    return core_->parse_with_validation(req.body());
 }
 
-// parse_string and parse_file moved to private implementation
+namespace details {
 
-const JsonConfig &JsonParser::config() const
-{
-    return pimpl_->config_;
-}
 
-void JsonParser::set_config(const JsonConfig &config)
-{
-    pimpl_->config_ = config;
-}
-
-// All validation, schema, and utility methods moved to private implementation
-
-// ============================================================================
-// JsonParser::Impl Implementation
-// ============================================================================
-
-nlohmann::json JsonParser::Impl::parse_with_validation(const std::string &json_string) const
+nlohmann::json json_parser_core::parse_with_validation(const std::string &json_string) const
 {
     // Preprocess JSON if needed
     std::string processed_json = preprocess_json(json_string);
@@ -108,9 +74,9 @@ nlohmann::json JsonParser::Impl::parse_with_validation(const std::string &json_s
     }
 }
 
-JsonValidationResult JsonParser::Impl::validate_size(const std::string &json_string) const
+json_validation_result json_parser_core::validate_size(const std::string &json_string) const
 {
-    JsonValidationResult result;
+    json_validation_result result;
 
     if (json_string.size() > config_.max_size)
     {
@@ -121,9 +87,9 @@ JsonValidationResult JsonParser::Impl::validate_size(const std::string &json_str
     return result;
 }
 
-JsonValidationResult JsonParser::Impl::validate_depth(const nlohmann::json &json) const
+json_validation_result json_parser_core::validate_depth(const nlohmann::json &json) const
 {
-    JsonValidationResult result;
+    json_validation_result result;
 
     std::size_t depth = calculate_depth(json);
     if (depth > config_.max_depth)
@@ -135,9 +101,9 @@ JsonValidationResult JsonParser::Impl::validate_depth(const nlohmann::json &json
     return result;
 }
 
-JsonValidationResult JsonParser::Impl::validate_schema(const nlohmann::json &json) const
+json_validation_result json_parser_core::validate_schema(const nlohmann::json &json) const
 {
-    JsonValidationResult result;
+    json_validation_result result;
 
     // Basic schema validation (simplified)
     // In a real implementation, you'd use a proper JSON schema validator
@@ -191,7 +157,7 @@ JsonValidationResult JsonParser::Impl::validate_schema(const nlohmann::json &jso
     return result;
 }
 
-std::size_t JsonParser::Impl::calculate_depth(const nlohmann::json &json, std::size_t current_depth) const
+std::size_t json_parser_core::calculate_depth(const nlohmann::json &json, std::size_t current_depth) const
 {
     if (json.is_object())
     {
@@ -215,7 +181,7 @@ std::size_t JsonParser::Impl::calculate_depth(const nlohmann::json &json, std::s
     return current_depth;
 }
 
-std::string JsonParser::Impl::preprocess_json(const std::string &json_string) const
+std::string json_parser_core::preprocess_json(const std::string &json_string) const
 {
     std::string result = json_string;
 
@@ -256,5 +222,7 @@ std::string JsonParser::Impl::preprocess_json(const std::string &json_string) co
 
     return result;
 }
+
+}// namespace details
 
 }// namespace foxhttp

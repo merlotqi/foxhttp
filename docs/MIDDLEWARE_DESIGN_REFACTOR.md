@@ -1,4 +1,4 @@
-# Middleware Design Refactor
+# middleware Design Refactor
 
 ## Overview
 
@@ -26,7 +26,7 @@ The `MiddlewareBuilder` was created as a convenience tool, but it became redunda
 - Replaced with `SimpleFunctionalMiddleware` for quick prototyping only
 - Marked as deprecated for future removal
 
-### 2. Created Dedicated Middleware Classes
+### 2. Created Dedicated middleware Classes
 
 #### Basic Middlewares (`middleware/basic/`)
 
@@ -62,11 +62,11 @@ middleware_utils::factories::create_response_time_middleware();
 
 ## Usage Patterns
 
-### 1. Recommended: Dedicated Middleware Classes
+### 1. Recommended: Dedicated middleware Classes
 
 ```cpp
 // Create middleware chain
-MiddlewareChain chain(io_context);
+middleware_chain chain(io_context);
 
 // Use specific middleware classes
 chain.use(middleware_utils::factories::create_logger_middleware("RequestLogger"));
@@ -75,21 +75,21 @@ chain.use(std::make_shared<CustomAuthMiddleware>("secret-key"));
 chain.use(middleware_utils::factories::create_response_time_middleware());
 ```
 
-### 2. Custom Middleware Implementation
+### 2. Custom middleware Implementation
 
 ```cpp
-class CustomMiddleware : public Middleware {
+class CustomMiddleware : public middleware {
 public:
     std::string name() const override { return "CustomMiddleware"; }
     middleware_priority priority() const override { return middleware_priority::normal; }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res,
+    void operator()(request_context &ctx, http::response<http::string_body> &res,
                     std::function<void()> next) override {
         // Synchronous processing
         next();
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res,
+    void operator()(request_context &ctx, http::response<http::string_body> &res,
                     std::function<void()> next, AsyncMiddlewareCallback callback) override {
         // Asynchronous processing
         callback(middleware_result::continue_, "");
@@ -97,12 +97,12 @@ public:
 };
 ```
 
-### 3. Legacy: Simple Functional Middleware (Deprecated)
+### 3. Legacy: Simple Functional middleware (Deprecated)
 
 ```cpp
 // Only for quick prototyping - will be removed in future versions
 auto quick_mw = std::make_shared<SimpleFunctionalMiddleware>("QuickMW",
-    [](const RequestContext& ctx, auto& res, auto next) {
+    [](const request_context& ctx, auto& res, auto next) {
         // Processing logic
         next();
     });
@@ -150,7 +150,7 @@ auto quick_mw = std::make_shared<SimpleFunctionalMiddleware>("QuickMW",
 auto middleware = MiddlewareBuilder()
     .name("MyMiddleware")
     .priority(middleware_priority::high)
-    .sync([](const RequestContext& ctx, auto& res, auto next) {
+    .sync([](const request_context& ctx, auto& res, auto next) {
         // Processing logic
         next();
     })
@@ -160,12 +160,12 @@ auto middleware = MiddlewareBuilder()
 #### After (Recommended)
 
 ```cpp
-class MyMiddleware : public Middleware {
+class MyMiddleware : public middleware {
 public:
     std::string name() const override { return "MyMiddleware"; }
     middleware_priority priority() const override { return middleware_priority::high; }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res,
+    void operator()(request_context &ctx, http::response<http::string_body> &res,
                     std::function<void()> next) override {
         // Processing logic
         next();
@@ -220,7 +220,7 @@ chain.use(middleware_utils::factories::create_logger_middleware("LoggerName"));
 
 ### 2. **Follow Naming Conventions**
 
-- Use descriptive names ending with "Middleware"
+- Use descriptive names ending with "middleware"
 - Use consistent naming patterns
 - Document the purpose and behavior
 

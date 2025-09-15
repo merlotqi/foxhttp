@@ -8,180 +8,141 @@
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include <cctype>
+#include <foxhttp/parser/details/form_parser_core.hpp>
 #include <foxhttp/parser/form_parser.hpp>
 #include <sstream>
 #include <stdexcept>
 
 namespace foxhttp {
 
-// ============================================================================
-// FormField Implementation
-// ============================================================================
+/* ------------------------------- form_field ------------------------------- */
 
-class FormField::Impl
+form_field::form_field() : core_(std::make_unique<details::form_field_core>()) {}
+
+form_field::~form_field() = default;
+
+const std::string &form_field::name() const
 {
-public:
-    std::string name_;
-    std::vector<std::string> values_;
-    bool is_array_;
-
-    Impl() : is_array_(false) {}
-};
-
-FormField::FormField() : pimpl_(std::make_unique<Impl>()) {}
-
-FormField::~FormField() = default;
-
-const std::string &FormField::name() const
-{
-    return pimpl_->name_;
+    return core_->name_;
 }
 
-bool FormField::is_array() const
+bool form_field::is_array() const
 {
-    return pimpl_->is_array_;
+    return core_->is_array_;
 }
 
-std::size_t FormField::size() const
+std::size_t form_field::size() const
 {
-    return pimpl_->values_.size();
+    return core_->values_.size();
 }
 
-const std::string &FormField::value() const
+const std::string &form_field::value() const
 {
     static const std::string empty;
-    return pimpl_->values_.empty() ? empty : pimpl_->values_[0];
+    return core_->values_.empty() ? empty : core_->values_[0];
 }
 
-const std::vector<std::string> &FormField::values() const
+const std::vector<std::string> &form_field::values() const
 {
-    return pimpl_->values_;
+    return core_->values_;
 }
 
-std::string FormField::value_at(std::size_t index) const
+std::string form_field::value_at(std::size_t index) const
 {
-    if (index >= pimpl_->values_.size())
+    if (index >= core_->values_.size())
     {
         return "";
     }
-    return pimpl_->values_[index];
+    return core_->values_[index];
 }
 
-bool FormField::is_valid() const
+bool form_field::is_valid() const
 {
-    return !pimpl_->name_.empty() && validation_error().empty();
+    return !core_->name_.empty() && validation_error().empty();
 }
 
-std::string FormField::validation_error() const
+std::string form_field::validation_error() const
 {
-    if (pimpl_->name_.empty())
+    if (core_->name_.empty())
     {
         return "Field name is empty";
     }
     return "";
 }
 
-void FormField::set_name(const std::string &name)
+void form_field::_set_name(const std::string &name)
 {
-    pimpl_->name_ = name;
+    core_->name_ = name;
 }
 
-void FormField::add_value(const std::string &value)
+void form_field::_add_value(const std::string &value)
 {
-    pimpl_->values_.push_back(value);
-    pimpl_->is_array_ = true;
+    core_->values_.push_back(value);
+    core_->is_array_ = true;
 }
 
-void FormField::set_single_value(const std::string &value)
+void form_field::_set_single_value(const std::string &value)
 {
-    pimpl_->values_.clear();
-    pimpl_->values_.push_back(value);
-    pimpl_->is_array_ = false;
+    core_->values_.clear();
+    core_->values_.push_back(value);
+    core_->is_array_ = false;
 }
 
-// ============================================================================
-// FormParser Implementation
-// ============================================================================
+/* ------------------------------- form_parser ------------------------------ */
 
-class FormParser::Impl
+form_parser::form_parser(const form_config &config) : core_(std::make_unique<details::form_parser_core>())
 {
-public:
-    FormConfig config_;
-
-    // Parsing methods
-    FormData parse_pairs(const std::string &data) const;
-    std::string extract_field_name(const std::string &pair) const;
-    std::string extract_field_value(const std::string &pair) const;
-    bool is_array_field(const std::string &name) const;
-    std::string normalize_field_name(const std::string &name) const;
-
-    // Validation
-    bool validate_field_size(const std::string &name, const std::string &value) const;
-    bool validate_total_size(const FormData &data) const;
-    bool validate_field_count(const FormData &data) const;
-    bool validate_field(const FormField &field) const;
-    std::vector<std::string> validate_all_fields(const FormData &data) const;
-
-    // Utility methods
-    std::string url_decode(const std::string &encoded) const;
-    std::string url_encode(const std::string &decoded) const;
-};
-
-FormParser::FormParser(const FormConfig &config) : pimpl_(std::make_unique<Impl>())
-{
-    pimpl_->config_ = config;
+    core_->config_ = config;
 }
 
-FormParser::~FormParser() = default;
+form_parser::~form_parser() = default;
 
-std::string FormParser::name() const
+std::string form_parser::name() const
 {
     return "form";
 }
 
-std::string FormParser::content_type() const
+std::string form_parser::content_type() const
 {
     return "application/x-www-form-urlencoded";
 }
 
-bool FormParser::supports(const http::request<http::string_body> &req) const
+bool form_parser::supports(const http::request<http::string_body> &req) const
 {
     auto content_type = req[http::field::content_type];
     return content_type.starts_with("application/x-www-form-urlencoded");
 }
 
-FormData FormParser::parse(const http::request<http::string_body> &req) const
+form_data form_parser::parse(const http::request<http::string_body> &req) const
 {
     // Validate total size
-    if (req.body().size() > pimpl_->config_.max_total_size)
+    if (req.body().size() > core_->config_.max_total_size)
     {
         throw std::runtime_error("Request body exceeds maximum total size");
     }
 
-    return pimpl_->parse_pairs(req.body());
+    return core_->parse_pairs(req.body());
 }
 
 // parse_string moved to private implementation
 
-const FormConfig &FormParser::config() const
+const form_config &form_parser::config() const
 {
-    return pimpl_->config_;
+    return core_->config_;
 }
 
-void FormParser::set_config(const FormConfig &config)
+void form_parser::set_config(const form_config &config)
 {
-    pimpl_->config_ = config;
+    core_->config_ = config;
 }
 
-// Validation and utility methods moved to private implementation
+/* ------------------------ form_parser_core ----------------------- */
 
-// ============================================================================
-// FormParser::Impl Implementation
-// ============================================================================
+namespace details {
 
-FormData FormParser::Impl::parse_pairs(const std::string &data) const
+form_data form_parser_core::parse_pairs(const std::string &data) const
 {
-    FormData result;
+    form_data result;
     std::istringstream ss(data);
     std::string pair;
 
@@ -211,20 +172,20 @@ FormData FormParser::Impl::parse_pairs(const std::string &data) const
         if (it != result.end())
         {
             // Field already exists, add to array
-            it->second->add_value(value);
+            it->second->_add_value(value);
         }
         else
         {
             // Create new field
-            auto field = std::make_unique<FormField>();
-            field->set_name(normalized_name);
+            auto field = std::make_unique<form_field>();
+            field->_set_name(normalized_name);
             if (is_array)
             {
-                field->add_value(value);
+                field->_add_value(value);
             }
             else
             {
-                field->set_single_value(value);
+                field->_set_single_value(value);
             }
             result[normalized_name] = std::move(field);
         }
@@ -233,19 +194,19 @@ FormData FormParser::Impl::parse_pairs(const std::string &data) const
     return result;
 }
 
-std::string FormParser::Impl::extract_field_name(const std::string &pair) const
+std::string form_parser_core::extract_field_name(const std::string &pair) const
 {
     size_t pos = pair.find('=');
     return pos != std::string::npos ? pair.substr(0, pos) : pair;
 }
 
-std::string FormParser::Impl::extract_field_value(const std::string &pair) const
+std::string form_parser_core::extract_field_value(const std::string &pair) const
 {
     size_t pos = pair.find('=');
     return pos != std::string::npos ? pair.substr(pos + 1) : "";
 }
 
-bool FormParser::Impl::is_array_field(const std::string &name) const
+bool form_parser_core::is_array_field(const std::string &name) const
 {
     if (!config_.support_arrays)
     {
@@ -254,7 +215,7 @@ bool FormParser::Impl::is_array_field(const std::string &name) const
     return boost::ends_with(name, "[]");
 }
 
-std::string FormParser::Impl::normalize_field_name(const std::string &name) const
+std::string form_parser_core::normalize_field_name(const std::string &name) const
 {
     if (is_array_field(name))
     {
@@ -263,12 +224,12 @@ std::string FormParser::Impl::normalize_field_name(const std::string &name) cons
     return name;
 }
 
-bool FormParser::Impl::validate_field_size(const std::string &name, const std::string &value) const
+bool form_parser_core::validate_field_size(const std::string &name, const std::string &value) const
 {
     return name.size() <= config_.max_field_size && value.size() <= config_.max_field_size;
 }
 
-bool FormParser::Impl::validate_total_size(const FormData &data) const
+bool form_parser_core::validate_total_size(const form_data &data) const
 {
     std::size_t total_size = 0;
     for (const auto &[name, field]: data)
@@ -282,12 +243,12 @@ bool FormParser::Impl::validate_total_size(const FormData &data) const
     return total_size <= config_.max_total_size;
 }
 
-bool FormParser::Impl::validate_field_count(const FormData &data) const
+bool form_parser_core::validate_field_count(const form_data &data) const
 {
     return data.size() <= config_.max_fields;
 }
 
-bool FormParser::Impl::validate_field(const FormField &field) const
+bool form_parser_core::validate_field(const form_field &field) const
 {
     if (!field.is_valid())
     {
@@ -306,7 +267,7 @@ bool FormParser::Impl::validate_field(const FormField &field) const
     return true;
 }
 
-std::vector<std::string> FormParser::Impl::validate_all_fields(const FormData &data) const
+std::vector<std::string> form_parser_core::validate_all_fields(const form_data &data) const
 {
     std::vector<std::string> errors;
 
@@ -334,7 +295,7 @@ std::vector<std::string> FormParser::Impl::validate_all_fields(const FormData &d
     return errors;
 }
 
-std::string FormParser::Impl::url_decode(const std::string &encoded) const
+std::string form_parser_core::url_decode(const std::string &encoded) const
 {
     std::string decoded;
     decoded.reserve(encoded.size());
@@ -368,7 +329,7 @@ std::string FormParser::Impl::url_decode(const std::string &encoded) const
     return decoded;
 }
 
-std::string FormParser::Impl::url_encode(const std::string &decoded) const
+std::string form_parser_core::url_encode(const std::string &decoded) const
 {
     std::string encoded;
     encoded.reserve(decoded.size() * 3);
@@ -389,5 +350,7 @@ std::string FormParser::Impl::url_encode(const std::string &decoded) const
 
     return encoded;
 }
+}// namespace details
+
 
 }// namespace foxhttp

@@ -16,9 +16,9 @@
 
 namespace foxhttp {
 
-RouteTable &RouteTable::instance()
+route_table &route_table::instance()
 {
-    static RouteTable inst;
+    static route_table inst;
     return inst;
 }
 
@@ -31,7 +31,7 @@ static std::string strip_trailing_slash(const std::string &s)
     return s;
 }
 
-std::string RouteTable::normalize_path(const std::string &path)
+std::string route_table::_normalize_path(const std::string &path)
 {
     if (path.empty())
         return "/";
@@ -44,7 +44,7 @@ std::string RouteTable::normalize_path(const std::string &path)
     return p;
 }
 
-std::size_t RouteTable::count_segments(const std::string &path)
+std::size_t route_table::_count_segments(const std::string &path)
 {
     // Count non-empty segments in normalized path ("/a/b" -> 2)
     std::size_t count = 0;
@@ -62,24 +62,24 @@ std::size_t RouteTable::count_segments(const std::string &path)
     return count;
 }
 
-void RouteTable::add_static_route(const std::string &path, std::shared_ptr<APIHandler> handler)
+void route_table::add_static_route(const std::string &path, std::shared_ptr<api_handler> handler)
 {
-    auto key = normalize_path(path);
+    auto key = _normalize_path(path);
     std::unique_lock<std::shared_mutex> lock(mutex_);
 
-    auto route = std::make_shared<StaticRoute>(key, std::move(handler));
+    auto route = std::make_shared<static_route>(key, std::move(handler));
     static_routes_[key] = route;
     all_routes_.push_back(route);
 }
 
-void RouteTable::add_dynamic_route(const std::string &pattern, std::shared_ptr<APIHandler> handler)
+void route_table::add_dynamic_route(const std::string &pattern, std::shared_ptr<api_handler> handler)
 {
     std::unique_lock<std::shared_mutex> lock(mutex_);
 
     try
     {
-        auto [regex_pattern, param_names] = RouteBuilder::parse_pattern(pattern);
-        auto route = std::make_shared<DynamicRoute>(pattern, std::move(handler), regex_pattern, param_names);
+        auto [regex_pattern, param_names] = route_builder::parse_pattern(pattern);
+        auto route = std::make_shared<dynamic_route>(pattern, std::move(handler), regex_pattern, param_names);
 
         dynamic_routes_.push_back(route);
         all_routes_.push_back(route);
@@ -87,9 +87,9 @@ void RouteTable::add_dynamic_route(const std::string &pattern, std::shared_ptr<A
         // resort dynamic routes by "specificity":
         // specificity = number_of_static_segments = total_segments - param_count
         std::sort(dynamic_routes_.begin(), dynamic_routes_.end(),
-                  [](const std::shared_ptr<DynamicRoute> &a, const std::shared_ptr<DynamicRoute> &b) {
-                      auto a_total = count_segments(a->pattern());
-                      auto b_total = count_segments(b->pattern());
+                  [](const std::shared_ptr<dynamic_route> &a, const std::shared_ptr<dynamic_route> &b) {
+                      auto a_total = _count_segments(a->pattern());
+                      auto b_total = _count_segments(b->pattern());
                       auto a_params = a->param_names().size();
                       auto b_params = b->param_names().size();
                       auto a_specific = (a_total > a_params) ? (a_total - a_params) : 0;
@@ -108,9 +108,9 @@ void RouteTable::add_dynamic_route(const std::string &pattern, std::shared_ptr<A
     }
 }
 
-std::shared_ptr<APIHandler> RouteTable::route(const std::string &path, RequestContext &ctx) const
+std::shared_ptr<api_handler> route_table::resolve_route(const std::string &path, request_context &ctx) const
 {
-    auto key = normalize_path(path);
+    auto key = _normalize_path(path);
 
     // allow concurrent readers
     std::shared_lock<std::shared_mutex> lock(mutex_);
@@ -126,7 +126,7 @@ std::shared_ptr<APIHandler> RouteTable::route(const std::string &path, RequestCo
     // 2) try dynamic routes (in specificity order)
     for (const auto &route: dynamic_routes_)
     {
-        // DynamicRoute::match will set path parameters into ctx when matched
+        // dynamic_route::match will set path parameters into ctx when matched
         if (route->match(key, ctx))
         {
             return route->handler();
@@ -137,25 +137,25 @@ std::shared_ptr<APIHandler> RouteTable::route(const std::string &path, RequestCo
     return nullptr;
 }
 
-std::vector<std::shared_ptr<Route>> RouteTable::get_all_routes() const
+std::vector<std::shared_ptr<route>> route_table::get_all_routes() const
 {
     std::shared_lock<std::shared_mutex> lock(mutex_);
     return all_routes_;
 }
 
-std::size_t RouteTable::static_route_count() const
+std::size_t route_table::static_route_count() const
 {
     std::shared_lock<std::shared_mutex> lock(mutex_);
     return static_routes_.size();
 }
 
-std::size_t RouteTable::dynamic_route_count() const
+std::size_t route_table::dynamic_route_count() const
 {
     std::shared_lock<std::shared_mutex> lock(mutex_);
     return dynamic_routes_.size();
 }
 
-void RouteTable::clear()
+void route_table::clear()
 {
     std::unique_lock<std::shared_mutex> lock(mutex_);
     static_routes_.clear();

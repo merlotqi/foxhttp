@@ -1,4 +1,4 @@
-# SPDLog Middleware Guide
+# SPDLog middleware Guide
 
 ## Overview
 

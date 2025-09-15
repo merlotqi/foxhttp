@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -13,32 +13,32 @@
 
 namespace foxhttp {
 
-Server::Server(IOContextPool &io_pool, unsigned short port)
+server::server(io_context_pool &io_pool, unsigned short port)
     : io_pool_(io_pool), acceptor_(io_pool_.get_io_context(), {tcp::v4(), port}),
-      global_chain_(std::make_shared<MiddlewareChain>())
+      global_chain_(std::make_shared<middleware_chain>())
 {
-    do_accept();
+    _do_accept();
 }
 
-void Server::use(std::shared_ptr<Middleware> mw)
+void server::use(std::shared_ptr<middleware> mw)
 {
     global_chain_->use(std::move(mw));
 }
 
-std::shared_ptr<MiddlewareChain> Server::global_chain() const
+std::shared_ptr<middleware_chain> server::global_chain() const
 {
     return global_chain_;
 }
 
-void Server::do_accept()
+void server::_do_accept()
 {
     auto &io_context = io_pool_.get_io_context();
     acceptor_.async_accept(io_context, [this](beast::error_code ec, tcp::socket socket) {
         if (!ec)
         {
-            std::make_shared<Session>(std::move(socket), global_chain_)->start();
+            std::make_shared<session>(std::move(socket), global_chain_)->start();
         }
-        do_accept();
+        _do_accept();
     });
 }
 

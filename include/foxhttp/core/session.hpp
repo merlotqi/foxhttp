@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -20,25 +20,25 @@ using tcp = boost::asio::ip::tcp;
 
 namespace foxhttp {
 
-class MiddlewareChain;
-class Session : public std::enable_shared_from_this<Session>
+class middleware_chain;
+class session : public std::enable_shared_from_this<session>
 {
 public:
-    explicit Session(tcp::socket socket, std::shared_ptr<MiddlewareChain> global_chain);
+    explicit session(tcp::socket socket, std::shared_ptr<middleware_chain> global_chain);
     void start();
 
 private:
-    void read_request();
-    void handle_read(boost::beast::error_code ec, size_t bytes_transferred);
-    void process_request();
-    void write_response();
+    void _read_request();
+    void _handle_read(boost::beast::error_code ec, size_t bytes_transferred);
+    void _process_request();
+    void _write_response();
 
 private:
     tcp::socket socket_;
     boost::beast::flat_buffer buffer_;
     http::request<http::string_body> req_;
     http::response<http::string_body> res_;
-    std::shared_ptr<MiddlewareChain> global_chain_;
+    std::shared_ptr<middleware_chain> global_chain_;
 };
 
 }// namespace foxhttp

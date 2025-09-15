@@ -1,4 +1,9 @@
-
+/**
+ * foxhttp - lightweight async HTTP server (Boost.Asio)
+ * Copyright (C) 2025 Rain Merlot
+ * Licensed under GPLv3: https://www.gnu.org/licenses/
+ *
+ */
 
 #pragma once
 
@@ -10,13 +15,12 @@
 
 namespace foxhttp {
 
-class IOContextPool
+class io_context_pool
 {
 public:
-    explicit IOContextPool(std::size_t pool_size = std::thread::hardware_concurrency());
-    ~IOContextPool();
-    void run();
-    void join();
+    explicit io_context_pool(std::size_t pool_size = std::thread::hardware_concurrency());
+    ~io_context_pool();
+    void start();
 
     boost::asio::io_context &get_io_context();
     std::size_t size() const;

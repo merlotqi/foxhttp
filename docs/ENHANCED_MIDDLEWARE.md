@@ -1,4 +1,4 @@
-# Enhanced Middleware System
+# Enhanced middleware System
 
 The FoxHTTP middleware system has been significantly improved with new features and capabilities.
 
@@ -12,9 +12,9 @@ The FoxHTTP middleware system has been significantly improved with new features 
 
 ```cpp
 // Async middleware example
-class AsyncMiddleware : public Middleware {
+class AsyncMiddleware : public middleware {
 public:
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res,
+    void operator()(request_context &ctx, http::response<http::string_body> &res,
                     std::function<void()> next, AsyncMiddlewareCallback callback) override {
         // Perform async operation
         std::thread([next, callback]() {
@@ -49,7 +49,7 @@ class HighPriorityMiddleware : public PriorityMiddleware<middleware_priority::hi
 // Conditional middleware example
 auto conditional_mw = std::make_shared<ConditionalMiddleware>(
     std::make_shared<SomeMiddleware>(),
-    [](const RequestContext& ctx) {
+    [](const request_context& ctx) {
         return ctx.method() == http::verb::post; // Only for POST requests
     }
 );
@@ -78,7 +78,7 @@ chain.print_statistics();
 
 ```cpp
 // Custom error handler
-chain.set_error_handler([](RequestContext &ctx,
+chain.set_error_handler([](request_context &ctx,
                           http::response<http::string_body> &res,
                           const std::exception &e) {
     // Custom error handling logic
@@ -123,14 +123,14 @@ auto middleware = MiddlewareBuilder()
     .name("MyMiddleware")
     .priority(middleware_priority::high)
     .timeout(std::chrono::milliseconds(1000))
-    .condition([](const RequestContext& ctx) {
+    .condition([](const request_context& ctx) {
         return ctx.path().starts_with("/api");
     })
-    .sync([](const RequestContext& ctx, http::response<http::string_body>& res, std::function<void()> next) {
+    .sync([](const request_context& ctx, http::response<http::string_body>& res, std::function<void()> next) {
         // Synchronous processing
         next();
     })
-    .async([](const RequestContext& ctx, http::response<http::string_body>& res,
+    .async([](const request_context& ctx, http::response<http::string_body>& res,
               std::function<void()> next, AsyncMiddlewareCallback callback) {
         // Asynchronous processing
         callback(middleware_result::continue_);
@@ -177,9 +177,9 @@ chain.execute_async(ctx, res, [](middleware_result result, const std::string& er
 
 ```cpp
 // Old way
-class OldMiddleware : public Middleware {
+class OldMiddleware : public middleware {
 public:
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res,
+    void operator()(request_context &ctx, http::response<http::string_body> &res,
                     std::function<void()> next) override {
         // Processing logic
         next();
@@ -187,22 +187,22 @@ public:
 };
 
 // New way (backward compatible)
-class NewMiddleware : public Middleware {
+class NewMiddleware : public middleware {
 public:
     std::string name() const override { return "NewMiddleware"; }
     middleware_priority priority() const override { return middleware_priority::normal; }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res,
+    void operator()(request_context &ctx, http::response<http::string_body> &res,
                     std::function<void()> next) override {
         // Same processing logic
         next();
     }
 
     // Optional: Add async support
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res,
+    void operator()(request_context &ctx, http::response<http::string_body> &res,
                     std::function<void()> next, AsyncMiddlewareCallback callback) override {
         // Async processing or fallback to sync
-        Middleware::operator()(ctx, res, next, callback);
+        middleware::operator()(ctx, res, next, callback);
     }
 };
 ```
@@ -218,7 +218,7 @@ public:
 
 ## API Reference
 
-### Middleware Class
+### middleware Class
 
 - `name()`: Get middleware name
 - `priority()`: Get middleware priority
@@ -226,7 +226,7 @@ public:
 - `timeout()`: Get middleware timeout
 - `stats()`: Get execution statistics
 
-### MiddlewareChain Class
+### middleware_chain Class
 
 - `use()`: Add middleware to chain
 - `insert_by_priority()`: Insert middleware by priority

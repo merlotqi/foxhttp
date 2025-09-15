@@ -15,36 +15,36 @@
 
 namespace foxhttp {
 
-class APIHandler;
-class Route;
-class RequestContext;
-class StaticRoute;
-class DynamicRoute;
+class api_handler;
+class route;
+class request_context;
+class static_route;
+class dynamic_route;
 
-class RouteTable
+class route_table
 {
 public:
-    static RouteTable &instance();
+    static route_table &instance();
 
-    void add_static_route(const std::string &path, std::shared_ptr<APIHandler> handler);
-    void add_dynamic_route(const std::string &pattern, std::shared_ptr<APIHandler> handler);
+    void add_static_route(const std::string &path, std::shared_ptr<api_handler> handler);
+    void add_dynamic_route(const std::string &pattern, std::shared_ptr<api_handler> handler);
 
-    std::shared_ptr<APIHandler> route(const std::string &path, RequestContext &ctx) const;
-    std::vector<std::shared_ptr<Route>> get_all_routes() const;
+    std::shared_ptr<api_handler> resolve_route(const std::string &path, request_context &ctx) const;
+    std::vector<std::shared_ptr<route>> get_all_routes() const;
 
     std::size_t static_route_count() const;
     std::size_t dynamic_route_count() const;
     void clear();
 
 private:
-    RouteTable() = default;
-    ~RouteTable() = default;
-    RouteTable(const RouteTable &) = delete;
-    RouteTable &operator=(const RouteTable &) = delete;
+    route_table() = default;
+    ~route_table() = default;
+    route_table(const route_table &) = delete;
+    route_table &operator=(const route_table &) = delete;
 
     // normalize path for consistent matching and storage
-    static std::string normalize_path(const std::string &path);
-    static std::size_t count_segments(const std::string &path);
+    static std::string _normalize_path(const std::string &path);
+    static std::size_t _count_segments(const std::string &path);
 
 private:
     // mutex for protecting structures:
@@ -52,13 +52,13 @@ private:
     mutable std::shared_mutex mutex_;
 
     // static route map: normalized_path -> StaticRoute
-    std::unordered_map<std::string, std::shared_ptr<StaticRoute>> static_routes_;
+    std::unordered_map<std::string, std::shared_ptr<static_route>> static_routes_;
 
     // dynamic routes (kept in order of specificity)
-    std::vector<std::shared_ptr<DynamicRoute>> dynamic_routes_;
+    std::vector<std::shared_ptr<dynamic_route>> dynamic_routes_;
 
     // all routes (for introspection)
-    std::vector<std::shared_ptr<Route>> all_routes_;
+    std::vector<std::shared_ptr<route>> all_routes_;
 };
 
 

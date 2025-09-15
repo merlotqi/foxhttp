@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -8,10 +8,10 @@
 #include <foxhttp/core/io_context_pool.hpp>
 
 namespace foxhttp {
-IOContextPool::IOContextPool(std::size_t pool_size) : next_io_context_(0), pool_size_(pool_size), stopped_(false)
+io_context_pool::io_context_pool(std::size_t pool_size) : next_io_context_(0), pool_size_(pool_size), stopped_(false)
 {
     if (pool_size_ == 0)
-        throw std::runtime_error("IOContextPool size cannot be zero");
+        throw std::runtime_error("io_context_pool size cannot be zero");
 
     for (std::size_t i = 0; i < pool_size_; ++i)
     {
@@ -22,16 +22,13 @@ IOContextPool::IOContextPool(std::size_t pool_size) : next_io_context_(0), pool_
     }
 }
 
-void IOContextPool::run()
+void io_context_pool::start()
 {
     for (std::size_t i = 0; i < pool_size_; ++i)
     {
         threads_.emplace_back([io = io_contexts_[i]] { io->run(); });
     }
-}
-
-void IOContextPool::join()
-{
+    
     for (auto &t: threads_)
     {
         if (t.joinable())
@@ -39,13 +36,14 @@ void IOContextPool::join()
     }
 }
 
-boost::asio::io_context &IOContextPool::get_io_context()
+
+boost::asio::io_context &io_context_pool::get_io_context()
 {
     auto index = next_io_context_.fetch_add(1, std::memory_order_relaxed) % pool_size_;
     return *io_contexts_[index];
 }
 
-void IOContextPool::stop()
+void io_context_pool::stop()
 {
     if (stopped_.exchange(true))
         return;
@@ -55,15 +53,20 @@ void IOContextPool::stop()
     for (auto &io: io_contexts_) io->stop();
 }
 
-std::size_t IOContextPool::size() const
+std::size_t io_context_pool::size() const
 {
     return pool_size_;
 }
 
-IOContextPool::~IOContextPool()
+io_context_pool::~io_context_pool()
 {
     stop();
-    join();
+
+    for (auto &t: threads_)
+    {
+        if (t.joinable())
+            t.join();
+    }
 }
 
 }// namespace foxhttp

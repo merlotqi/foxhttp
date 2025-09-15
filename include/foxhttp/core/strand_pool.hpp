@@ -1,136 +1,122 @@
+/**
+ * foxhttp - lightweight async HTTP server (Boost.Asio)
+ * Copyright (C) 2025 Rain Merlot
+ * Licensed under GPLv3: https://www.gnu.org/licenses/
+ * 
+ */
+
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <boost/asio.hpp>
 #include <chrono>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <random>
+#include <shared_mutex>
+#include <thread>
 #include <unordered_map>
 #include <vector>
+#include <foxhttp/config/configs.hpp>
 
 namespace foxhttp {
 
-class AdvancedStrandPool
+using strand_pool_config = ::foxhttp::strand_pool_config;
+
+struct strand_stats
+{
+    std::atomic<std::size_t> total_requests{0};
+    std::atomic<std::size_t> active_requests{0};
+    std::atomic<std::size_t> completed_requests{0};
+    std::atomic<std::size_t> failed_requests{0};
+    std::atomic<std::chrono::microseconds> total_execution_time{std::chrono::microseconds{0}};
+    std::atomic<std::chrono::steady_clock::time_point> last_used{std::chrono::steady_clock::now()};
+    std::atomic<bool> is_healthy{true};
+
+    strand_stats() = default;
+    strand_stats(const strand_stats &other);
+    strand_stats &operator=(const strand_stats &other);
+    std::chrono::microseconds average_execution_time() const;
+    double load_factor() const;
+};
+
+
+class strand_pool
 {
 public:
-    using StrandPtr = std::shared_ptr<boost::asio::strand<boost::asio::io_context::executor_type>>;
+    using metrics_callback = std::function<void(const std::string &, const std::string &, double)>;
+    using health_check_callback = std::function<bool(std::size_t strand_index)>;
+    using executor_type = boost::asio::io_context::executor_type;
+    using strand_ptr = std::shared_ptr<boost::asio::strand<executor_type>>;
 
-    using MetricsCallback = std::function<void(const std::string &, std::size_t)>;
 
-    AdvancedStrandPool(boost::asio::io_context &io_context,
-                       std::size_t initial_size = std::thread::hardware_concurrency(), std::size_t max_size = 64)
-        : io_context_(io_context), max_size_(max_size), next_strand_(0)
-    {
-        resize(initial_size);
-    }
+    explicit strand_pool(boost::asio::io_context &io_context, const strand_pool_config &config = {});
+    ~strand_pool();
 
-    // 获取下一个 strand（智能负载均衡）
-    StrandPtr getNextStrand()
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
+    void start();
+    void stop();
 
-        // 简单的轮询算法
-        auto &strand = strands_[next_strand_];
-        ++next_strand_;
-        if (next_strand_ >= strands_.size())
-        {
-            next_strand_ = 0;
-        }
+    strand_ptr next_strand();
+    strand_ptr strand_for_session(const std::string &session_id);
+    strand_ptr strand_by_hash(std::size_t hash);
 
-        // 更新使用统计
-        updateUsageStatistics(next_strand_);
+    void resize(std::size_t new_size);
+    void set_load_balance_strategy(load_balance_strategy strategy);
+    void set_metrics_callback(metrics_callback callback);
+    void set_health_check_callback(health_check_callback callback);
+    std::vector<strand_stats> statistics() const;
 
-        return strand;
-    }
+    std::size_t size() const;
 
-    // 根据会话ID获取固定的 strand
-    StrandPtr getStrandForSession(const std::string &session_id)
-    {
-        std::size_t hash = std::hash<std::string>{}(session_id);
-        return getStrandByHash(hash);
-    }
+    const strand_pool_config &config() const;
+    void update_config(const strand_pool_config &new_config);
 
-    StrandPtr getStrandByHash(std::size_t hash)
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::size_t index = hash % strands_.size();
-        updateUsageStatistics(index);
-        return strands_[index];
-    }
-
-    // 动态调整池大小
-    void resize(std::size_t new_size)
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-
-        if (new_size == 0 || new_size > max_size_)
-        {
-            throw std::runtime_error("Invalid strand pool size");
-        }
-
-        if (new_size == strands_.size())
-        {
-            return;
-        }
-
-        // 创建新的 strand 集合
-        std::vector<StrandPtr> new_strands;
-        for (std::size_t i = 0; i < new_size; ++i)
-        {
-            new_strands.push_back(std::make_shared<boost::asio::strand<boost::asio::io_context::executor_type>>(
-                    io_context_.get_executor()));
-        }
-
-        strands_ = std::move(new_strands);
-        usage_statistics_.resize(new_size);
-        next_strand_ = 0;
-    }
-
-    // 设置指标回调
-    void setMetricsCallback(MetricsCallback callback)
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        metrics_callback_ = std::move(callback);
-    }
-
-    // 获取使用统计
-    std::vector<std::size_t> getUsageStatistics() const
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return usage_statistics_;
-    }
-
-    // 获取池大小
-    std::size_t size() const
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return strands_.size();
-    }
+    void perform_health_check();
+    void report_metrics();
 
 private:
-    void updateUsageStatistics(std::size_t index)
-    {
-        if (index < usage_statistics_.size())
-        {
-            ++usage_statistics_[index];
+    void _initialize();
+    void _create_strand(std::size_t index);
+    void _remove_strand(std::size_t index);
 
-            // 定期报告指标
-            static std::size_t report_counter = 0;
-            if (++report_counter % 1000 == 0 && metrics_callback_)
-            {
-                metrics_callback_("strand_usage", usage_statistics_[index]);
-            }
-        }
-    }
+    strand_ptr _round_robin_strand();
+    strand_ptr _least_connections_strand();
+    strand_ptr _consistent_hash_strand(std::size_t hash);
+    strand_ptr _random_strand();
+    strand_ptr _weighted_round_robin_strand();
 
+    void _update_strand_stats(std::size_t index);
+    void _update_consistent_hash_ring();
+    void _start_metrics_reporting();
+    void _start_health_checking();
+    void _report_metrics_internal();
+    void _perform_health_check_internal();
+
+private:
     boost::asio::io_context &io_context_;
-    std::vector<StrandPtr> strands_;
-    std::vector<std::size_t> usage_statistics_;
-    std::size_t max_size_;
-    std::atomic<std::size_t> next_strand_;
-    mutable std::mutex mutex_;
-    MetricsCallback metrics_callback_;
+    strand_pool_config config_;
+
+    mutable std::shared_mutex strands_mutex_;
+    std::vector<strand_ptr> strands_;
+    std::vector<strand_stats> strands_stats_;
+    std::size_t current_size_;
+
+    std::atomic<std::size_t> round_robin_index_{0};
+    std::mt19937 random_generator_;
+    std::vector<std::pair<std::size_t, std::size_t>> hash_ring_;// <hash, strand_index>
+
+    boost::asio::steady_timer metrics_timer_;
+    boost::asio::steady_timer health_check_timer_;
+
+    mutable std::mutex metrics_mutex_;
+    metrics_callback metrics_callback_;
+
+    mutable std::mutex health_check_mutex_;
+    health_check_callback health_check_callback_;
+
+    std::atomic<bool> is_running_;
 };
 
 }// namespace foxhttp

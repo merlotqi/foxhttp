@@ -27,7 +27,7 @@ int main() {
         req.prepare_payload();
         
         // Create request context
-        RequestContext ctx(req);
+        request_context ctx(req);
         
         std::cout << "=== Header Method Test ===" << std::endl;
         

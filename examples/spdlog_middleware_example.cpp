@@ -3,7 +3,7 @@
  * Copyright (C) 2025 Rain Merlot
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
- * SPDLog Middleware Example
+ * SPDLog middleware Example
  * Demonstrates the enhanced logging capabilities with spdlog
  */
 
@@ -15,11 +15,11 @@
 using namespace foxhttp;
 
 // Test middleware that generates different types of requests
-class TestMiddleware : public Middleware {
+class TestMiddleware : public middleware {
 public:
     std::string name() const override { return "TestMiddleware"; }
     
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override {
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override {
         // Simulate different request types
         if (ctx.path() == "/error") {
             throw std::runtime_error("Simulated error for logging test");
@@ -39,16 +39,16 @@ int main() {
         boost::asio::io_context io_context;
         
         // Create middleware chain
-        MiddlewareChain chain(io_context);
+        middleware_chain chain(io_context);
         chain.enable_statistics(true);
         
-        std::cout << "=== SPDLog Middleware Examples ===" << std::endl;
+        std::cout << "=== SPDLog middleware Examples ===" << std::endl;
         
         // Example 1: Simple console logging
         std::cout << "\n1. Simple Console Logging:" << std::endl;
         auto simple_logger = std::make_shared<LoggerMiddleware>(
             "SimpleLogger", 
-            LogLevel::INFO, 
+            LogLevel::info, 
             LogFormat::SIMPLE
         );
         
@@ -56,7 +56,7 @@ int main() {
         std::cout << "\n2. Detailed Logging with File Output:" << std::endl;
         auto detailed_logger = std::make_shared<LoggerMiddleware>(
             "DetailedLogger",
-            LogLevel::DEBUG,
+            LogLevel::debug,
             LogFormat::DETAILED,
             "foxhttp.log"  // Log to file
         );
@@ -65,7 +65,7 @@ int main() {
         std::cout << "\n3. JSON Structured Logging:" << std::endl;
         auto json_logger = std::make_shared<LoggerMiddleware>(
             "JsonLogger",
-            LogLevel::INFO,
+            LogLevel::info,
             LogFormat::JSON,
             "foxhttp.json.log"
         );
@@ -74,7 +74,7 @@ int main() {
         std::cout << "\n4. Apache Common Log Format:" << std::endl;
         auto apache_logger = std::make_shared<LoggerMiddleware>(
             "ApacheLogger",
-            LogLevel::INFO,
+            LogLevel::info,
             LogFormat::APACHE,
             "access.log"
         );
@@ -83,7 +83,7 @@ int main() {
         std::cout << "\n5. High-Performance File-Only Logging:" << std::endl;
         auto perf_logger = std::make_shared<LoggerMiddleware>(
             "PerfLogger",
-            LogLevel::WARN,
+            LogLevel::warn,
             LogFormat::SIMPLE,
             "performance.log",
             false  // Disable console output
@@ -112,7 +112,7 @@ int main() {
                 req.body() = "";
                 req.prepare_payload();
                 
-                RequestContext ctx(req);
+                request_context ctx(req);
                 http::response<http::string_body> res;
                 
                 try {
@@ -144,7 +144,7 @@ int main() {
         auto configurable_logger = std::make_shared<LoggerMiddleware>("ConfigurableLogger");
         
         // Change log level
-        configurable_logger->set_log_level(LogLevel::DEBUG);
+        configurable_logger->set_log_level(LogLevel::debug);
         std::cout << "Changed log level to DEBUG" << std::endl;
         
         // Change log format
@@ -172,7 +172,7 @@ int main() {
         req.body() = "test data";
         req.prepare_payload();
         
-        RequestContext ctx(req);
+        request_context ctx(req);
         http::response<http::string_body> res;
         chain.execute(ctx, res);
         
@@ -180,7 +180,7 @@ int main() {
         std::cout << "\n7. Async Logging Test:" << std::endl;
         auto async_logger = std::make_shared<LoggerMiddleware>(
             "AsyncLogger",
-            LogLevel::INFO,
+            LogLevel::info,
             LogFormat::DETAILED
         );
         

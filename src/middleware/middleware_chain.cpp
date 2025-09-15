@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -17,20 +17,20 @@
 
 namespace foxhttp {
 
-MiddlewareChain::MiddlewareChain(boost::asio::io_context &io_context) : io_context_(&io_context) {}
+middleware_chain::middleware_chain(boost::asio::io_context &io_context) : io_context_(&io_context) {}
 
-// Middleware management
-void MiddlewareChain::use(std::shared_ptr<Middleware> mw)
+// middleware management
+void middleware_chain::use(std::shared_ptr<middleware> mw)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     middlewares_.push_back({std::move(mw), {}, nullptr});
     if (auto_sort_by_priority_)
     {
-        sort_middlewares_by_priority();
+        _sort_middlewares_by_priority();
     }
 }
 
-void MiddlewareChain::use(std::initializer_list<std::shared_ptr<Middleware>> mws)
+void middleware_chain::use(std::initializer_list<std::shared_ptr<middleware>> mws)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     for (auto &mw: mws)
@@ -39,11 +39,11 @@ void MiddlewareChain::use(std::initializer_list<std::shared_ptr<Middleware>> mws
     }
     if (auto_sort_by_priority_)
     {
-        sort_middlewares_by_priority();
+        _sort_middlewares_by_priority();
     }
 }
 
-void MiddlewareChain::insert(std::size_t index, std::shared_ptr<Middleware> mw)
+void middleware_chain::insert(std::size_t index, std::shared_ptr<middleware> mw)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (index >= middlewares_.size())
@@ -56,24 +56,24 @@ void MiddlewareChain::insert(std::size_t index, std::shared_ptr<Middleware> mw)
     }
 }
 
-void MiddlewareChain::insert_by_priority(std::shared_ptr<Middleware> mw)
+void middleware_chain::insert_by_priority(std::shared_ptr<middleware> mw)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     middlewares_.push_back({std::move(mw), {}, nullptr});
-    sort_middlewares_by_priority();
+    _sort_middlewares_by_priority();
 }
 
-void MiddlewareChain::remove(const std::string &middleware_name)
+void middleware_chain::remove(const std::string &middleware_name)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     middlewares_.erase(std::remove_if(middlewares_.begin(), middlewares_.end(),
-                                      [&middleware_name](const MiddlewareInfo &info) {
+                                      [&middleware_name](const middleware_info &info) {
                                           return info.middleware->name() == middleware_name;
                                       }),
                        middlewares_.end());
 }
 
-void MiddlewareChain::clear()
+void middleware_chain::clear()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     middlewares_.clear();
@@ -81,35 +81,35 @@ void MiddlewareChain::clear()
 }
 
 // Configuration
-void MiddlewareChain::set_error_handler(errorHandler handler)
+void middleware_chain::set_error_handler(error_handler handler)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     error_handler_ = std::move(handler);
 }
 
-void MiddlewareChain::set_timeout_handler(timeoutHandler handler)
+void middleware_chain::set_timeout_handler(timeout_handler handler)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     timeout_handler_ = std::move(handler);
 }
 
-void MiddlewareChain::set_global_timeout(std::chrono::milliseconds timeout)
+void middleware_chain::set_global_timeout(std::chrono::milliseconds timeout)
 {
     global_timeout_ = timeout;
 }
 
-void MiddlewareChain::set_io_context(boost::asio::io_context &io_context)
+void middleware_chain::set_io_context(boost::asio::io_context &io_context)
 {
     io_context_ = &io_context;
 }
 
-void MiddlewareChain::enable_statistics(bool enable)
+void middleware_chain::enable_statistics(bool enable)
 {
     statistics_enabled_ = enable;
 }
 
 // Execution methods
-void MiddlewareChain::execute(RequestContext &ctx, http::response<http::string_body> &res)
+void middleware_chain::execute(request_context &ctx, http::response<http::string_body> &res)
 {
     if (middlewares_.empty())
     {
@@ -124,11 +124,11 @@ void MiddlewareChain::execute(RequestContext &ctx, http::response<http::string_b
     paused_ = false;
     running_ = true;
 
-    execute_next(ctx, res);
+    _execute_next(ctx, res);
 }
 
-void MiddlewareChain::execute_async(RequestContext &ctx, http::response<http::string_body> &res,
-                                    completionCallback callback)
+void middleware_chain::execute_async(request_context &ctx, http::response<http::string_body> &res,
+                                     completion_callback callback)
 {
     if (middlewares_.empty())
     {
@@ -152,16 +152,16 @@ void MiddlewareChain::execute_async(RequestContext &ctx, http::response<http::st
         global_timeout_timer_->async_wait([this, &ctx, &res, callback](boost::system::error_code ec) {
             if (!ec && !timed_out_.exchange(true))
             {
-                handle_timeout(ctx, res, callback);
+                _handle_timeout(ctx, res, callback);
             }
         });
     }
 
-    execute_next_async(ctx, res, callback);
+    _execute_next_async(ctx, res, callback);
 }
 
 // Control methods
-void MiddlewareChain::cancel()
+void middleware_chain::cancel()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     cancelled_ = true;
@@ -183,35 +183,35 @@ void MiddlewareChain::cancel()
     }
 }
 
-void MiddlewareChain::pause()
+void middleware_chain::pause()
 {
     paused_ = true;
 }
 
-void MiddlewareChain::resume()
+void middleware_chain::resume()
 {
     paused_ = false;
 }
 
 // Information methods
-std::size_t MiddlewareChain::size() const
+std::size_t middleware_chain::size() const
 {
     std::lock_guard<std::mutex> lock(mutex_);
     return middlewares_.size();
 }
 
-bool MiddlewareChain::empty() const
+bool middleware_chain::empty() const
 {
     std::lock_guard<std::mutex> lock(mutex_);
     return middlewares_.empty();
 }
 
-bool MiddlewareChain::is_running() const
+bool middleware_chain::is_running() const
 {
     return running_;
 }
 
-std::vector<std::string> MiddlewareChain::get_middleware_names() const
+std::vector<std::string> middleware_chain::get_middleware_names() const
 {
     std::lock_guard<std::mutex> lock(mutex_);
     std::vector<std::string> names;
@@ -224,10 +224,10 @@ std::vector<std::string> MiddlewareChain::get_middleware_names() const
 }
 
 // Statistics
-std::unordered_map<std::string, MiddlewareStats> MiddlewareChain::get_statistics() const
+std::unordered_map<std::string, middleware_stats> middleware_chain::get_statistics() const
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    std::unordered_map<std::string, MiddlewareStats> stats;
+    std::unordered_map<std::string, middleware_stats> stats;
     for (const auto &info: middlewares_)
     {
         stats[info.middleware->name()] = info.middleware->stats();
@@ -235,7 +235,7 @@ std::unordered_map<std::string, MiddlewareStats> MiddlewareChain::get_statistics
     return stats;
 }
 
-void MiddlewareChain::reset_statistics()
+void middleware_chain::reset_statistics()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     for (auto &info: middlewares_)
@@ -244,13 +244,13 @@ void MiddlewareChain::reset_statistics()
     }
 }
 
-void MiddlewareChain::print_statistics() const
+void middleware_chain::print_statistics() const
 {
     auto stats = get_statistics();
-    std::cout << "=== Middleware Statistics ===" << std::endl;
+    std::cout << "=== middleware Statistics ===" << std::endl;
     for (const auto &[name, stat]: stats)
     {
-        std::cout << "Middleware: " << name << std::endl;
+        std::cout << "middleware: " << name << std::endl;
         std::cout << "  Executions: " << stat.execution_count.load() << std::endl;
         std::cout << "  Total Time: " << stat.total_execution_time.load().count() << " μs" << std::endl;
         std::cout << "  Errors: " << stat.error_count.load() << std::endl;
@@ -260,7 +260,7 @@ void MiddlewareChain::print_statistics() const
 }
 
 // Private methods
-void MiddlewareChain::execute_next(RequestContext &ctx, http::response<http::string_body> &res)
+void middleware_chain::_execute_next(request_context &ctx, http::response<http::string_body> &res)
 {
     if (cancelled_ || timed_out_ || paused_ || current_index_ >= middlewares_.size())
     {
@@ -274,19 +274,19 @@ void MiddlewareChain::execute_next(RequestContext &ctx, http::response<http::str
         auto now = std::chrono::steady_clock::now();
         if (now - execution_start_ > global_timeout_)
         {
-            handle_timeout(ctx, res);
+            _handle_timeout(ctx, res);
             return;
         }
     }
 
     auto &current_info = middlewares_[current_index_++];
     current_middleware_ =
-            std::weak_ptr<MiddlewareInfo>(std::shared_ptr<MiddlewareInfo>(&current_info, [](MiddlewareInfo *) {}));
+            std::weak_ptr<middleware_info>(std::shared_ptr<middleware_info>(&current_info, [](middleware_info *) {}));
 
     // Check if middleware should execute
     if (!current_info.middleware->should_execute(ctx))
     {
-        execute_next(ctx, res);
+        _execute_next(ctx, res);
         return;
     }
 
@@ -296,7 +296,7 @@ void MiddlewareChain::execute_next(RequestContext &ctx, http::response<http::str
         current_info.execution_start = std::chrono::steady_clock::now();
     }
 
-    auto next = [this, &ctx, &res]() { execute_next(ctx, res); };
+    auto next = [this, &ctx, &res]() { _execute_next(ctx, res); };
 
     try
     {
@@ -318,12 +318,12 @@ void MiddlewareChain::execute_next(RequestContext &ctx, http::response<http::str
         {
             current_info.middleware->stats().error_count++;
         }
-        handle_error(ctx, res, e);
+        _handle_error(ctx, res, e);
     }
 }
 
-void MiddlewareChain::execute_next_async(RequestContext &ctx, http::response<http::string_body> &res,
-                                         completionCallback callback)
+void middleware_chain::_execute_next_async(request_context &ctx, http::response<http::string_body> &res,
+                                           completion_callback callback)
 {
     if (cancelled_ || timed_out_ || paused_ || current_index_ >= middlewares_.size())
     {
@@ -340,12 +340,12 @@ void MiddlewareChain::execute_next_async(RequestContext &ctx, http::response<htt
 
     auto &current_info = middlewares_[current_index_++];
     current_middleware_ =
-            std::weak_ptr<MiddlewareInfo>(std::shared_ptr<MiddlewareInfo>(&current_info, [](MiddlewareInfo *) {}));
+            std::weak_ptr<middleware_info>(std::shared_ptr<middleware_info>(&current_info, [](middleware_info *) {}));
 
     // Check if middleware should execute
     if (!current_info.middleware->should_execute(ctx))
     {
-        execute_next_async(ctx, res, callback);
+        _execute_next_async(ctx, res, callback);
         return;
     }
 
@@ -359,10 +359,10 @@ void MiddlewareChain::execute_next_async(RequestContext &ctx, http::response<htt
     auto middleware_timeout = current_info.middleware->timeout();
     if (middleware_timeout > std::chrono::milliseconds{0} && io_context_)
     {
-        setup_middleware_timeout(current_info.middleware, ctx, res, callback);
+        _setup_middleware_timeout(current_info.middleware, ctx, res, callback);
     }
 
-    auto next = [this, &ctx, &res, callback]() { execute_next_async(ctx, res, callback); };
+    auto next = [this, &ctx, &res, callback]() { _execute_next_async(ctx, res, callback); };
 
     auto async_callback = [this, &current_info, &ctx, &res, callback](middleware_result result,
                                                                       const std::string &error_message) {
@@ -385,7 +385,7 @@ void MiddlewareChain::execute_next_async(RequestContext &ctx, http::response<htt
             }
         }
 
-        handle_middleware_result(ctx, res, result, error_message, callback);
+        _handle_middleware_result(ctx, res, result, error_message, callback);
     };
 
     try
@@ -398,12 +398,12 @@ void MiddlewareChain::execute_next_async(RequestContext &ctx, http::response<htt
         {
             current_info.middleware->stats().error_count++;
         }
-        handle_error(ctx, res, e, callback);
+        _handle_error(ctx, res, e, callback);
     }
 }
 
-void MiddlewareChain::handle_error(RequestContext &ctx, http::response<http::string_body> &res, const std::exception &e,
-                                   completionCallback callback)
+void middleware_chain::_handle_error(request_context &ctx, http::response<http::string_body> &res,
+                                     const std::exception &e, completion_callback callback)
 {
     if (error_handler_)
     {
@@ -413,7 +413,7 @@ void MiddlewareChain::handle_error(RequestContext &ctx, http::response<http::str
     {
         res.result(http::status::internal_server_error);
         res.set(http::field::content_type, "text/plain");
-        res.body() = "Middleware error: " + std::string(e.what());
+        res.body() = "middleware error: " + std::string(e.what());
     }
 
     running_ = false;
@@ -423,8 +423,8 @@ void MiddlewareChain::handle_error(RequestContext &ctx, http::response<http::str
     }
 }
 
-void MiddlewareChain::handle_timeout(RequestContext &ctx, http::response<http::string_body> &res,
-                                     completionCallback callback)
+void middleware_chain::_handle_timeout(request_context &ctx, http::response<http::string_body> &res,
+                                       completion_callback callback)
 {
     timed_out_ = true;
     running_ = false;
@@ -446,14 +446,14 @@ void MiddlewareChain::handle_timeout(RequestContext &ctx, http::response<http::s
     }
 }
 
-void MiddlewareChain::handle_middleware_result(RequestContext &ctx, http::response<http::string_body> &res,
-                                               middleware_result result, const std::string &error_message,
-                                               completionCallback callback)
+void middleware_chain::_handle_middleware_result(request_context &ctx, http::response<http::string_body> &res,
+                                                 middleware_result result, const std::string &error_message,
+                                                 completion_callback callback)
 {
     switch (result)
     {
         case middleware_result::continue_:
-            execute_next_async(ctx, res, callback);
+            _execute_next_async(ctx, res, callback);
             break;
         case middleware_result::stop:
             running_ = false;
@@ -473,15 +473,15 @@ void MiddlewareChain::handle_middleware_result(RequestContext &ctx, http::respon
     }
 }
 
-void MiddlewareChain::sort_middlewares_by_priority()
+void middleware_chain::_sort_middlewares_by_priority()
 {
-    std::sort(middlewares_.begin(), middlewares_.end(), [](const MiddlewareInfo &a, const MiddlewareInfo &b) {
+    std::sort(middlewares_.begin(), middlewares_.end(), [](const middleware_info &a, const middleware_info &b) {
         return static_cast<int>(a.middleware->priority()) < static_cast<int>(b.middleware->priority());
     });
 }
 
-void MiddlewareChain::setup_middleware_timeout(std::shared_ptr<Middleware> mw, RequestContext &ctx,
-                                               http::response<http::string_body> &res, completionCallback callback)
+void middleware_chain::_setup_middleware_timeout(std::shared_ptr<middleware> mw, request_context &ctx,
+                                                 http::response<http::string_body> &res, completion_callback callback)
 {
     if (!io_context_)
         return;
@@ -496,7 +496,7 @@ void MiddlewareChain::setup_middleware_timeout(std::shared_ptr<Middleware> mw, R
             {
                 mw->stats().timeout_count++;
             }
-            handle_timeout(ctx, res, callback);
+            _handle_timeout(ctx, res, callback);
         }
     });
 

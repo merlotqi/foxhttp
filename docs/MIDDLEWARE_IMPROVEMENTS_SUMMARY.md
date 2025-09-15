@@ -1,4 +1,4 @@
-# Middleware System Improvements Summary
+# middleware System Improvements Summary
 
 ## Overview
 
@@ -13,7 +13,7 @@ The FoxHTTP middleware system has been significantly enhanced with modern C++ fe
 
 ```cpp
 // New async middleware interface
-virtual void operator()(RequestContext &ctx,
+virtual void operator()(request_context &ctx,
                        http::response<http::string_body> &res,
                        std::function<void()> next,
                        AsyncMiddlewareCallback callback) override;
@@ -53,7 +53,7 @@ enum class middleware_priority : int {
 **After**: Smart conditional execution
 
 ```cpp
-virtual bool should_execute(RequestContext &ctx) const override;
+virtual bool should_execute(request_context &ctx) const override;
 ```
 
 **Benefits**:
@@ -154,7 +154,7 @@ Wraps functions as middlewares for quick prototyping:
 ```cpp
 auto middleware = std::make_shared<FunctionalMiddleware>(
     "MyMiddleware",
-    [](const RequestContext& ctx, auto& res, auto next) {
+    [](const request_context& ctx, auto& res, auto next) {
         // Processing logic
         next();
     }
@@ -168,7 +168,7 @@ Adds conditional execution to any middleware:
 ```cpp
 auto conditional = std::make_shared<ConditionalMiddleware>(
     base_middleware,
-    [](const RequestContext& ctx) {
+    [](const request_context& ctx) {
         return ctx.method() == http::verb::post;
     }
 );
@@ -226,21 +226,21 @@ chain.use(middleware_utils::create_rate_limit(100));
 ### New Optional Methods
 
 ```cpp
-class Middleware {
+class middleware {
     // Existing (required)
-    virtual void operator()(RequestContext &ctx,
+    virtual void operator()(request_context &ctx,
                            http::response<http::string_body> &res,
                            std::function<void()> next) = 0;
 
     // New (optional)
-    virtual void operator()(RequestContext &ctx,
+    virtual void operator()(request_context &ctx,
                            http::response<http::string_body> &res,
                            std::function<void()> next,
                            AsyncMiddlewareCallback callback) override;
 
     virtual middleware_priority priority() const override;
     virtual std::string name() const override;
-    virtual bool should_execute(RequestContext &ctx) const override;
+    virtual bool should_execute(request_context &ctx) const override;
     virtual std::chrono::milliseconds timeout() const override;
 };
 ```
@@ -251,19 +251,19 @@ class Middleware {
 
 ```cpp
 // Old code (still works)
-class MyMiddleware : public Middleware {
-    void operator()(RequestContext &ctx, auto& res, auto next) override {
+class MyMiddleware : public middleware {
+    void operator()(request_context &ctx, auto& res, auto next) override {
         // Processing
         next();
     }
 };
 
 // Enhanced version
-class MyMiddleware : public Middleware {
+class MyMiddleware : public middleware {
     std::string name() const override { return "MyMiddleware"; }
     middleware_priority priority() const override { return middleware_priority::normal; }
 
-    void operator()(RequestContext &ctx, auto& res, auto next) override {
+    void operator()(request_context &ctx, auto& res, auto next) override {
         // Same processing
         next();
     }
@@ -274,7 +274,7 @@ class MyMiddleware : public Middleware {
 
 ```cpp
 // Create enhanced middleware chain
-MiddlewareChain chain(io_context);
+middleware_chain chain(io_context);
 chain.enable_statistics(true);
 chain.set_global_timeout(std::chrono::milliseconds(5000));
 
@@ -308,7 +308,7 @@ chain.print_statistics();
 
 Potential future improvements:
 
-- Middleware composition and chaining
+- middleware composition and chaining
 - Plugin system for dynamic loading
 - Distributed tracing support
 - Advanced caching mechanisms
@@ -316,7 +316,7 @@ Potential future improvements:
 
 ## 📚 Documentation
 
-- [Enhanced Middleware Guide](ENHANCED_MIDDLEWARE.md)
+- [Enhanced middleware Guide](ENHANCED_MIDDLEWARE.md)
 - [API Reference](API_REFERENCE.md)
 - [Migration Guide](MIGRATION_GUIDE.md)
 - [Examples](../examples/)

@@ -8,6 +8,7 @@
 #pragma once
 
 #include <foxhttp/parser/parser.hpp>
+#include <foxhttp/config/configs.hpp>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -15,84 +16,64 @@
 
 namespace foxhttp {
 
-// Forward declarations
-class FormField;
-class FormParser;
+class form_field;
+class form_parser;
 
-/**
- * @brief Configuration for form parsing
- */
-struct FormConfig
-{
-    std::size_t max_field_size = 1024 * 1024;     // 1MB max field size
-    std::size_t max_total_size = 10 * 1024 * 1024;// 10MB max total size
-    std::size_t max_fields = 1000;                // Max number of fields
-    bool strict_mode = true;                      // Strict RFC compliance
-    bool allow_empty_values = true;               // Allow empty field values
-    bool support_arrays = true;                   // Support array notation (name[])
-    std::string charset = "UTF-8";                // Default charset
-};
+using form_config = ::foxhttp::form_config;
 
-class FormField
+namespace details {
+class form_parser_core;
+class form_field_core;
+}// namespace details
+
+class form_field
 {
 public:
-    FormField();
-    ~FormField();
+    form_field();
+    ~form_field();
 
-    // Field properties
     const std::string &name() const;
     bool is_array() const;
     std::size_t size() const;
 
-    // Value access
     const std::string &value() const;
     const std::vector<std::string> &values() const;
     std::string value_at(std::size_t index) const;
 
-    // Validation
     bool is_valid() const;
     std::string validation_error() const;
 
 private:
-    friend class FormParser;
+    friend class form_parser;
 
-    void set_name(const std::string &name);
-    void add_value(const std::string &value);
-    void set_single_value(const std::string &value);
+    void _set_name(const std::string &name);
+    void _add_value(const std::string &value);
+    void _set_single_value(const std::string &value);
 
 private:
-    class Impl;
-    std::unique_ptr<Impl> pimpl_;
+    friend class details::form_parser_core;
+    std::unique_ptr<details::form_field_core> core_;
 };
+using form_data = std::unordered_map<std::string, std::unique_ptr<form_field>>;
 
-/**
- * @brief Result type for form parsing
- */
-using FormData = std::unordered_map<std::string, std::unique_ptr<FormField>>;
 
-/**
- * @brief Enhanced form parser with configuration and validation
- */
-class FormParser : public Parser<FormData>
+class form_parser : public parser<form_data>
 {
 public:
-    explicit FormParser(const FormConfig &config = FormConfig{});
-    ~FormParser();
+    explicit form_parser(const form_config &config = form_config{});
+    ~form_parser();
 
-    // Parser interface
     std::string name() const override;
     std::string content_type() const override;
     bool supports(const http::request<http::string_body> &req) const override;
-    FormData parse(const http::request<http::string_body> &req) const override;
+    form_data parse(const http::request<http::string_body> &req) const override;
 
-    // Configuration
-    const FormConfig &config() const;
-    void set_config(const FormConfig &config);
+    const form_config &config() const;
+    void set_config(const form_config &config);
 
 private:
-    class Impl;
-    std::unique_ptr<Impl> pimpl_;
+    std::unique_ptr<details::form_parser_core> core_;
 };
-REGISTER_PARSER(FormData, FormParser);
+REGISTER_PARSER(form_data, form_parser);
 
 }// namespace foxhttp

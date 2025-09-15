@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -15,23 +15,23 @@ using tcp = boost::asio::ip::tcp;
 
 namespace foxhttp {
 
-class Middleware;
-class IOContextPool;
-class MiddlewareChain;
-class Server
+class middleware;
+class io_context_pool;
+class middleware_chain;
+class server
 {
 public:
-    Server(IOContextPool &io_pool, unsigned short port);
+    server(io_context_pool &io_pool, unsigned short port);
 
-    void use(std::shared_ptr<Middleware> mw);
-    std::shared_ptr<MiddlewareChain> global_chain() const;
+    void use(std::shared_ptr<middleware> mw);
+    std::shared_ptr<middleware_chain> global_chain() const;
 
 private:
-    void do_accept();
+    void _do_accept();
 
-    IOContextPool &io_pool_;
+    io_context_pool &io_pool_;
     tcp::acceptor acceptor_;
-    std::shared_ptr<MiddlewareChain> global_chain_;
+    std::shared_ptr<middleware_chain> global_chain_;
 };
 
 }// namespace foxhttp

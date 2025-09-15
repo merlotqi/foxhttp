@@ -1,25 +1,25 @@
-# Session and Middleware Integration
+# session and middleware Integration
 
 This document explains how the enhanced middleware system integrates with the session handling in FoxHTTP.
 
 ## Overview
 
-The `Session` class is responsible for handling individual HTTP connections and processing requests through the middleware chain. With the enhanced middleware system, sessions now properly handle different middleware execution results.
+The `session` class is responsible for handling individual HTTP connections and processing requests through the middleware chain. With the enhanced middleware system, sessions now properly handle different middleware execution results.
 
-## Session Execution Flow
+## session Execution Flow
 
 ### 1. Request Processing Pipeline
 
 ```
-Client Request → Session::read_request() → Session::process_request() → MiddlewareChain::execute_async() → Route Handler → Session::write_response()
+Client Request → session::read_request() → session::process_request() → middleware_chain::execute_async() → Route Handler → session::write_response()
 ```
 
 ### 2. Enhanced process_request() Method
 
-The `process_request()` method in `Session` has been updated to handle the new middleware API:
+The `process_request()` method in `session` has been updated to handle the new middleware API:
 
 ```cpp
-void Session::process_request()
+void session::process_request()
 {
     // ... setup code ...
 
@@ -27,7 +27,7 @@ void Session::process_request()
     {
         global_chain_->execute_async(ctx, res_, [self, handler, &ctx](middleware_result result, const std::string& error_message) {
             if (result == middleware_result::continue_) {
-                // Middleware chain completed successfully
+                // middleware chain completed successfully
                 handler->handle_request(ctx, self->res_);
             } else if (result == middleware_result::error) {
                 // Handle middleware error
@@ -40,7 +40,7 @@ void Session::process_request()
                 self->res_.set(http::field::content_type, "application/json");
                 self->res_.body() = R"({"code":504,"message":"Gateway Timeout"})";
             } else if (result == middleware_result::stop) {
-                // Middleware stopped execution, response already set
+                // middleware stopped execution, response already set
             }
             self->res_.prepare_payload();
             self->write_response();
@@ -80,7 +80,7 @@ void Session::process_request()
 
 ### 1. Proper Error Handling
 
-- Middleware errors don't crash the server
+- middleware errors don't crash the server
 - Consistent error response format
 - Detailed error information in responses
 
@@ -120,7 +120,7 @@ Flow: Logger → Auth (fails)
 Result: stop → Auth middleware sets 401 response
 ```
 
-### Scenario 3: Middleware Error
+### Scenario 3: middleware Error
 
 ```
 Request: GET /api/data
@@ -132,7 +132,7 @@ Result: error → 500 Internal Server Error
 
 ```
 Request: GET /api/slow
-Flow: Logger → Slow Middleware (takes too long)
+Flow: Logger → Slow middleware (takes too long)
 Result: timeout → 504 Gateway Timeout
 ```
 
@@ -149,7 +149,7 @@ chain.set_global_timeout(std::chrono::milliseconds(5000));
 
 ```cpp
 // Custom error handling
-chain.set_error_handler([](RequestContext &ctx,
+chain.set_error_handler([](request_context &ctx,
                           http::response<http::string_body> &res,
                           const std::exception &e) {
     // Custom error response logic
@@ -160,7 +160,7 @@ chain.set_error_handler([](RequestContext &ctx,
 
 ```cpp
 // Custom timeout handling
-chain.set_timeout_handler([](RequestContext &ctx,
+chain.set_timeout_handler([](request_context &ctx,
                             http::response<http::string_body> &res) {
     // Custom timeout response logic
 });
@@ -244,7 +244,7 @@ chain.use(middleware_utils::create_logger("RequestLogger"));
 auto stats = chain.get_statistics();
 for (const auto& [name, stat] : stats) {
     if (stat.error_count > 0) {
-        std::cout << "Middleware " << name << " has " << stat.error_count << " errors" << std::endl;
+        std::cout << "middleware " << name << " has " << stat.error_count << " errors" << std::endl;
     }
 }
 ```

@@ -9,15 +9,15 @@
 
 namespace foxhttp {
 
-/* ----------------------------- MiddlewareStats ---------------------------- */
+/* ----------------------------- middleware_stats ---------------------------- */
 
-MiddlewareStats::MiddlewareStats(const MiddlewareStats &other)
+middleware_stats::middleware_stats(const middleware_stats &other)
     : execution_count(other.execution_count.load()), total_execution_time(other.total_execution_time.load()),
       error_count(other.error_count.load()), timeout_count(other.timeout_count.load())
 {
 }
 
-MiddlewareStats &MiddlewareStats::operator=(const MiddlewareStats &other)
+middleware_stats &middleware_stats::operator=(const middleware_stats &other)
 {
     if (this != &other)
     {
@@ -29,7 +29,7 @@ MiddlewareStats &MiddlewareStats::operator=(const MiddlewareStats &other)
     return *this;
 }
 
-void MiddlewareStats::reset()
+void middleware_stats::reset()
 {
     execution_count = 0;
     total_execution_time = std::chrono::microseconds{0};
@@ -37,10 +37,10 @@ void MiddlewareStats::reset()
     timeout_count = 0;
 }
 
-/* ------------------------------- Middleware ------------------------------- */
+/* ------------------------------- middleware ------------------------------- */
 
-void Middleware::operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
-                            AsyncMiddlewareCallback callback)
+void middleware::operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
+                            async_middleware_callback callback)
 {
     // Default implementation: execute synchronously and call callback
     try
@@ -55,47 +55,47 @@ void Middleware::operator()(RequestContext &ctx, http::response<http::string_bod
 }
 
 // Get middleware priority (default: normal)
-middleware_priority Middleware::priority() const
+middleware_priority middleware::priority() const
 {
     return middleware_priority::normal;
 }
 
 // Get middleware name for logging/debugging
-std::string Middleware::name() const
+std::string middleware::name() const
 {
     return "AnonymousMiddleware";
 }
 
 // Check if middleware should execute for this request
-bool Middleware::should_execute(RequestContext &ctx) const
+bool middleware::should_execute(request_context &ctx) const
 {
     return true;
 }
 
 // Get execution timeout for this middleware (0 = no timeout)
-std::chrono::milliseconds Middleware::timeout() const
+std::chrono::milliseconds middleware::timeout() const
 {
     return std::chrono::milliseconds{0};
 }
 
 // Get statistics
-MiddlewareStats &Middleware::stats()
+middleware_stats &middleware::stats()
 {
     return stats_;
 }
-const MiddlewareStats &Middleware::stats() const
+const middleware_stats &middleware::stats() const
 {
     return stats_;
 }
 
-/* -------------------------- ConditionalMiddleware ------------------------- */
+/* -------------------------- conditional_middleware ------------------------- */
 
-ConditionalMiddleware::ConditionalMiddleware(std::shared_ptr<Middleware> middleware, ConditionFunc condition)
+conditional_middleware::conditional_middleware(std::shared_ptr<middleware> middleware, condition_func condition)
     : middleware_(std::move(middleware)), condition_(std::move(condition))
 {
 }
 
-void ConditionalMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
+void conditional_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
                                        std::function<void()> next)
 {
     if (condition_(ctx))
@@ -108,8 +108,8 @@ void ConditionalMiddleware::operator()(RequestContext &ctx, http::response<http:
     }
 }
 
-void ConditionalMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
-                                       std::function<void()> next, AsyncMiddlewareCallback callback)
+void conditional_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+                                       std::function<void()> next, async_middleware_callback callback)
 {
     if (condition_(ctx))
     {
@@ -122,28 +122,28 @@ void ConditionalMiddleware::operator()(RequestContext &ctx, http::response<http:
     }
 }
 
-middleware_priority ConditionalMiddleware::priority() const
+middleware_priority conditional_middleware::priority() const
 {
     return middleware_->priority();
 }
-std::string ConditionalMiddleware::name() const
+std::string conditional_middleware::name() const
 {
     return "Conditional(" + middleware_->name() + ")";
 }
-bool ConditionalMiddleware::should_execute(RequestContext &ctx) const
+bool conditional_middleware::should_execute(request_context &ctx) const
 {
     return condition_(ctx);
 }
-std::chrono::milliseconds ConditionalMiddleware::timeout() const
+std::chrono::milliseconds conditional_middleware::timeout() const
 {
     return middleware_->timeout();
 }
 
-MiddlewareStats &ConditionalMiddleware::stats()
+middleware_stats &conditional_middleware::stats()
 {
     return middleware_->stats();
 }
-const MiddlewareStats &ConditionalMiddleware::stats() const
+const middleware_stats &conditional_middleware::stats() const
 {
     return middleware_->stats();
 }

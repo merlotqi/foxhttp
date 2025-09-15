@@ -14,7 +14,7 @@
 #include <foxhttp/core/session.hpp>
 #include <foxhttp/core/signal_set.hpp>
 
-// Middleware system
+// middleware system
 #include <foxhttp/middleware/middleware.hpp>
 #include <foxhttp/middleware/middleware_chain.hpp>
 #include <foxhttp/middleware/middleware_factories.hpp>
@@ -46,4 +46,5 @@
 #include <foxhttp/router/router.hpp>
 
 // Configuration
-#include <foxhttp/cfg/config.hpp>
+#include <foxhttp/config/configs.hpp>
+#include <foxhttp/config/config_manager.hpp>

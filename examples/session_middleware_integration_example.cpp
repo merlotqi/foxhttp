@@ -3,7 +3,7 @@
  * Copyright (C) 2025 Rain Merlot
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
- * Session and Middleware Integration Example
+ * session and middleware Integration Example
  * Demonstrates how the enhanced middleware system works with sessions
  */
 
@@ -15,7 +15,7 @@
 using namespace foxhttp;
 
 // Example middleware that demonstrates different execution results
-class TestMiddleware : public Middleware
+class TestMiddleware : public middleware
 {
 public:
     std::string name() const override
@@ -23,7 +23,7 @@ public:
         return "TestMiddleware";
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override
     {
         std::cout << "TestMiddleware: Processing " << ctx.path() << std::endl;
 
@@ -36,7 +36,7 @@ public:
         {
             res.result(http::status::ok);
             res.set(http::field::content_type, "application/json");
-            res.body() = R"({"message": "Middleware stopped execution"})";
+            res.body() = R"({"message": "middleware stopped execution"})";
             // Don't call next() - this stops the chain
             return;
         }
@@ -49,7 +49,7 @@ public:
         next();
     }
 
-    void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
+    void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
                     AsyncMiddlewareCallback callback) override
     {
         std::cout << "TestMiddleware: Async processing " << ctx.path() << std::endl;
@@ -90,7 +90,7 @@ public:
 class MockRouteHandler
 {
 public:
-    void handle_request(RequestContext &ctx, http::response<http::string_body> &res)
+    void handle_request(request_context &ctx, http::response<http::string_body> &res)
     {
         if (ctx.path() == "/hello")
         {
@@ -118,7 +118,7 @@ public:
 };
 
 // Simulate session behavior
-void simulate_session_processing(MiddlewareChain &chain, const std::string &path)
+void simulate_session_processing(middleware_chain &chain, const std::string &path)
 {
     std::cout << "\n=== Processing Request: " << path << " ===" << std::endl;
 
@@ -130,7 +130,7 @@ void simulate_session_processing(MiddlewareChain &chain, const std::string &path
     req.body() = "";
     req.prepare_payload();
 
-    RequestContext ctx(req);
+    request_context ctx(req);
     http::response<http::string_body> res;
     MockRouteHandler handler;
 
@@ -141,7 +141,7 @@ void simulate_session_processing(MiddlewareChain &chain, const std::string &path
     // Execute middleware chain asynchronously (like in session.cpp)
     chain.execute_async(
             ctx, res, [&handler, &ctx, &res, path](middleware_result result, const std::string &error_message) {
-                std::cout << "Middleware chain completed with result: " << static_cast<int>(result);
+                std::cout << "middleware chain completed with result: " << static_cast<int>(result);
                 if (!error_message.empty())
                 {
                     std::cout << ", error: " << error_message;
@@ -167,8 +167,8 @@ void simulate_session_processing(MiddlewareChain &chain, const std::string &path
                 }
                 else if (result == middleware_result::stop)
                 {
-                    // Middleware chain was stopped, response should already be set
-                    std::cout << "Middleware chain was stopped, using middleware response" << std::endl;
+                    // middleware chain was stopped, response should already be set
+                    std::cout << "middleware chain was stopped, using middleware response" << std::endl;
                 }
 
                 res.prepare_payload();
@@ -187,7 +187,7 @@ int main()
         boost::asio::io_context io_context;
 
         // Create middleware chain
-        MiddlewareChain chain(io_context);
+        middleware_chain chain(io_context);
         chain.enable_statistics(true);
         chain.set_global_timeout(std::chrono::milliseconds(3000));
 
@@ -195,11 +195,8 @@ int main()
         chain.use(std::make_shared<TestMiddleware>());
 
         // Add utility middlewares
-        chain.use(middleware_utils::create_logger("RequestLogger"));
-        chain.use(middleware_utils::create_response_time());
-
-        std::cout << "=== Session-Middleware Integration Test ===" << std::endl;
-        std::cout << "Middleware chain:" << std::endl;
+        std::cout << "=== session-middleware Integration Test ===" << std::endl;
+        std::cout << "middleware chain:" << std::endl;
         for (const auto &name: chain.get_middleware_names())
         {
             std::cout << "  - " << name << std::endl;

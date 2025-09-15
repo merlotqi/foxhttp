@@ -3,48 +3,48 @@
  * Copyright (C) 2025 Rain Merlot
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
- * Middleware utilities and helper classes
+ * middleware utilities and helper classes
  */
 
 #include <foxhttp/middleware/basic/functional_middleware.hpp>
 
 namespace foxhttp {
 
-/* -------------------------- FunctionalMiddleware -------------------------- */
+/* -------------------------- functional_middleware -------------------------- */
 
-FunctionalMiddleware::FunctionalMiddleware(const std::string &name, SyncFunc sync_func, AsyncFunc async_func,
-                                           ConditionFunc condition, middleware_priority priority,
+functional_middleware::functional_middleware(const std::string &name, sync_func sync_func, async_func async_func,
+                                           condition_func condition, middleware_priority priority,
                                            std::chrono::milliseconds timeout)
     : name_(name), sync_func_(std::move(sync_func)), async_func_(std::move(async_func)),
       condition_(std::move(condition)), priority_(priority), timeout_(timeout)
 {
 }
 
-std::string FunctionalMiddleware::name() const
+std::string functional_middleware::name() const
 {
     return name_;
 }
-middleware_priority FunctionalMiddleware::priority() const
+middleware_priority functional_middleware::priority() const
 {
     return priority_;
 }
-bool FunctionalMiddleware::should_execute(RequestContext &ctx) const
+bool functional_middleware::should_execute(request_context &ctx) const
 {
     return condition_ ? condition_(ctx) : true;
 }
-std::chrono::milliseconds FunctionalMiddleware::timeout() const
+std::chrono::milliseconds functional_middleware::timeout() const
 {
     return timeout_;
 }
 
-void FunctionalMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
+void functional_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
                                       std::function<void()> next)
 {
     sync_func_(ctx, res, next);
 }
 
-void FunctionalMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
-                                      std::function<void()> next, AsyncMiddlewareCallback callback)
+void functional_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+                                      std::function<void()> next, async_middleware_callback callback)
 {
     if (async_func_)
     {
@@ -53,7 +53,7 @@ void FunctionalMiddleware::operator()(RequestContext &ctx, http::response<http::
     else
     {
         // Fallback to sync implementation
-        Middleware::operator()(ctx, res, next, callback);
+        middleware::operator()(ctx, res, next, callback);
     }
 }
 
