@@ -28,7 +28,7 @@ void io_context_pool::start()
     {
         threads_.emplace_back([io = io_contexts_[i]] { io->run(); });
     }
-    
+
     for (auto &t: threads_)
     {
         if (t.joinable())

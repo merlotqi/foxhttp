@@ -31,12 +31,12 @@ void demonstrate_form_parser()
     try
     {
         // Configure parser
-        FormConfig config;
+        form_config config;
         config.max_field_size = 1024;
         config.max_total_size = 10240;
         config.support_arrays = true;
 
-        FormParser parser(config);
+        form_parser parser(config);
         auto result = parser.parse(req);
 
         std::cout << "Parsed " << result.size() << " fields:\n";
@@ -102,7 +102,7 @@ void demonstrate_json_parser()
     try
     {
         // Configure parser
-        JsonConfig config;
+        json_config config;
         config.max_size = 1024 * 1024;// 1MB
         config.max_depth = 10;
         config.strict_mode = true;
@@ -123,7 +123,7 @@ void demonstrate_json_parser()
         config.schema = schema;
         config.validate_schema = true;
 
-        JsonParser parser(config);
+        json_parser parser(config);
 
         // Parse JSON (validation is handled internally)
         auto json = parser.parse(req);
@@ -172,14 +172,14 @@ void demonstrate_plaintext_parser()
     try
     {
         // Configure parser
-        PlainTextConfig config;
+        plain_text_config config;
         config.max_size = 1024 * 1024;// 1MB
         config.normalize_line_endings = true;
         config.trim_whitespace = true;
         config.validate_encoding = true;
         config.strict_mode = false;// Allow various text/* types
 
-        PlainTextParser parser(config);
+        plain_text_parser parser(config);
         auto result = parser.parse(req);
 
         std::cout << "✓ Text parsed successfully\n";
@@ -219,10 +219,10 @@ void demonstrate_error_handling()
 
     try
     {
-        JsonConfig config;
+        json_config config;
         config.max_size = 1024;// Very small limit
 
-        JsonParser parser(config);
+        json_parser parser(config);
         auto json = parser.parse(req);
 
         std::cout << "✗ Should have failed but didn't\n";
@@ -240,7 +240,7 @@ void demonstrate_error_handling()
 
     try
     {
-        JsonParser parser;
+        json_parser parser;
         auto json = parser.parse(req);
 
         std::cout << "✗ Should have failed but didn't\n";

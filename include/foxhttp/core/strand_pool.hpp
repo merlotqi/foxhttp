@@ -11,6 +11,7 @@
 #include <atomic>
 #include <boost/asio.hpp>
 #include <chrono>
+#include <foxhttp/config/configs.hpp>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -19,7 +20,6 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
-#include <foxhttp/config/configs.hpp>
 
 namespace foxhttp {
 

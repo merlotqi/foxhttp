@@ -23,14 +23,16 @@ namespace foxhttp {
 class functional_middleware : public middleware
 {
 public:
-    using sync_func = std::function<void(request_context &, http::response<http::string_body> &, std::function<void()>)>;
+    using sync_func =
+            std::function<void(request_context &, http::response<http::string_body> &, std::function<void()>)>;
     using async_func = std::function<void(request_context &, http::response<http::string_body> &, std::function<void()>,
-                                         async_middleware_callback)>;
+                                          async_middleware_callback)>;
     using condition_func = std::function<bool(request_context &)>;
 
     functional_middleware(const std::string &name, sync_func sync_func, async_func async_func = nullptr,
-                         condition_func condition = nullptr, middleware_priority priority = middleware_priority::normal,
-                         std::chrono::milliseconds timeout = std::chrono::milliseconds{0});
+                          condition_func condition = nullptr,
+                          middleware_priority priority = middleware_priority::normal,
+                          std::chrono::milliseconds timeout = std::chrono::milliseconds{0});
 
     std::string name() const override;
     middleware_priority priority() const override;

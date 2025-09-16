@@ -126,7 +126,7 @@ public:
 private:
     void _initialize();
     timer_id_t _schedule_impl(time_point_t when, duration_t interval, timer_callback_t callback, bool is_repeating,
-                             timer_priority priority);
+                              timer_priority priority);
     void _start_cleanup_timer();
     void _start_statistics_timer();
 

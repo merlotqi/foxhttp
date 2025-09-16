@@ -73,18 +73,18 @@ void signal_set::_handle_signal(int sig)
 std::string signal_set::_siganl_name(int sig)
 {
     static const std::unordered_map<int, std::string> names = {
-        { SIGINT,  "SIGINT"},
-        { SIGTERM, "SIGTERM"},
-        #ifndef _WIN32
-        { SIGHUP,  "SIGHUP"},
-        { SIGQUIT, "SIGQUIT"},
-        { SIGUSR1, "SIGUSR1"},
-        { SIGUSR2, "SIGUSR2"},
-        { SIGPIPE, "SIGPIPE"},
-        { SIGALRM, "SIGALRM"},
-        #endif
-        #ifdef _WIN32
-        #endif
+            { SIGINT,  "SIGINT"},
+            {SIGTERM, "SIGTERM"},
+#ifndef _WIN32
+            { SIGHUP,  "SIGHUP"},
+            {SIGQUIT, "SIGQUIT"},
+            {SIGUSR1, "SIGUSR1"},
+            {SIGUSR2, "SIGUSR2"},
+            {SIGPIPE, "SIGPIPE"},
+            {SIGALRM, "SIGALRM"},
+#endif
+#ifdef _WIN32
+#endif
     };
     auto it = names.find(sig);
     return it != names.end() ? it->second : "UNKNOWN";

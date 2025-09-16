@@ -8,8 +8,8 @@
 #include <atomic>
 #include <chrono>
 #include <filesystem>
-#include <foxhttp/config/details/config_watcher.hpp>
 #include <foxhttp/config/config_manager.hpp>
+#include <foxhttp/config/details/config_watcher.hpp>
 #include <functional>
 #include <string>
 #include <thread>

@@ -69,7 +69,6 @@ static std::optional<nlohmann::json> load_yaml_static(const std::string &path)
     }
 }
 
-
 config_manager &config_manager::instance()
 {
     static config_manager inst;
@@ -87,7 +86,6 @@ bool config_manager::initialize(const std::string &path, bool enable_watch, std:
     }
     return ok;
 }
-
 
 void config_manager::register_loader(const std::string &extension, loader_fn loader)
 {
@@ -366,7 +364,24 @@ static const nlohmann::json *walk_dot_path(const nlohmann::json &node, const std
 
 void config_manager::_deep_merge(nlohmann::json &dst, const nlohmann::json &src)
 {
+    if (!src.is_object() || !dst.is_object())
+    {
+        dst = src;
+        return;
+    }
 
+    for (auto it = src.begin(); it != src.end(); ++it)
+    {
+        const auto &key = it.key();
+        if (dst.find(key) != dst.end() && dst[key].is_object() && it.value().is_object())
+        {
+            _deep_merge(dst[key], it.value());
+        }
+        else
+        {
+            dst[key] = it.value();
+        }
+    }
 }
 
 nlohmann::json config_manager::_json_pointer_at(const nlohmann::json &doc, const std::string &path)

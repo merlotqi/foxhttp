@@ -13,8 +13,8 @@ namespace foxhttp {
 /* -------------------------- functional_middleware -------------------------- */
 
 functional_middleware::functional_middleware(const std::string &name, sync_func sync_func, async_func async_func,
-                                           condition_func condition, middleware_priority priority,
-                                           std::chrono::milliseconds timeout)
+                                             condition_func condition, middleware_priority priority,
+                                             std::chrono::milliseconds timeout)
     : name_(name), sync_func_(std::move(sync_func)), async_func_(std::move(async_func)),
       condition_(std::move(condition)), priority_(priority), timeout_(timeout)
 {
@@ -38,13 +38,13 @@ std::chrono::milliseconds functional_middleware::timeout() const
 }
 
 void functional_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
-                                      std::function<void()> next)
+                                       std::function<void()> next)
 {
     sync_func_(ctx, res, next);
 }
 
 void functional_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
-                                      std::function<void()> next, async_middleware_callback callback)
+                                       std::function<void()> next, async_middleware_callback callback)
 {
     if (async_func_)
     {

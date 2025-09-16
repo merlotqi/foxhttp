@@ -46,5 +46,5 @@
 #include <foxhttp/router/router.hpp>
 
 // Configuration
-#include <foxhttp/config/configs.hpp>
 #include <foxhttp/config/config_manager.hpp>
+#include <foxhttp/config/configs.hpp>

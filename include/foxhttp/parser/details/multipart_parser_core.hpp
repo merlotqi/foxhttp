@@ -7,21 +7,21 @@
 
 #pragma once
 
+#include <foxhttp/config/configs.hpp>
+#include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <memory>
-#include <functional>
-#include <foxhttp/config/configs.hpp>
 
 namespace foxhttp {
 
 class multipart_field;
 class multipart_stream_parser;
 using multipart_data = std::vector<std::unique_ptr<multipart_field>>;
-using progress_callback = std::function<void(std::size_t, std::size_t, const std::string&)>;
-using error_callback = std::function<void(const std::string&, std::size_t)>;
+using progress_callback = std::function<void(std::size_t, std::size_t, const std::string &)>;
+using error_callback = std::function<void(const std::string &, std::size_t)>;
 
 namespace details {
 
@@ -68,7 +68,14 @@ public:
 class multipart_stream_parser_core
 {
 public:
-    enum class ParseState { BOUNDARY, HEADERS, CONTENT, COMPLETE, error };
+    enum class ParseState
+    {
+        BOUNDARY,
+        HEADERS,
+        CONTENT,
+        COMPLETE,
+        error
+    };
 
     multipart_config config_;
     std::string boundary_;
@@ -98,5 +105,5 @@ public:
     void cleanup_temp_files();
 };
 
-} // namespace details
-} // namespace foxhttp
+}// namespace details
+}// namespace foxhttp

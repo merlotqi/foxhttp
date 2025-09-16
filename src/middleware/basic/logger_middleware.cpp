@@ -13,7 +13,7 @@
 namespace foxhttp {
 
 logger_middleware::logger_middleware(const std::string &name, log_level level, log_format format,
-                                   const std::string &log_file, bool enable_console)
+                                     const std::string &log_file, bool enable_console)
     : name_(name), level_(level), format_(format), log_file_(log_file), enable_console_(enable_console)
 {
     _setup_logger();
@@ -25,7 +25,7 @@ std::string logger_middleware::name() const
 }
 
 void logger_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
-                                  std::function<void()> next)
+                                   std::function<void()> next)
 {
     auto start = std::chrono::steady_clock::now();
     auto request_id = _generate_request_id();
@@ -59,7 +59,7 @@ void logger_middleware::operator()(request_context &ctx, http::response<http::st
 }
 
 void logger_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
-                                  std::function<void()> next, async_middleware_callback callback)
+                                   std::function<void()> next, async_middleware_callback callback)
 {
     auto start = std::chrono::steady_clock::now();
     auto request_id = _generate_request_id();
@@ -206,8 +206,8 @@ void logger_middleware::_log_request_start(const request_context &ctx, const std
 }
 
 void logger_middleware::_log_request_complete(const request_context &ctx, const http::response<http::string_body> &res,
-                                            const std::string &request_id, std::chrono::microseconds duration,
-                                            bool async)
+                                              const std::string &request_id, std::chrono::microseconds duration,
+                                              bool async)
 {
     if (!logger_)
         return;
@@ -248,8 +248,8 @@ void logger_middleware::_log_request_complete(const request_context &ctx, const 
 }
 
 void logger_middleware::_log_request_error(const request_context &ctx, const http::response<http::string_body> &res,
-                                         const std::string &request_id, std::chrono::microseconds duration,
-                                         const std::string &error)
+                                           const std::string &request_id, std::chrono::microseconds duration,
+                                           const std::string &error)
 {
     if (!logger_)
         return;
@@ -288,7 +288,7 @@ void logger_middleware::_log_request_error(const request_context &ctx, const htt
 }
 
 void logger_middleware::_log_request_timeout(const request_context &ctx, const http::response<http::string_body> &res,
-                                           const std::string &request_id, std::chrono::microseconds duration)
+                                             const std::string &request_id, std::chrono::microseconds duration)
 {
     if (!logger_)
         return;
@@ -299,7 +299,7 @@ void logger_middleware::_log_request_timeout(const request_context &ctx, const h
 }
 
 void logger_middleware::_log_request_stopped(const request_context &ctx, const http::response<http::string_body> &res,
-                                           const std::string &request_id, std::chrono::microseconds duration)
+                                             const std::string &request_id, std::chrono::microseconds duration)
 {
     if (!logger_)
         return;

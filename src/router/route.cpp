@@ -37,7 +37,7 @@ std::shared_ptr<api_handler> static_route::handler() const
 
 /* ------------------------- dynamic_route ------------------------- */
 dynamic_route::dynamic_route(std::string pattern, std::shared_ptr<api_handler> handler, std::regex regex_pattern,
-                           std::vector<std::string> param_names)
+                             std::vector<std::string> param_names)
     : pattern_(std::move(pattern)), handler_(std::move(handler)), regex_pattern_(std::move(regex_pattern)),
       param_names_(std::move(param_names))
 {

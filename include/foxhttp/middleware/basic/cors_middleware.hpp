@@ -16,8 +16,8 @@ class cors_middleware : public priority_middleware<middleware_priority::high>
 {
 public:
     explicit cors_middleware(const std::string &origin = "*",
-                            const std::string &methods = "GET, POST, PUT, DELETE, OPTIONS",
-                            const std::string &headers = "Content-Type, Authorization")
+                             const std::string &methods = "GET, POST, PUT, DELETE, OPTIONS",
+                             const std::string &headers = "Content-Type, Authorization")
         : origin_(origin), methods_(methods), headers_(headers)
     {
     }

@@ -11,22 +11,22 @@
 #include <chrono>
 #include <nlohmann/json.hpp>
 #include <string>
-#include <vector>
 #include <thread>
+#include <vector>
 
 namespace foxhttp {
 
 struct json_config
 {
-    std::size_t max_size = 10 * 1024 * 1024; // 10MB max JSON size
-    std::size_t max_depth = 100;             // Max nesting depth
-    bool strict_mode = true;                 // Strict JSON compliance
-    bool allow_comments = false;             // Allow // and /* */ comments
-    bool allow_trailing_commas = false;      // Allow trailing commas
-    bool allow_duplicate_keys = true;        // Allow duplicate object keys
-    bool validate_schema = false;            // Enable schema validation
-    nlohmann::json schema;                   // JSON schema for validation
-    std::string charset = "UTF-8";           // Default charset
+    std::size_t max_size = 10 * 1024 * 1024;// 10MB max JSON size
+    std::size_t max_depth = 100;            // Max nesting depth
+    bool strict_mode = true;                // Strict JSON compliance
+    bool allow_comments = false;            // Allow // and /* */ comments
+    bool allow_trailing_commas = false;     // Allow trailing commas
+    bool allow_duplicate_keys = true;       // Allow duplicate object keys
+    bool validate_schema = false;           // Enable schema validation
+    nlohmann::json schema;                  // JSON schema for validation
+    std::string charset = "UTF-8";          // Default charset
 };
 
 struct multipart_config
@@ -35,7 +35,7 @@ struct multipart_config
     std::size_t max_file_size = 100 * 1024 * 1024; // 100MB max file size
     std::size_t max_total_size = 500 * 1024 * 1024;// 500MB max total size
     std::size_t memory_threshold = 1024 * 1024;    // 1MB threshold for temp files
-    std::string temp_directory = "/tmp";          // Temporary directory
+    std::string temp_directory = "/tmp";           // Temporary directory
     bool auto_cleanup = true;                      // Auto cleanup temp files
     std::chrono::seconds temp_file_lifetime{3600}; // 1 hour temp file lifetime
     bool strict_mode = true;                       // Strict RFC compliance
@@ -46,24 +46,24 @@ struct multipart_config
 
 struct form_config
 {
-    std::size_t max_field_size = 1024 * 1024;      // 1MB max field size
-    std::size_t max_total_size = 10 * 1024 * 1024; // 10MB max total size
-    std::size_t max_fields = 1000;                 // Max number of fields
-    bool strict_mode = true;                       // Strict RFC compliance
-    bool allow_empty_values = true;                // Allow empty field values
-    bool support_arrays = true;                    // Support array notation (name[])
+    std::size_t max_field_size = 1024 * 1024;     // 1MB max field size
+    std::size_t max_total_size = 10 * 1024 * 1024;// 10MB max total size
+    std::size_t max_fields = 1000;                // Max number of fields
+    bool strict_mode = true;                      // Strict RFC compliance
+    bool allow_empty_values = true;               // Allow empty field values
+    bool support_arrays = true;                   // Support array notation (name[])
     std::string charset = "UTF-8";                // Default charset
 };
 
 struct plain_text_config
 {
-    std::size_t max_size = 10 * 1024 * 1024;        // 10MB max text size
-    bool normalize_line_endings = true;             // Convert CRLF to LF
-    bool trim_whitespace = false;                   // Trim leading/trailing whitespace
-    bool validate_encoding = true;                  // Validate UTF-8 encoding
+    std::size_t max_size = 10 * 1024 * 1024;       // 10MB max text size
+    bool normalize_line_endings = true;            // Convert CRLF to LF
+    bool trim_whitespace = false;                  // Trim leading/trailing whitespace
+    bool validate_encoding = true;                 // Validate UTF-8 encoding
     std::string charset = "UTF-8";                 // Expected charset
-    std::vector<std::string> allowed_content_types; // Allowed content types
-    bool strict_mode = false;                       // Strict content type checking
+    std::vector<std::string> allowed_content_types;// Allowed content types
+    bool strict_mode = false;                      // Strict content type checking
 };
 
 
@@ -98,6 +98,4 @@ struct timer_manager_config
     bool enable_cleanup = true;
 };
 
-} // namespace foxhttp
-
-
+}// namespace foxhttp

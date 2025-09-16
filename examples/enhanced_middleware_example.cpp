@@ -14,7 +14,7 @@
 using namespace foxhttp;
 
 // Example middleware with high priority
-class LoggerMiddleware : public PriorityMiddleware<middleware_priority::high>
+class LoggerMiddleware : public priority_middleware<middleware_priority::high>
 {
 public:
     std::string name() const override
@@ -37,7 +37,7 @@ public:
     }
 
     void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
-                    AsyncMiddlewareCallback callback) override
+                     async_middleware_callback callback) override
     {
         auto start = std::chrono::steady_clock::now();
 
@@ -91,7 +91,7 @@ public:
     }
 
     void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
-                    AsyncMiddlewareCallback callback) override
+                    async_middleware_callback callback) override
     {
         std::string auth_header = ctx.header("Authorization");
 
@@ -144,7 +144,7 @@ public:
 };
 
 // Example middleware with low priority
-class ResponseMiddleware : public PriorityMiddleware<middleware_priority::low>
+class ResponseMiddleware : public priority_middleware<middleware_priority::low>
 {
 public:
     std::string name() const override

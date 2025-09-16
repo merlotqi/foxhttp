@@ -7,9 +7,9 @@
 
 #pragma once
 
+#include <foxhttp/config/configs.hpp>
 #include <string>
 #include <vector>
-#include <foxhttp/config/configs.hpp>
 
 namespace foxhttp {
 namespace details {
@@ -29,5 +29,5 @@ public:
     bool is_valid_utf8(const std::string &text) const;
 };
 
-} // namespace details
-} // namespace foxhttp
+}// namespace details
+}// namespace foxhttp

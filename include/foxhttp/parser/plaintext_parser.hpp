@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <foxhttp/parser/parser.hpp>
 #include <foxhttp/config/configs.hpp>
+#include <foxhttp/parser/parser.hpp>
 #include <memory>
 #include <string>
 #include <vector>
@@ -28,13 +28,11 @@ public:
     explicit plain_text_parser(const plain_text_config &config = plain_text_config{});
     ~plain_text_parser();
 
-    // Parser interface
     std::string name() const override;
     std::string content_type() const override;
     bool supports(const http::request<http::string_body> &req) const override;
     std::string parse(const http::request<http::string_body> &req) const override;
 
-    // Configuration
     const plain_text_config &config() const;
     void set_config(const plain_text_config &config);
 

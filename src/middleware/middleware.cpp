@@ -96,7 +96,7 @@ conditional_middleware::conditional_middleware(std::shared_ptr<middleware> middl
 }
 
 void conditional_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
-                                       std::function<void()> next)
+                                        std::function<void()> next)
 {
     if (condition_(ctx))
     {
@@ -109,7 +109,7 @@ void conditional_middleware::operator()(request_context &ctx, http::response<htt
 }
 
 void conditional_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
-                                       std::function<void()> next, async_middleware_callback callback)
+                                        std::function<void()> next, async_middleware_callback callback)
 {
     if (condition_(ctx))
     {

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 option(FOXHTTP_BUILD_EXAMPLES "Build examples" OFF)
 
 
-find_package(Boost REQUIRED COMPONENTS system json signals2)
+find_package(Boost REQUIRED COMPONENTS system)
 find_package(spdlog REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(gflags REQUIRED)
@@ -17,8 +17,8 @@ add_library(foxhttplib SHARED)
 if(WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 else()
-    target_compile_options(MyLibrary PRIVATE -fvisibility=hidden)
-    target_compile_options(MyLibrary PRIVATE -fvisibility-inlines-hidden)
+    target_compile_options(foxhttplib PRIVATE -fvisibility=hidden)
+    target_compile_options(foxhttplib PRIVATE -fvisibility-inlines-hidden)
 endif()
 
 add_subdirectory(include)
@@ -29,9 +29,6 @@ target_link_libraries(foxhttplib ${Boost_LIBRARIES} spdlog::spdlog nlohmann_json
 if(FOXHTTP_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
-
-add_subdirectory(fox)
-
 
 install(TARGETS foxhttplib
     EXPORT foxhttplib-targets

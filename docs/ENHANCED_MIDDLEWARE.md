@@ -15,7 +15,7 @@ The FoxHTTP middleware system has been significantly improved with new features 
 class AsyncMiddleware : public middleware {
 public:
     void operator()(request_context &ctx, http::response<http::string_body> &res,
-                    std::function<void()> next, AsyncMiddlewareCallback callback) override {
+                    std::function<void()> next, async_middleware_callback callback) override {
         // Perform async operation
         std::thread([next, callback]() {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -34,7 +34,7 @@ public:
 
 ```cpp
 // Priority middleware example
-class HighPriorityMiddleware : public PriorityMiddleware<middleware_priority::high> {
+class HighPriorityMiddleware : public priority_middleware<middleware_priority::high> {
     // This middleware will execute before normal priority middlewares
 };
 ```
@@ -131,7 +131,7 @@ auto middleware = MiddlewareBuilder()
         next();
     })
     .async([](const request_context& ctx, http::response<http::string_body>& res,
-              std::function<void()> next, AsyncMiddlewareCallback callback) {
+              std::function<void()> next, async_middleware_callback callback) {
         // Asynchronous processing
         callback(middleware_result::continue_);
     })
@@ -200,7 +200,7 @@ public:
 
     // Optional: Add async support
     void operator()(request_context &ctx, http::response<http::string_body> &res,
-                    std::function<void()> next, AsyncMiddlewareCallback callback) override {
+                    std::function<void()> next, async_middleware_callback callback) override {
         // Async processing or fallback to sync
         middleware::operator()(ctx, res, next, callback);
     }

@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <nlohmann/json.hpp>
 #include <foxhttp/config/configs.hpp>
+#include <nlohmann/json.hpp>
 #include <string>
 
 namespace foxhttp {
@@ -31,5 +31,5 @@ public:
     std::string preprocess_json(const std::string &json_string) const;
 };
 
-} // namespace details
-} // namespace foxhttp
+}// namespace details
+}// namespace foxhttp

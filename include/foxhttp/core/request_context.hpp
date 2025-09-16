@@ -33,8 +33,8 @@ public:
     std::string query() const;
     std::string body() const;
 
-    std::string header(const std::string &key, const std::string &default_value = "") const;
-    std::string header(http::field key, const std::string &default_value = "") const;
+    std::string header(const std::string &key, const std::string &default_value = {}) const;
+    std::string header(http::field key, const std::string &default_value = {}) const;
 
 
     void set_path_parameters(const std::unordered_map<std::string, std::string> &params);

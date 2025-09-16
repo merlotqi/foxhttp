@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <foxhttp/parser/parser.hpp>
 #include <foxhttp/config/configs.hpp>
+#include <foxhttp/parser/parser.hpp>
 #include <functional>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -40,7 +40,7 @@ struct json_validation_result
 };
 
 namespace details {
-    class json_parser_core;
+class json_parser_core;
 }
 
 class json_parser : public parser<nlohmann::json>
@@ -49,13 +49,11 @@ public:
     explicit json_parser(const json_config &config = json_config{});
     ~json_parser();
 
-    // Parser interface
     std::string name() const override;
     std::string content_type() const override;
     bool supports(const http::request<http::string_body> &req) const override;
     nlohmann::json parse(const http::request<http::string_body> &req) const override;
 
-    // Configuration
     const json_config &config() const;
     void set_config(const json_config &config);
 

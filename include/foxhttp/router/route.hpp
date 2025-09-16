@@ -57,7 +57,7 @@ class dynamic_route : public route
 {
 public:
     dynamic_route(std::string pattern, std::shared_ptr<api_handler> handler, std::regex regex_pattern,
-                 std::vector<std::string> param_names);
+                  std::vector<std::string> param_names);
 
     api_handler *match(const std::string &path, request_context &ctx) const override;
     std::string pattern() const override;

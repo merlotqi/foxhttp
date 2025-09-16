@@ -38,11 +38,11 @@ int main()
     try
     {
         // Create parser with default config
-        MultipartConfig config;
+        multipart_config config;
         config.max_field_size = 1024 * 1024;    // 1MB
         config.max_file_size = 10 * 1024 * 1024;// 10MB
 
-        MultipartParser parser(config);
+        multipart_parser parser(config);
 
         // Parse the request
         auto result = parser.parse(req);

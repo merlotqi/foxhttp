@@ -3,7 +3,7 @@
  * Copyright (C) 2025 Rain Merlot
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
- * Advanced example usage of MultipartParser with streaming support
+ * Advanced example usage of multipart_parser with streaming support
  */
 
 #include <boost/beast/http.hpp>
@@ -46,13 +46,13 @@ void demonstrate_basic_parsing()
     try
     {
         // Create parser with custom configuration
-        foxhttp::MultipartConfig config;
+        foxhttp::multipart_config config;
         config.max_field_size = 1024 * 1024;    // 1MB
         config.max_file_size = 10 * 1024 * 1024;// 10MB
         config.allowed_extensions = {".jpg", ".png", ".gif"};
         config.allowed_content_types = {"image/jpeg", "image/png", "image/gif"};
 
-        foxhttp::MultipartParser parser(config);
+        foxhttp::multipart_parser parser(config);
 
         if (parser.supports(req))
         {
@@ -146,7 +146,7 @@ void demonstrate_streaming_parsing()
     try
     {
         // Create streaming parser with progress callback
-        foxhttp::MultipartConfig config;
+        foxhttp::multipart_config config;
         config.max_field_size = 1024 * 1024;
         config.max_file_size = 10 * 1024 * 1024;
 
@@ -164,7 +164,7 @@ void demonstrate_streaming_parsing()
             std::cerr << "Streaming error at position " << position << ": " << error << "\n";
         };
 
-        foxhttp::MultipartStreamParser stream_parser(boundary, config, progress_callback, error_callback);
+        foxhttp::multipart_stream_parser stream_parser(boundary, config, progress_callback, error_callback);
 
         std::cout << "Starting streaming parse...\n";
 
@@ -232,7 +232,7 @@ void demonstrate_error_handling()
         req.set(http::field::content_type, "multipart/form-data");// No boundary
         req.body() = "some data";
 
-        foxhttp::MultipartParser parser;
+        foxhttp::multipart_parser parser;
         auto fields = parser.parse(req);
 
         std::cout << "✗ Should have thrown exception for missing boundary\n";
@@ -245,14 +245,14 @@ void demonstrate_error_handling()
     // Test with oversized content
     try
     {
-        foxhttp::MultipartConfig config;
+        foxhttp::multipart_config config;
         config.max_total_size = 100;// Very small limit
 
         std::string large_body = "--boundary\r\nContent-Disposition: form-data; name=\"data\"\r\n\r\n";
         large_body.append(200, 'x');// Exceed limit
         large_body += "\r\n--boundary--\r\n";
 
-        foxhttp::MultipartParser parser(config);
+        foxhttp::multipart_parser parser(config);
         auto fields = parser.parse_with_boundary(large_body, "boundary");
 
         std::cout << "✗ Should have thrown exception for oversized content\n";

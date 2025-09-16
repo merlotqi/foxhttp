@@ -16,7 +16,7 @@ The FoxHTTP middleware system has been significantly enhanced with modern C++ fe
 virtual void operator()(request_context &ctx,
                        http::response<http::string_body> &res,
                        std::function<void()> next,
-                       AsyncMiddlewareCallback callback) override;
+                       async_middleware_callback callback) override;
 ```
 
 **Benefits**:
@@ -236,7 +236,7 @@ class middleware {
     virtual void operator()(request_context &ctx,
                            http::response<http::string_body> &res,
                            std::function<void()> next,
-                           AsyncMiddlewareCallback callback) override;
+                           async_middleware_callback callback) override;
 
     virtual middleware_priority priority() const override;
     virtual std::string name() const override;

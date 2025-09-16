@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <foxhttp/parser/parser.hpp>
 #include <foxhttp/config/configs.hpp>
+#include <foxhttp/parser/parser.hpp>
 #include <memory>
 #include <string>
 #include <unordered_map>

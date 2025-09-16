@@ -7,10 +7,10 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
-#include <unordered_map>
 #include <foxhttp/config/configs.hpp>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace foxhttp {
 
@@ -48,5 +48,5 @@ public:
     std::string url_encode(const std::string &decoded) const;
 };
 
-} // namespace details
-} // namespace foxhttp
+}// namespace details
+}// namespace foxhttp

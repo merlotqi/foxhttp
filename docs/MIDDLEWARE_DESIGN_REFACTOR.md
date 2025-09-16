@@ -90,7 +90,7 @@ public:
     }
 
     void operator()(request_context &ctx, http::response<http::string_body> &res,
-                    std::function<void()> next, AsyncMiddlewareCallback callback) override {
+                    std::function<void()> next, async_middleware_callback callback) override {
         // Asynchronous processing
         callback(middleware_result::continue_, "");
     }

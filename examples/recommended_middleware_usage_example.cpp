@@ -54,7 +54,7 @@ public:
     }
 
     void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
-                    AsyncMiddlewareCallback callback) override
+                    async_middleware_callback callback) override
     {
         std::string auth_header = ctx.header("Authorization");
 
@@ -88,7 +88,7 @@ private:
 };
 
 // Route handler middleware
-class RouteHandlerMiddleware : public PriorityMiddleware<middleware_priority::low>
+class RouteHandlerMiddleware : public priority_middleware<middleware_priority::low>
 {
 public:
     std::string name() const override
