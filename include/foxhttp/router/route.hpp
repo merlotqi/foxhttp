@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -22,7 +22,7 @@ class api_handler;
 
 enum class route_type
 {
-    Static,
+    static_,
     dynamic
 };
 
@@ -44,7 +44,7 @@ public:
     std::string pattern() const override;
     route_type type() const override
     {
-        return route_type::Static;
+        return route_type::static_;
     }
     std::shared_ptr<api_handler> handler() const;
 

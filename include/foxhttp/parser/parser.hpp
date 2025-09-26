@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -97,7 +97,7 @@ public:
 
         for (auto &holderBase: it->second)
         {
-            auto holder = std::dynamic_pointer_cast<ParserHolder<T>>(holderBase);
+            auto holder = std::dynamic_pointer_cast<parser_holder<T>>(holderBase);
             if (holder && holder->supports(req))
                 return holder->get();
         }

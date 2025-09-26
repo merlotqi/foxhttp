@@ -54,7 +54,7 @@
 ### 基本使用
 
 ```cpp
-#include <foxhttp/core/strand_pool.hpp>
+#include <foxhttp/server/strand_pool.hpp>
 
 // 创建IO上下文
 boost::asio::io_context io_context;

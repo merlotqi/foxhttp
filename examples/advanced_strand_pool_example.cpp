@@ -1,12 +1,12 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
 
 #include <chrono>
-#include <foxhttp/core/strand_pool.hpp>
+#include <foxhttp/server/strand_pool.hpp>
 #include <foxhttp/foxhttp.hpp>
 #include <iostream>
 #include <random>

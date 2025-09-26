@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -96,6 +96,31 @@ struct timer_manager_config
     std::chrono::milliseconds statistics_report_interval{30000};
     bool enable_statistics = true;
     bool enable_cleanup = true;
+};
+
+struct session_limits
+{
+    // Timeouts to mitigate slowloris/slow body attacks
+    std::chrono::milliseconds handshake_timeout{5000};  // TLS handshake timeout
+    std::chrono::milliseconds header_read_timeout{3000};// time to read request line+headers
+    std::chrono::milliseconds body_read_timeout{10000}; // time to make progress on body
+    std::chrono::milliseconds idle_timeout{15000};      // no activity window
+
+    // Size limits
+    std::size_t max_header_bytes{64 * 1024};     // 64KB headers
+    std::size_t max_body_bytes{50 * 1024 * 1024};// 50MB body
+
+    // Rate limiting (optional minimal expected progress)
+    std::size_t min_read_progress_bytes{1024};// bytes required per body window
+};
+
+struct websocket_limits
+{
+    std::size_t max_message_bytes{8 * 1024 * 1024};// 8MB
+    std::size_t max_frame_bytes{2 * 1024 * 1024};  // 2MB
+    std::chrono::milliseconds ping_interval{30000};// 30s
+    std::chrono::milliseconds pong_timeout{10000}; // 10s
+    bool enable_compression{false};
 };
 
 }// namespace foxhttp

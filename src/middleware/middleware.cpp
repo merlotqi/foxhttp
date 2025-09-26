@@ -1,10 +1,11 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
 
+#include <foxhttp/middleware/basic/functional_middleware.hpp>
 #include <foxhttp/middleware/middleware.hpp>
 
 namespace foxhttp {
@@ -148,5 +149,49 @@ const middleware_stats &conditional_middleware::stats() const
     return middleware_->stats();
 }
 
+/* --------------------------- midddleware_builder -------------------------- */
+
+midddleware_builder::midddleware_builder() {}
+
+midddleware_builder &midddleware_builder::set_name(const std::string &name)
+{
+    name_ = name;
+    return *this;
+}
+
+midddleware_builder &midddleware_builder::set_priority(middleware_priority priority)
+{
+    priority_ = priority;
+    return *this;
+}
+
+midddleware_builder &midddleware_builder::set_timeout(std::chrono::milliseconds timeout)
+{
+    timeout_ = timeout;
+    return *this;
+}
+
+midddleware_builder &midddleware_builder::set_sync_func(sync_func func)
+{
+    sync_func_ = std::move(func);
+    return *this;
+}
+
+midddleware_builder &midddleware_builder::set_async_func(async_func func)
+{
+    async_func_ = std::move(func);
+    return *this;
+}
+
+midddleware_builder &midddleware_builder::set_condition(condition_func condition)
+{
+    condition_ = std::move(condition);
+    return *this;
+}
+
+std::shared_ptr<middleware> midddleware_builder::build()
+{
+    return std::make_shared<functional_middleware>(name_, sync_func_, async_func_, condition_, priority_, timeout_);
+}
 
 }// namespace foxhttp

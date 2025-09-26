@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -9,7 +9,7 @@
 
 #include <boost/asio.hpp>
 #include <chrono>
-#include <foxhttp/core/request_context.hpp>
+#include <foxhttp/server/request_context.hpp>
 #include <functional>
 #include <memory>
 
@@ -31,7 +31,6 @@ struct middleware_stats
     void reset();
 };
 
-// middleware priority levels
 enum class middleware_priority : int
 {
     lowest = -1000,
@@ -41,18 +40,16 @@ enum class middleware_priority : int
     highest = 1000
 };
 
-// middleware execution result
 enum class middleware_result
 {
-    continue_,// Continue to next middleware
-    stop,     // Stop execution chain
-    error,    // Error occurred
-    timeout   // Timeout occurred
+    continue_,
+    stop,
+    error,
+    timeout
 };
 
-// Async middleware callback type
-using async_middleware_callback = std::function<void(middleware_result result, const std::string &error_message)>;
 
+using async_middleware_callback = std::function<void(middleware_result result, const std::string &error_message)>;
 class middleware
 {
 public:
@@ -105,6 +102,35 @@ public:
 private:
     std::shared_ptr<middleware> middleware_;
     condition_func condition_;
+};
+
+class midddleware_builder
+{
+public:
+    using sync_func =
+            std::function<void(request_context &, http::response<http::string_body> &, std::function<void()>)>;
+    using async_func = std::function<void(request_context &, http::response<http::string_body> &, std::function<void()>,
+                                          async_middleware_callback)>;
+    using condition_func = std::function<bool(request_context &)>;
+
+    midddleware_builder();
+    ~midddleware_builder() = default;
+
+    midddleware_builder &set_name(const std::string &name);
+    midddleware_builder &set_priority(middleware_priority priority);
+    midddleware_builder &set_timeout(std::chrono::milliseconds timeout);
+    midddleware_builder &set_sync_func(sync_func func);
+    midddleware_builder &set_async_func(async_func func);
+    midddleware_builder &set_condition(condition_func condition);
+    std::shared_ptr<middleware> build();
+
+private:
+    std::string name_;
+    sync_func sync_func_;
+    async_func async_func_;
+    condition_func condition_;
+    middleware_priority priority_;
+    std::chrono::milliseconds timeout_;
 };
 
 }// namespace foxhttp

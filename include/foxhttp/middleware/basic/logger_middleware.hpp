@@ -1,6 +1,6 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
@@ -8,8 +8,8 @@
 #pragma once
 
 #include <chrono>
-#include <foxhttp/core/request_context.hpp>
 #include <foxhttp/middleware/middleware.hpp>
+#include <foxhttp/server/request_context.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
@@ -38,7 +38,7 @@ class logger_middleware : public priority_middleware<middleware_priority::high>
 {
 public:
     explicit logger_middleware(const std::string &name = "LoggerMiddleware", log_level level = log_level::info,
-                               log_format format = log_format::detailed, const std::string &log_file = "",
+                               log_format format = log_format::detailed, const std::string &log_file = {},
                                bool enable_console = true);
 
     std::string name() const override;

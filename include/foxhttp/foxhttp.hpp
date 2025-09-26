@@ -1,18 +1,18 @@
 /**
  * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Rain Merlot
+ * Copyright (C) 2025 Merlot.Qi
  * Licensed under GPLv3: https://www.gnu.org/licenses/
  *
  */
 
 #pragma once
 
-// Core components
-#include <foxhttp/core/io_context_pool.hpp>
-#include <foxhttp/core/request_context.hpp>
-#include <foxhttp/core/server.hpp>
-#include <foxhttp/core/session.hpp>
-#include <foxhttp/core/signal_set.hpp>
+// Server components
+#include <foxhttp/server/io_context_pool.hpp>
+#include <foxhttp/server/request_context.hpp>
+#include <foxhttp/server/server.hpp>
+#include <foxhttp/server/session.hpp>
+#include <foxhttp/server/signal_set.hpp>
 
 // middleware system
 #include <foxhttp/middleware/middleware.hpp>
@@ -48,3 +48,16 @@
 // Configuration
 #include <foxhttp/config/config_manager.hpp>
 #include <foxhttp/config/configs.hpp>
+
+#ifdef USING_TLS
+// TLS server components
+#include <foxhttp/config/tls.hpp>
+#include <foxhttp/server/ssl_server.hpp>
+#include <foxhttp/server/ssl_session.hpp>
+#endif
+
+// WebSocket components
+#include <foxhttp/server/ws_session.hpp>
+#ifdef USING_TLS
+#include <foxhttp/server/wss_session.hpp>
+#endif
