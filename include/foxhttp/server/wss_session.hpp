@@ -17,26 +17,25 @@
 
 namespace foxhttp {
 
-class wss_session : public session_base, public std::enable_shared_from_this<wss_session>
-{
-public:
-    using stream_t = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
-    using websocket_t = boost::beast::websocket::stream<stream_t>;
+class wss_session : public session_base, public std::enable_shared_from_this<wss_session> {
+ public:
+  using stream_t = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
+  using websocket_t = boost::beast::websocket::stream<stream_t>;
 
-    wss_session(websocket_t ws, const websocket_limits &wsl = {}, const session_limits &sl = {});
+  wss_session(websocket_t ws, const websocket_limits &wsl = {}, const session_limits &sl = {});
 
-    void start_accept(boost::beast::http::request<boost::beast::http::string_body> req);
+  void start_accept(boost::beast::http::request<boost::beast::http::string_body> req);
 
-private:
-    void _on_accept(boost::system::error_code ec);
-    void _do_read();
-    void _on_read(boost::system::error_code ec, std::size_t bytes_transferred);
-    void on_timeout_idle() override;
+ private:
+  void _on_accept(boost::system::error_code ec);
+  void _do_read();
+  void _on_read(boost::system::error_code ec, std::size_t bytes_transferred);
+  void on_timeout_idle() override;
 
-private:
-    websocket_t ws_;
-    websocket_limits wsl_;
-    boost::beast::flat_buffer buffer_;
+ private:
+  websocket_t ws_;
+  websocket_limits wsl_;
+  boost::beast::flat_buffer buffer_;
 };
 
-}// namespace foxhttp
+}  // namespace foxhttp

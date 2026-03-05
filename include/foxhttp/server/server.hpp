@@ -18,20 +18,19 @@ namespace foxhttp {
 class middleware;
 class io_context_pool;
 class middleware_chain;
-class server
-{
-public:
-    server(io_context_pool &io_pool, unsigned short port);
+class server {
+ public:
+  server(io_context_pool &io_pool, unsigned short port);
 
-    void use(std::shared_ptr<middleware> mw);
-    std::shared_ptr<middleware_chain> global_chain() const;
+  void use(std::shared_ptr<middleware> mw);
+  std::shared_ptr<middleware_chain> global_chain() const;
 
-private:
-    void _do_accept();
+ private:
+  void _do_accept();
 
-    io_context_pool &io_pool_;
-    tcp::acceptor acceptor_;
-    std::shared_ptr<middleware_chain> global_chain_;
+  io_context_pool &io_pool_;
+  tcp::acceptor acceptor_;
+  std::shared_ptr<middleware_chain> global_chain_;
 };
 
-}// namespace foxhttp
+}  // namespace foxhttp

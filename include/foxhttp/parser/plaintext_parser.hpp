@@ -20,25 +20,24 @@ using plain_text_config = ::foxhttp::plain_text_config;
 
 namespace details {
 class plain_text_parser_core;
-}// namespace details
+}  // namespace details
 
-class plain_text_parser : public parser<std::string>
-{
-public:
-    explicit plain_text_parser(const plain_text_config &config = plain_text_config{});
-    ~plain_text_parser();
+class plain_text_parser : public parser<std::string> {
+ public:
+  explicit plain_text_parser(const plain_text_config &config = plain_text_config{});
+  ~plain_text_parser();
 
-    std::string name() const override;
-    std::string content_type() const override;
-    bool supports(const http::request<http::string_body> &req) const override;
-    std::string parse(const http::request<http::string_body> &req) const override;
+  std::string name() const override;
+  std::string content_type() const override;
+  bool supports(const http::request<http::string_body> &req) const override;
+  std::string parse(const http::request<http::string_body> &req) const override;
 
-    const plain_text_config &config() const;
-    void set_config(const plain_text_config &config);
+  const plain_text_config &config() const;
+  void set_config(const plain_text_config &config);
 
-private:
-    std::unique_ptr<details::plain_text_parser_core> core_;
+ private:
+  std::unique_ptr<details::plain_text_parser_core> core_;
 };
 REGISTER_PARSER(std::string, plain_text_parser);
 
-}// namespace foxhttp
+}  // namespace foxhttp

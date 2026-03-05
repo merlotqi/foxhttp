@@ -19,22 +19,21 @@ namespace foxhttp {
 class io_context_pool;
 class middleware_chain;
 
-class ssl_server
-{
-public:
-    ssl_server(io_context_pool &io_pool, unsigned short port, boost::asio::ssl::context &ssl_ctx);
+class ssl_server {
+ public:
+  ssl_server(io_context_pool &io_pool, unsigned short port, boost::asio::ssl::context &ssl_ctx);
 
-    void use(std::shared_ptr<middleware_chain> chain);
-    std::shared_ptr<middleware_chain> global_chain() const;
+  void use(std::shared_ptr<middleware_chain> chain);
+  std::shared_ptr<middleware_chain> global_chain() const;
 
-private:
-    void _do_accept();
+ private:
+  void _do_accept();
 
-private:
-    io_context_pool &io_pool_;
-    boost::asio::ip::tcp::acceptor acceptor_;
-    boost::asio::ssl::context &ssl_ctx_;
-    std::shared_ptr<middleware_chain> global_chain_;
+ private:
+  io_context_pool &io_pool_;
+  boost::asio::ip::tcp::acceptor acceptor_;
+  boost::asio::ssl::context &ssl_ctx_;
+  std::shared_ptr<middleware_chain> global_chain_;
 };
 
-}// namespace foxhttp
+}  // namespace foxhttp

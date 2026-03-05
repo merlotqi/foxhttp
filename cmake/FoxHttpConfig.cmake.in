@@ -1,0 +1,26 @@
+# Find dependencies
+find_dependency(Boost REQUIRED COMPONENTS system json iostreams)
+find_dependency(ZLIB REQUIRED)
+find_dependency(spdlog REQUIRED)
+find_dependency(nlohmann_json CONFIG REQUIRED)
+find_dependency(gflags REQUIRED)
+find_dependency(yaml-cpp CONFIG REQUIRED)
+
+if(FOXHTTP_ENABLE_TLS)
+    find_dependency(OpenSSL REQUIRED)
+endif()
+
+if(BUILD_WITH_BROTLI)
+    if(USE_VCPKG_BROTLI)
+        find_dependency(unofficial-brotli CONFIG REQUIRED)
+    else()
+        find_dependency(Brotli REQUIRED)
+    endif()
+endif()
+
+if(FOXHTTP_ENABLE_JWT)
+    find_dependency(jwt-cpp CONFIG REQUIRED)
+endif()
+
+# Include targets
+include("${CMAKE_CURRENT_LIST_DIR}/FoxHttpTargets.cmake")

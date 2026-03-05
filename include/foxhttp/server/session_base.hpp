@@ -19,42 +19,41 @@ namespace foxhttp {
 
 class middleware_chain;
 
-class session_base
-{
-public:
-    explicit session_base(const boost::asio::any_io_executor &executor, std::shared_ptr<middleware_chain> chain,
-                          const session_limits &limits = {});
-    virtual ~session_base() = default;
+class session_base {
+ public:
+  explicit session_base(const boost::asio::any_io_executor &executor, std::shared_ptr<middleware_chain> chain,
+                        const session_limits &limits = {});
+  virtual ~session_base() = default;
 
-    void set_limits(const session_limits &limits);
-    const session_limits &limits() const;
+  void set_limits(const session_limits &limits);
+  const session_limits &limits() const;
 
-protected:
-    // Timer controls for derived classes
-    void arm_idle_timer();
-    void cancel_idle_timer();
+ protected:
+  // Timer controls for derived classes
+  void arm_idle_timer();
+  void cancel_idle_timer();
 
-    void arm_header_timer();
-    void cancel_header_timer();
+  void arm_header_timer();
+  void cancel_header_timer();
 
-    void arm_body_timer();
-    void cancel_body_timer();
+  void arm_body_timer();
+  void cancel_body_timer();
 
-    void on_activity();
+  void on_activity();
 
-    virtual void on_timeout_idle();
-    virtual void on_timeout_header();
-    virtual void on_timeout_body();
+  virtual void on_timeout_idle();
+  virtual void on_timeout_header();
+  virtual void on_timeout_body();
 
-protected:
-    boost::asio::any_io_executor executor_;
-    std::shared_ptr<middleware_chain> chain_;
-    session_limits limits_;
+ protected:
+  boost::asio::any_io_executor executor_;
+  std::shared_ptr<middleware_chain> chain_;
+  session_limits limits_;
 
-    // timers
-    boost::asio::steady_timer idle_timer_;
-    boost::asio::steady_timer header_timer_;
-    boost::asio::steady_timer body_timer_;
+  // timers
+  boost::asio::steady_timer idle_timer_;
+  boost::asio::steady_timer header_timer_;
+  boost::asio::steady_timer body_timer_;
 };
 
-}// namespace foxhttp
+}  // namespace foxhttp
