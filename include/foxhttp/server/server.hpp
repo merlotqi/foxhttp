@@ -10,7 +10,6 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ip/tcp.hpp>
 
-namespace net = boost::asio;
 using tcp = boost::asio::ip::tcp;
 
 namespace foxhttp {

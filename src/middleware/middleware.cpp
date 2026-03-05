@@ -67,12 +67,12 @@ const middleware_stats &middleware::stats() const { return stats_; }
 /* -------------------------- conditional_middleware ------------------------- */
 
 conditional_middleware::conditional_middleware(std::shared_ptr<middleware> middleware, condition_func condition)
-    : middleware_(std::move(middleware)), condition_(std::move(condition)) {}
+    : mw_(std::move(middleware)), condition_(std::move(condition)) {}
 
 void conditional_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
                                         std::function<void()> next) {
   if (condition_(ctx)) {
-    (*middleware_)(ctx, res, next);
+    (*mw_)(ctx, res, next);
   } else {
     next();
   }
@@ -81,20 +81,20 @@ void conditional_middleware::operator()(request_context &ctx, http::response<htt
 void conditional_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
                                         std::function<void()> next, async_middleware_callback callback) {
   if (condition_(ctx)) {
-    (*middleware_)(ctx, res, next, callback);
+    (*mw_)(ctx, res, next, callback);
   } else {
     next();
     callback(middleware_result::continue_, "");
   }
 }
 
-middleware_priority conditional_middleware::priority() const { return middleware_->priority(); }
-std::string conditional_middleware::name() const { return "Conditional(" + middleware_->name() + ")"; }
+middleware_priority conditional_middleware::priority() const { return mw_->priority(); }
+std::string conditional_middleware::name() const { return "Conditional(" + mw_->name() + ")"; }
 bool conditional_middleware::should_execute(request_context &ctx) const { return condition_(ctx); }
-std::chrono::milliseconds conditional_middleware::timeout() const { return middleware_->timeout(); }
+std::chrono::milliseconds conditional_middleware::timeout() const { return mw_->timeout(); }
 
-middleware_stats &conditional_middleware::stats() { return middleware_->stats(); }
-const middleware_stats &conditional_middleware::stats() const { return middleware_->stats(); }
+middleware_stats &conditional_middleware::stats() { return mw_->stats(); }
+const middleware_stats &conditional_middleware::stats() const { return mw_->stats(); }
 
 /* --------------------------- midddleware_builder -------------------------- */
 

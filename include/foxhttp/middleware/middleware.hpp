@@ -88,7 +88,7 @@ class conditional_middleware : public middleware {
   const middleware_stats &stats() const override;
 
  private:
-  std::shared_ptr<middleware> middleware_;
+  std::shared_ptr<middleware> mw_;
   condition_func condition_;
 };
 

@@ -61,7 +61,7 @@ class middleware_chain {
 
  private:
   struct middleware_info {
-    std::shared_ptr<middleware> middleware_;
+    std::shared_ptr<middleware> mw_;
     std::chrono::steady_clock::time_point execution_start;
     std::shared_ptr<boost::asio::steady_timer> timeout_timer;
   };
@@ -81,7 +81,7 @@ class middleware_chain {
 
  private:
   mutable std::mutex mutex_;
-  std::vector<middleware_info> middlewares_;
+  std::vector<middleware_info> mws_;
   std::size_t current_index_ = 0;
   bool statistics_enabled_ = true;
   bool auto_sort_by_priority_ = true;
