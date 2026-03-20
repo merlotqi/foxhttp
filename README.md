@@ -38,6 +38,25 @@ Include the umbrella header or granular headers under `include/foxhttp/`.
 - **`server` / `ssl_server`**: register middleware on `global_chain()`, then accept connections as in the examples.
 - **`session_limits`** (`configs.hpp`): timeouts, body/header sizes, **keep-alive** (`enable_keep_alive`, `max_requests_per_connection`).
 
+### Lambda / callable route registration
+
+Static and dynamic routes use the same handler signature: `void(foxhttp::request_context &, boost::beast::http::response<boost::beast::http::string_body> &)`. Dynamic path parameters are available on `ctx` after `resolve_route` (e.g. `ctx.path_parameter("id")`).
+
+```cpp
+foxhttp::router::register_static_handler("/api/version",
+    [](foxhttp::request_context &ctx, boost::beast::http::response<boost::beast::http::string_body> &res) {
+      res.result(boost::beast::http::status::ok);
+      res.set(boost::beast::http::field::content_type, "application/json");
+      res.body() = R"({"version":"0.1.0"})";
+    });
+
+foxhttp::router::register_dynamic_handler("/api/users/{id}",
+    [](foxhttp::request_context &ctx, boost::beast::http::response<boost::beast::http::string_body> &res) {
+      res.result(boost::beast::http::status::ok);
+      res.body() = ctx.path_parameter("id");
+    });
+```
+
 ## Docker
 
 See `Dockerfile` for a minimal Ubuntu-based build environment.

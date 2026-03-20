@@ -40,6 +40,7 @@
 
 // Router components
 #include <foxhttp/handler/api_handler.hpp>
+#include <foxhttp/handler/callable_api_handler.hpp>
 #include <foxhttp/router/route.hpp>
 #include <foxhttp/router/route_table.hpp>
 #include <foxhttp/router/router.hpp>
