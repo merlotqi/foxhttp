@@ -21,20 +21,20 @@ ssl_server::ssl_server(io_context_pool &io_pool, unsigned short port, boost::asi
       acceptor_(*listen_io_, tcp::endpoint(tcp::v4(), port)),
       ssl_ctx_(ssl_ctx),
       global_chain_(std::make_shared<middleware_chain>(*listen_io_)) {
-  _do_accept();
+  do_accept();
 }
 
 void ssl_server::use(std::shared_ptr<middleware_chain> chain) { global_chain_ = std::move(chain); }
 
 std::shared_ptr<middleware_chain> ssl_server::global_chain() const { return global_chain_; }
 
-void ssl_server::_do_accept() {
+void ssl_server::do_accept() {
   acceptor_.async_accept([this](boost::system::error_code ec, tcp::socket socket) {
     if (!ec) {
       auto stream = boost::asio::ssl::stream<tcp::socket>(std::move(socket), ssl_ctx_);
       std::make_shared<ssl_session>(std::move(stream), global_chain_)->start();
     }
-    _do_accept();
+    do_accept();
   });
 }
 

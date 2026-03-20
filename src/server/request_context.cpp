@@ -38,9 +38,9 @@ static std::string url_decode(const std::string &str) {
 request_context::request_context(const http::request<http::string_body> &req) : req_(req) {
   auto target = req_.target();
   auto pos = target.find('?');
-  if (pos != std::string::npos) _parse_query(target.substr(pos + 1));
+  if (pos != std::string::npos) parse_query(target.substr(pos + 1));
 
-  _parse_cookies();
+  parse_cookies();
 }
 
 const http::request<http::string_body> &request_context::raw_request() const { return req_; }
@@ -94,7 +94,7 @@ const std::unordered_map<std::string, std::vector<std::string>> &request_context
   return query_params_;
 }
 
-void request_context::_parse_query(const std::string &query) {
+void request_context::parse_query(const std::string &query) {
   query_params_.clear();
   std::istringstream iss(query);
   std::string pair;
@@ -120,7 +120,7 @@ void request_context::_parse_query(const std::string &query) {
 }
 
 // ------------------- cookies -------------------
-void request_context::_parse_cookies() {
+void request_context::parse_cookies() {
   cookies_.clear();
   auto it = req_.find(http::field::cookie);
   if (it == req_.end()) return;

@@ -11,7 +11,6 @@
 
 #include <foxhttp/config/configs.hpp>
 #include <foxhttp/config/details/config_watcher.hpp>
-#include <fstream>
 #include <functional>
 #include <map>
 #include <mutex>
@@ -63,19 +62,19 @@ class config_manager {
   void set_validator(validate_fn v);
 
  private:
-  json_config _json_from_doc() const;
-  multipart_config _multipart_from_doc() const;
-  form_config _form_from_doc() const;
-  plain_text_config _plain_from_doc() const;
-  strand_pool_config _strand_pool_from_doc() const;
-  timer_manager_config _timer_from_doc() const;
+  json_config json_from_doc() const;
+  multipart_config multipart_from_doc() const;
+  form_config form_from_doc() const;
+  plain_text_config plain_from_doc() const;
+  strand_pool_config strand_pool_from_doc() const;
+  timer_manager_config timer_from_doc() const;
 
   // Helpers
-  static void _deep_merge(nlohmann::json &dst, const nlohmann::json &src);
-  static nlohmann::json _json_pointer_at(const nlohmann::json &doc, const std::string &path);
-  void _rebuild_snapshot_unlocked();
-  void _notify_subscribers_unlocked(const nlohmann::json &new_doc, const nlohmann::json &old_doc);
-  void _log(const std::string &msg) const;
+  static void deep_merge(nlohmann::json &dst, const nlohmann::json &src);
+  static nlohmann::json json_pointer_at(const nlohmann::json &doc, const std::string &path);
+  void rebuild_snapshot_unlocked();
+  void notify_subscribers_unlocked(const nlohmann::json &new_doc, const nlohmann::json &old_doc);
+  void log(const std::string &msg) const;
 
  private:
   config_manager() = default;

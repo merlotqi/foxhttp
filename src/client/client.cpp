@@ -15,7 +15,7 @@ namespace foxhttp {
 namespace details {
 class client {
  private:
-  static void _parse_url(const std::string &url, std::string &protocol, std::string &host, std::string &port,
+  static void parse_url(const std::string &url, std::string &protocol, std::string &host, std::string &port,
                         std::string &target) {
     size_t protocol_end = url.find("://");
     if (protocol_end == std::string::npos) return;
@@ -38,16 +38,16 @@ class client {
     }
   }
 
-  response _execute_request(request &req) {
+  response execute_request(request &req) {
     const std::string &protocol = req.protocol();
     const std::string &host = req.host();
     const std::string &port = req.port();
     const std::string &target = req.target();
-    return protocol == "https" ? _execute_https_request(req, host, port, target)
-                               : _execute_http_request(req, host, port, target);
+    return protocol == "https" ? execute_https_request(req, host, port, target)
+                               : execute_http_request(req, host, port, target);
   }
 
-  response _execute_http_request(request &req, const std::string &host, const std::string &port,
+  response execute_http_request(request &req, const std::string &host, const std::string &port,
                                 const std::string &target) {
     asio::io_context ioc;
     tcp::resolver resolver(ioc);
@@ -70,7 +70,7 @@ class client {
     return response{std::move(http_res)};
   }
 
-  response _execute_https_request(request &req, const std::string &host, const std::string &port,
+  response execute_https_request(request &req, const std::string &host, const std::string &port,
                                  const std::string &target) {
     asio::io_context ioc;
     ssl::context ctx(ssl::context::tlsv12_client);
@@ -105,7 +105,7 @@ class client {
     return response{std::move(http_res)};
   }
 
-  response _send_request_sync(request &req) { return _execute_request(req); }
+  response send_request_sync(request &req) { return execute_request(req); }
 
  public:
   promise<response> fetch(const std::string &url) { return fetch(request{url}); }
@@ -113,7 +113,7 @@ class client {
     promise<response> pmse;
     std::thread([this, req = std::move(req), pmse]() mutable {
       try {
-        response res = this->_send_request_sync(const_cast<request &>(req));
+        response res = this->send_request_sync(const_cast<request &>(req));
         pmse.resolve(res);
       } catch (const std::exception &e) {
         pmse.reject(e);

@@ -26,10 +26,10 @@ class ws_session : public session_base, public std::enable_shared_from_this<ws_s
   void start_accept(boost::beast::http::request<boost::beast::http::string_body> req);
 
  private:
-  void _on_accept(boost::system::error_code ec);
-  void _do_read();
-  void _on_read(boost::system::error_code ec, std::size_t bytes_transferred);
-  void _do_write();
+  void on_accept(boost::system::error_code ec);
+  void do_read();
+  void on_read(boost::system::error_code ec, std::size_t bytes_transferred);
+  void do_write();
 
   void on_timeout_idle() override;
 

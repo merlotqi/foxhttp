@@ -36,7 +36,7 @@ dynamic_route::dynamic_route(std::string pattern, std::shared_ptr<api_handler> h
 api_handler *dynamic_route::match(const std::string &path, request_context &ctx) const {
   std::smatch matches;
   if (std::regex_match(path, matches, regex_pattern_)) {
-    _extract_path_params(matches, ctx);
+    extract_path_params(matches, ctx);
     return handler_.get();
   }
   return nullptr;
@@ -50,7 +50,7 @@ const std::vector<std::string> &dynamic_route::param_names() const { return para
 
 std::shared_ptr<api_handler> dynamic_route::handler() const { return handler_; }
 
-void dynamic_route::_extract_path_params(const std::smatch &matches, request_context &ctx) const {
+void dynamic_route::extract_path_params(const std::smatch &matches, request_context &ctx) const {
   std::unordered_map<std::string, std::string> params;
   for (size_t i = 1; i < matches.size() && i - 1 < param_names_.size(); ++i) {
     if (matches[i].matched) {
@@ -73,11 +73,11 @@ std::pair<std::regex, std::vector<std::string>> route_builder::parse_pattern(con
   while (true) {
     std::size_t pos = pattern.find('{', start);
     if (pos == std::string::npos) {
-      regex_pattern += _regex_escape(pattern.substr(start));
+      regex_pattern += regex_escape(pattern.substr(start));
       break;
     }
     // add static part
-    regex_pattern += _regex_escape(pattern.substr(start, pos - start));
+    regex_pattern += regex_escape(pattern.substr(start, pos - start));
     std::size_t end = pattern.find('}', pos);
     if (end == std::string::npos) {
       throw std::invalid_argument("Unclosed parameter in pattern: " + pattern);
@@ -95,7 +95,7 @@ std::pair<std::regex, std::vector<std::string>> route_builder::parse_pattern(con
   return {std::regex(regex_pattern), param_names};
 }
 
-std::string route_builder::_regex_escape(const std::string &str) {
+std::string route_builder::regex_escape(const std::string &str) {
   // simple character-wise escape of regex special chars
   static const std::string special = R"(.^$|()[]{}*+?\)";
   std::string out;

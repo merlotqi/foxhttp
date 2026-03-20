@@ -51,18 +51,18 @@ class logger_middleware : public priority_middleware<middleware_priority::high> 
   void set_console_enabled(bool enabled);
 
  private:
-  void _setup_logger();
-  std::string _generate_request_id();
-  void _log_request_start(const request_context &ctx, const std::string &request_id);
-  void _log_request_complete(const request_context &ctx, const http::response<http::string_body> &res,
+  void setup_logger();
+  std::string generate_request_id();
+  void log_request_start(const request_context &ctx, const std::string &request_id);
+  void log_request_complete(const request_context &ctx, const http::response<http::string_body> &res,
                              const std::string &request_id, std::chrono::microseconds duration, bool async);
-  void _log_request_error(const request_context &ctx, const http::response<http::string_body> &res,
+  void log_request_error(const request_context &ctx, const http::response<http::string_body> &res,
                           const std::string &request_id, std::chrono::microseconds duration, const std::string &error);
-  void _log_request_timeout(const request_context &ctx, const http::response<http::string_body> &res,
+  void log_request_timeout(const request_context &ctx, const http::response<http::string_body> &res,
                             const std::string &request_id, std::chrono::microseconds duration);
-  void _log_request_stopped(const request_context &ctx, const http::response<http::string_body> &res,
+  void log_request_stopped(const request_context &ctx, const http::response<http::string_body> &res,
                             const std::string &request_id, std::chrono::microseconds duration);
-  std::string _get_apache_timestamp();
+  std::string get_apache_timestamp();
 
  private:
   std::string name_;

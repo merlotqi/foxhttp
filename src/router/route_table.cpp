@@ -28,7 +28,7 @@ static std::string strip_trailing_slash(const std::string &s) {
   return s;
 }
 
-std::string route_table::_normalize_path(const std::string &path) {
+std::string route_table::normalize_path(const std::string &path) {
   if (path.empty()) return "/";
   // ensure leading slash
   std::string p = path;
@@ -38,7 +38,7 @@ std::string route_table::_normalize_path(const std::string &path) {
   return p;
 }
 
-std::size_t route_table::_count_segments(const std::string &path) {
+std::size_t route_table::count_segments(const std::string &path) {
   // Count non-empty segments in normalized path ("/a/b" -> 2)
   std::size_t count = 0;
   std::size_t i = 0, n = path.size();
@@ -54,7 +54,7 @@ std::size_t route_table::_count_segments(const std::string &path) {
 }
 
 void route_table::add_static_route(const std::string &path, std::shared_ptr<api_handler> handler) {
-  auto key = _normalize_path(path);
+  auto key = normalize_path(path);
   std::unique_lock<std::shared_mutex> lock(mutex_);
 
   auto route = std::make_shared<static_route>(key, std::move(handler));
@@ -76,8 +76,8 @@ void route_table::add_dynamic_route(const std::string &pattern, std::shared_ptr<
     // specificity = number_of_static_segments = total_segments - param_count
     std::sort(dynamic_routes_.begin(), dynamic_routes_.end(),
               [](const std::shared_ptr<dynamic_route> &a, const std::shared_ptr<dynamic_route> &b) {
-                auto a_total = _count_segments(a->pattern());
-                auto b_total = _count_segments(b->pattern());
+                auto a_total = count_segments(a->pattern());
+                auto b_total = count_segments(b->pattern());
                 auto a_params = a->param_names().size();
                 auto b_params = b->param_names().size();
                 auto a_specific = (a_total > a_params) ? (a_total - a_params) : 0;
@@ -93,7 +93,7 @@ void route_table::add_dynamic_route(const std::string &pattern, std::shared_ptr<
 }
 
 std::shared_ptr<api_handler> route_table::resolve_route(const std::string &path, request_context &ctx) const {
-  auto key = _normalize_path(path);
+  auto key = normalize_path(path);
 
   // allow concurrent readers
   std::shared_lock<std::shared_mutex> lock(mutex_);

@@ -25,7 +25,7 @@ class server {
   std::shared_ptr<middleware_chain> global_chain() const;
 
  private:
-  void _do_accept();
+  void do_accept();
 
   io_context_pool &io_pool_;
   boost::asio::io_context *listen_io_;

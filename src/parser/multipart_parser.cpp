@@ -124,31 +124,31 @@ std::string multipart_field::validation_error() const {
   return "";
 }
 
-void multipart_field::_set_name(const std::string &name) { core_->name_ = name; }
+void multipart_field::set_name(const std::string &name) { core_->name_ = name; }
 
-void multipart_field::_set_filename(const std::string &filename) { core_->filename_ = filename; }
+void multipart_field::set_filename(const std::string &filename) { core_->filename_ = filename; }
 
-void multipart_field::_set_content_type(const std::string &content_type) { core_->content_type_ = content_type; }
+void multipart_field::set_content_type(const std::string &content_type) { core_->content_type_ = content_type; }
 
-void multipart_field::_set_encoding(const std::string &encoding) { core_->encoding_ = encoding; }
+void multipart_field::set_encoding(const std::string &encoding) { core_->encoding_ = encoding; }
 
-void multipart_field::_add_header(const std::string &name, const std::string &value) {
+void multipart_field::add_header(const std::string &name, const std::string &value) {
   core_->headers_[core_->to_lower(name)] = value;
 }
 
-void multipart_field::_set_content(const std::string &content) {
+void multipart_field::set_content(const std::string &content) {
   core_->content_ = content;
   core_->binary_content_.clear();
 }
 
-void multipart_field::_set_content(std::vector<uint8_t> content) {
+void multipart_field::set_content(std::vector<uint8_t> content) {
   core_->binary_content_ = std::move(content);
   core_->content_.clear();
 }
 
-void multipart_field::_set_temp_file(const std::string &path) { core_->temp_file_ = path; }
+void multipart_field::set_temp_file(const std::string &path) { core_->temp_file_ = path; }
 
-void multipart_field::_cleanup_temp_file() {
+void multipart_field::cleanup_temp_file() {
   if (core_->temp_file_.has_value()) {
     std::error_code ec;
     std::filesystem::remove(core_->temp_file_.value(), ec);
@@ -370,7 +370,7 @@ std::unique_ptr<multipart_field> multipart_parser_core::parse_field(const std::s
 
   // Set headers
   for (const auto &[name, value] : headers) {
-    field->_add_header(name, value);
+    field->add_header(name, value);
   }
 
   // Extract content
@@ -387,7 +387,7 @@ std::unique_ptr<multipart_field> multipart_parser_core::parse_field(const std::s
       name_pos += 6;  // Length of "name=\""
       size_t name_end = disposition.find("\"", name_pos);
       if (name_end != std::string::npos) {
-        field->_set_name(disposition.substr(name_pos, name_end - name_pos));
+        field->set_name(disposition.substr(name_pos, name_end - name_pos));
       }
     }
 
@@ -397,7 +397,7 @@ std::unique_ptr<multipart_field> multipart_parser_core::parse_field(const std::s
       filename_pos += 10;  // Length of "filename=\""
       size_t filename_end = disposition.find("\"", filename_pos);
       if (filename_end != std::string::npos) {
-        field->_set_filename(disposition.substr(filename_pos, filename_end - filename_pos));
+        field->set_filename(disposition.substr(filename_pos, filename_end - filename_pos));
       }
     }
   }
@@ -405,26 +405,26 @@ std::unique_ptr<multipart_field> multipart_parser_core::parse_field(const std::s
   // Get Content-Type
   auto content_type_it = headers.find("content-type");
   if (content_type_it != headers.end()) {
-    field->_set_content_type(content_type_it->second);
+    field->set_content_type(content_type_it->second);
   }
 
   // Get encoding
   auto encoding_it = headers.find("content-transfer-encoding");
   if (encoding_it != headers.end()) {
-    field->_set_encoding(encoding_it->second);
+    field->set_encoding(encoding_it->second);
   }
 
   // Decode content if needed
   if (!field->encoding().empty()) {
     if (field->is_file()) {
       auto decoded = decode_binary_content(content, field->encoding());
-      field->_set_content(std::move(decoded));
+      field->set_content(std::move(decoded));
     } else {
       std::string decoded = decode_content(content, field->encoding());
-      field->_set_content(decoded);
+      field->set_content(decoded);
     }
   } else {
-    field->_set_content(content);
+    field->set_content(content);
   }
 
   return field;
@@ -662,7 +662,7 @@ bool multipart_stream_parser_core::process_headers() {
       value.erase(0, value.find_first_not_of(" \t"));
       value.erase(value.find_last_not_of(" \t") + 1);
 
-      current_field_->_add_header(name, value);
+      current_field_->add_header(name, value);
 
       // Parse Content-Disposition
       if (name == "Content-Disposition") {
@@ -672,7 +672,7 @@ bool multipart_stream_parser_core::process_headers() {
           name_pos += 6;
           size_t name_end = value.find("\"", name_pos);
           if (name_end != std::string::npos) {
-            current_field_->_set_name(value.substr(name_pos, name_end - name_pos));
+            current_field_->set_name(value.substr(name_pos, name_end - name_pos));
             current_field_name_ = current_field_->name();
           }
         }
@@ -682,7 +682,7 @@ bool multipart_stream_parser_core::process_headers() {
           filename_pos += 10;
           size_t filename_end = value.find("\"", filename_pos);
           if (filename_end != std::string::npos) {
-            current_field_->_set_filename(value.substr(filename_pos, filename_end - filename_pos));
+            current_field_->set_filename(value.substr(filename_pos, filename_end - filename_pos));
           }
         }
       }
@@ -800,7 +800,7 @@ std::string multipart_stream_parser_core::generate_temp_filename() const {
 void multipart_stream_parser_core::cleanup_temp_files() {
   for (auto &field : result_) {
     if (field) {
-      field->_cleanup_temp_file();
+      field->cleanup_temp_file();
     }
   }
 }

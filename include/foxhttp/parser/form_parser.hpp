@@ -45,9 +45,9 @@ class form_field {
  private:
   friend class form_parser;
 
-  void _set_name(const std::string &name);
-  void _add_value(const std::string &value);
-  void _set_single_value(const std::string &value);
+  void set_name(const std::string &name);
+  void add_value(const std::string &value);
+  void set_single_value(const std::string &value);
 
  private:
   friend class details::form_parser_core;

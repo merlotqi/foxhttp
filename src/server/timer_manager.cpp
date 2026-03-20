@@ -114,7 +114,7 @@ void timer_bucket::start(boost::asio::io_context &io_context) {
 
   io_context_ = &io_context;
   timer_ = std::make_unique<boost::asio::steady_timer>(io_context);
-  _start_timer();
+  start_timer();
 }
 
 void timer_bucket::stop() {
@@ -136,7 +136,7 @@ bool timer_bucket::add_task(const timer_task &task) {
   pending_tasks_.emplace(task.id, task);
 
   if (task.expiry_time < next_expiry_time_) {
-    _reschedule_timer();
+    reschedule_timer();
   }
 
   return true;
@@ -169,7 +169,7 @@ std::size_t timer_bucket::get_pending_count() const {
   return pending_tasks_.size();
 }
 
-void timer_bucket::_start_timer() {
+void timer_bucket::start_timer() {
   auto next_expiry = get_next_expiry();
   if (!next_expiry) {
     return;
@@ -177,19 +177,19 @@ void timer_bucket::_start_timer() {
 
   auto now = clock_t::now();
   if (*next_expiry <= now) {
-    _process_expired_tasks();
+    process_expired_tasks();
   } else {
     timer_->expires_at(*next_expiry);
     timer_->async_wait([this](const std::error_code &ec) {
       if (!ec && is_running_.load()) {
-        _process_expired_tasks();
-        _start_timer();
+        process_expired_tasks();
+        start_timer();
       }
     });
   }
 }
 
-void timer_bucket::_process_expired_tasks() {
+void timer_bucket::process_expired_tasks() {
   std::vector<timer_task> expired_tasks;
   auto now = clock_t::now();
 
@@ -240,11 +240,11 @@ void timer_bucket::_process_expired_tasks() {
   }
 }
 
-void timer_bucket::_reschedule_timer() {
+void timer_bucket::reschedule_timer() {
   if (timer_) {
     timer_->cancel();
   }
-  _start_timer();
+  start_timer();
 }
 
 /* ------------------------------ timer_manager ----------------------------- */
@@ -256,7 +256,7 @@ timer_manager::timer_manager(boost::asio::io_context &io_context, const timer_ma
       is_running_(false),
       cleanup_timer_(io_context),
       statistics_timer_(io_context) {
-  _initialize();
+  initialize();
 }
 
 timer_manager::~timer_manager() { stop(); }
@@ -269,11 +269,11 @@ void timer_manager::start() {
   }
 
   if (config_.enable_cleanup) {
-    _start_cleanup_timer();
+    start_cleanup_timer();
   }
 
   if (config_.enable_statistics) {
-    _start_statistics_timer();
+    start_statistics_timer();
   }
 }
 
@@ -289,7 +289,7 @@ void timer_manager::stop() {
 }
 
 timer_id_t timer_manager::schedule_at(time_point_t when, timer_callback_t callback, timer_priority priority) {
-  return _schedule_impl(when, duration_t{0}, std::move(callback), false, priority);
+  return schedule_impl(when, duration_t{0}, std::move(callback), false, priority);
 }
 
 timer_id_t timer_manager::schedule_after(duration_t delay, timer_callback_t callback, timer_priority priority) {
@@ -297,7 +297,7 @@ timer_id_t timer_manager::schedule_after(duration_t delay, timer_callback_t call
 }
 
 timer_id_t timer_manager::schedule_every(duration_t interval, timer_callback_t callback, timer_priority priority) {
-  return _schedule_impl(clock_t::now() + interval, interval, std::move(callback), true, priority);
+  return schedule_impl(clock_t::now() + interval, interval, std::move(callback), true, priority);
 }
 
 bool timer_manager::cancel(timer_id_t timer_id) {
@@ -336,14 +336,14 @@ void timer_manager::report_statistics() {
   std::cout << "================================" << std::endl;
 }
 
-void timer_manager::_initialize() {
+void timer_manager::initialize() {
   buckets_.reserve(config_.bucket_count);
   for (std::size_t i = 0; i < config_.bucket_count; ++i) {
     buckets_.push_back(std::make_unique<timer_bucket>(i));
   }
 }
 
-timer_id_t timer_manager::_schedule_impl(time_point_t when, duration_t interval, timer_callback_t callback,
+timer_id_t timer_manager::schedule_impl(time_point_t when, duration_t interval, timer_callback_t callback,
                                          bool is_repeating, timer_priority priority) {
   if (!is_running_.load()) {
     throw std::runtime_error("Timer manager is not running");
@@ -361,22 +361,22 @@ timer_id_t timer_manager::_schedule_impl(time_point_t when, duration_t interval,
   throw std::runtime_error("Failed to schedule timer task");
 }
 
-void timer_manager::_start_cleanup_timer() {
+void timer_manager::start_cleanup_timer() {
   cleanup_timer_.expires_after(config_.cleanup_interval);
   cleanup_timer_.async_wait([this](const std::error_code &ec) {
     if (!ec && is_running_.load()) {
       perform_cleanup();
-      _start_cleanup_timer();
+      start_cleanup_timer();
     }
   });
 }
 
-void timer_manager::_start_statistics_timer() {
+void timer_manager::start_statistics_timer() {
   statistics_timer_.expires_after(config_.statistics_report_interval);
   statistics_timer_.async_wait([this](const std::error_code &ec) {
     if (!ec && is_running_.load()) {
       report_statistics();
-      _start_statistics_timer();
+      start_statistics_timer();
     }
   });
 }

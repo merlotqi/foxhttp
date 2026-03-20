@@ -60,7 +60,7 @@ class dynamic_route : public route {
   std::shared_ptr<api_handler> handler() const;
 
  private:
-  void _extract_path_params(const std::smatch &matches, request_context &ctx) const;
+  void extract_path_params(const std::smatch &matches, request_context &ctx) const;
 
   std::string pattern_;
   std::shared_ptr<api_handler> handler_;
@@ -73,7 +73,7 @@ class route_builder {
   static std::pair<std::regex, std::vector<std::string>> parse_pattern(const std::string &pattern);
 
  private:
-  static std::string _regex_escape(const std::string &str);
+  static std::string regex_escape(const std::string &str);
 };
 
 }  // namespace foxhttp

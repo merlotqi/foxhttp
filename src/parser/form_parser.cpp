@@ -50,14 +50,14 @@ std::string form_field::validation_error() const {
   return "";
 }
 
-void form_field::_set_name(const std::string &name) { core_->name_ = name; }
+void form_field::set_name(const std::string &name) { core_->name_ = name; }
 
-void form_field::_add_value(const std::string &value) {
+void form_field::add_value(const std::string &value) {
   core_->values_.push_back(value);
   core_->is_array_ = true;
 }
 
-void form_field::_set_single_value(const std::string &value) {
+void form_field::set_single_value(const std::string &value) {
   core_->values_.clear();
   core_->values_.push_back(value);
   core_->is_array_ = false;
@@ -126,15 +126,15 @@ form_data form_parser_core::parse_pairs(const std::string &data) const {
     auto it = result.find(normalized_name);
     if (it != result.end()) {
       // Field already exists, add to array
-      it->second->_add_value(value);
+      it->second->add_value(value);
     } else {
       // Create new field
       auto field = std::make_unique<form_field>();
-      field->_set_name(normalized_name);
+      field->set_name(normalized_name);
       if (is_array) {
-        field->_add_value(value);
+        field->add_value(value);
       } else {
-        field->_set_single_value(value);
+        field->set_single_value(value);
       }
       result[normalized_name] = std::move(field);
     }

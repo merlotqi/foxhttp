@@ -63,7 +63,7 @@ static void parse_url_impl(const std::string &url, std::string &protocol, std::s
 }
 
 request::request(const std::string &url) : url_(url) {
-  _parse_url(url, protocol_, host_, port_, target_);
+  parse_url(url, protocol_, host_, port_, target_);
   request_.target(target_);
   request_.method(http::verb::get);
   request_.version(11);
@@ -122,7 +122,7 @@ const http::request<http::string_body> &request::native() const { return request
 
 http::request<http::string_body> &request::native() { return request_; }
 
-void request::_parse_url(const std::string &url, std::string &protocol, std::string &host, std::string &port,
+void request::parse_url(const std::string &url, std::string &protocol, std::string &host, std::string &port,
                          std::string &target) {
   parse_url_impl(url, protocol, host, port, target);
 }

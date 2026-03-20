@@ -34,8 +34,8 @@ class rate_limit_middleware : public middleware {
   middleware_priority priority() const override { return middleware_priority::high; }
 
   void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override {
-    auto key = _make_key(ctx);
-    if (_is_limited(key)) {
+    auto key = make_key(ctx);
+    if (is_limited(key)) {
       res.result(http::status::too_many_requests);
       res.set(http::field::content_type, "application/json");
       res.set("Retry-After", std::to_string(static_cast<int>(window_.count())));
@@ -52,7 +52,7 @@ class rate_limit_middleware : public middleware {
     std::chrono::steady_clock::time_point start;
   };
 
-  bool _is_limited(const std::string &key) {
+  bool is_limited(const std::string &key) {
     std::lock_guard<std::mutex> lk(mutex_);
     auto now = std::chrono::steady_clock::now();
     auto &b = buckets_[key];
@@ -71,7 +71,7 @@ class rate_limit_middleware : public middleware {
     return false;
   }
 
-  std::string _make_key(request_context &ctx) {
+  std::string make_key(request_context &ctx) {
     if (extractor_) return extractor_(ctx);
     // Default: X-Forwarded-For + path
     auto ip = ctx.header("X-Forwarded-For", "");

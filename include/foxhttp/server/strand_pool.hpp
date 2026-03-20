@@ -70,22 +70,22 @@ class strand_pool {
   void report_metrics();
 
  private:
-  void _initialize();
-  void _create_strand(std::size_t index);
-  void _remove_strand(std::size_t index);
+  void initialize();
+  void create_strand(std::size_t index);
+  void remove_strand(std::size_t index);
 
-  strand_ptr _round_robin_strand();
-  strand_ptr _least_connections_strand();
-  strand_ptr _consistent_hash_strand(std::size_t hash);
-  strand_ptr _random_strand();
-  strand_ptr _weighted_round_robin_strand();
+  strand_ptr round_robin_strand();
+  strand_ptr least_connections_strand();
+  strand_ptr consistent_hash_strand(std::size_t hash);
+  strand_ptr random_strand();
+  strand_ptr weightedround_robin_strand();
 
-  void _update_strand_stats(std::size_t index);
-  void _update_consistent_hash_ring();
-  void _start_metrics_reporting();
-  void _start_health_checking();
-  void _report_metrics_internal();
-  void _perform_health_check_internal();
+  void update_strand_stats(std::size_t index);
+  void update_consistent_hash_ring();
+  void start_metrics_reporting();
+  void start_health_checking();
+  void report_metrics_internal();
+  void perform_health_check_internal();
 
  private:
   boost::asio::io_context &io_context_;

@@ -25,7 +25,7 @@ void signal_set::set_error_handler(error_handler handler) {
 
 void signal_set::start() {
   if (stopped_) return;
-  _do_async_wait();
+  do_async_wait();
 }
 
 void signal_set::stop() {
@@ -33,7 +33,7 @@ void signal_set::stop() {
   signals_.cancel();
 }
 
-void signal_set::_do_async_wait() {
+void signal_set::do_async_wait() {
   signals_.async_wait(
       boost::asio::bind_executor(strand_, [self = shared_from_this()](const std::error_code &ec, int sig) {
         if (ec) {
@@ -41,12 +41,12 @@ void signal_set::_do_async_wait() {
           return;
         }
 
-        self->_handle_signal(sig);
-        if (!self->stopped_) self->_do_async_wait();
+        self->handle_signal(sig);
+        if (!self->stopped_) self->do_async_wait();
       }));
 }
 
-void signal_set::_handle_signal(int sig) {
+void signal_set::handle_signal(int sig) {
   std::vector<signal_handler> handlers;
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -54,10 +54,10 @@ void signal_set::_handle_signal(int sig) {
     if (it != signal_handlers_.end()) handlers = it->second;
   }
 
-  for (auto &h : handlers) h(sig, _siganl_name(sig));
+  for (auto &h : handlers) h(sig, signal_name(sig));
 }
 
-std::string signal_set::_siganl_name(int sig) {
+std::string signal_set::signal_name(int sig) {
   static const std::unordered_map<int, std::string> names = {
       {SIGINT, "SIGINT"},   {SIGTERM, "SIGTERM"},
 #ifndef _WIN32

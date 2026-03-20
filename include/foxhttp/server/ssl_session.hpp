@@ -25,11 +25,11 @@ class ssl_session : public session_base, public std::enable_shared_from_this<ssl
   void start();
 
  private:
-  void _handshake();
-  void _read_request();
-  void _handle_read(boost::beast::error_code ec, std::size_t bytes_transferred);
-  void _process_request();
-  void _write_response();
+  void handshake();
+  void read_request();
+  void handle_read(boost::beast::error_code ec, std::size_t bytes_transferred);
+  void process_request();
+  void write_response();
 
   void on_timeout_idle() override;
   void on_timeout_header() override;

@@ -11,7 +11,6 @@
 #include <boost/signals2/signal.hpp>
 #include <chrono>
 #include <filesystem>
-#include <functional>
 #include <string>
 #include <thread>
 
@@ -30,8 +29,8 @@ class config_watcher {
   void stop();
 
  private:
-  std::filesystem::file_time_type _last_write_time() const;
-  void _run_loop();
+  std::filesystem::file_time_type last_write_time() const;
+  void run_loop();
 
  private:
   std::string path_;

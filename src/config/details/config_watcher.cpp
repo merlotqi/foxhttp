@@ -23,8 +23,8 @@ config_watcher::~config_watcher() { stop(); }
 
 void config_watcher::start() {
   if (running_.exchange(true)) return;
-  last_write_time_ = _last_write_time();
-  worker_ = std::thread([this] { _run_loop(); });
+  last_write_time_ = last_write_time();
+  worker_ = std::thread([this] { run_loop(); });
 }
 
 void config_watcher::stop() {
@@ -32,19 +32,19 @@ void config_watcher::stop() {
   if (worker_.joinable()) worker_.join();
 }
 
-std::filesystem::file_time_type config_watcher::_last_write_time() const {
+std::filesystem::file_time_type config_watcher::last_write_time() const {
   std::error_code ec;
   auto t = std::filesystem::last_write_time(path_, ec);
   if (ec) return {};
   return t;
 }
 
-void config_watcher::_run_loop() {
+void config_watcher::run_loop() {
   auto debounce_until = std::chrono::steady_clock::time_point{};
   while (running_.load()) {
     auto now = std::chrono::steady_clock::now();
     if (now >= debounce_until) {
-      auto t = _last_write_time();
+      auto t = last_write_time();
       if (t != std::filesystem::file_time_type{} && t != last_write_time_) {
         last_write_time_ = t;
         debounce_until = now + std::chrono::milliseconds(300);

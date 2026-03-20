@@ -69,15 +69,15 @@ class multipart_field {
   friend class multipart_parser;
   friend class multipart_stream_parser;
 
-  void _set_name(const std::string &name);
-  void _set_filename(const std::string &filename);
-  void _set_content_type(const std::string &content_type);
-  void _set_encoding(const std::string &encoding);
-  void _add_header(const std::string &name, const std::string &value);
-  void _set_content(const std::string &content);
-  void _set_content(std::vector<uint8_t> content);
-  void _set_temp_file(const std::string &path);
-  void _cleanup_temp_file();
+  void set_name(const std::string &name);
+  void set_filename(const std::string &filename);
+  void set_content_type(const std::string &content_type);
+  void set_encoding(const std::string &encoding);
+  void add_header(const std::string &name, const std::string &value);
+  void set_content(const std::string &content);
+  void set_content(std::vector<uint8_t> content);
+  void set_temp_file(const std::string &path);
+  void cleanup_temp_file();
 
  private:
   std::unique_ptr<details::multipart_field_core> core_;

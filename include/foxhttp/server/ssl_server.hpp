@@ -27,7 +27,7 @@ class ssl_server {
   std::shared_ptr<middleware_chain> global_chain() const;
 
  private:
-  void _do_accept();
+  void do_accept();
 
  private:
   io_context_pool &io_pool_;

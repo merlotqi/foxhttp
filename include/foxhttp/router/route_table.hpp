@@ -41,8 +41,8 @@ class route_table {
   route_table &operator=(const route_table &) = delete;
 
   // normalize path for consistent matching and storage
-  static std::string _normalize_path(const std::string &path);
-  static std::size_t _count_segments(const std::string &path);
+  static std::string normalize_path(const std::string &path);
+  static std::size_t count_segments(const std::string &path);
 
  private:
   // mutex for protecting structures:

@@ -24,28 +24,28 @@ void wss_session::start_accept(http::request<http::string_body> req) {
   arm_idle_timer();
   ws_.set_option(websocket::stream_base::timeout::suggested(beast::role_type::server));
   ws_.async_accept(req, [self = shared_from_this()](boost::system::error_code ec) {
-    static_cast<wss_session *>(self.get())->_on_accept(ec);
+    static_cast<wss_session *>(self.get())->on_accept(ec);
   });
 }
 
-void wss_session::_on_accept(boost::system::error_code ec) {
+void wss_session::on_accept(boost::system::error_code ec) {
   if (ec) return;
-  _do_read();
+  do_read();
 }
 
-void wss_session::_do_read() {
+void wss_session::do_read() {
   ws_.async_read(buffer_, [self = shared_from_this()](boost::system::error_code ec, std::size_t bytes_transferred) {
-    static_cast<wss_session *>(self.get())->_on_read(ec, bytes_transferred);
+    static_cast<wss_session *>(self.get())->on_read(ec, bytes_transferred);
   });
 }
 
-void wss_session::_on_read(boost::system::error_code ec, std::size_t) {
+void wss_session::on_read(boost::system::error_code ec, std::size_t) {
   if (ec) return;
   ws_.text(ws_.got_text());
   ws_.async_write(buffer_.data(), [self = shared_from_this()](boost::system::error_code, std::size_t) {
     auto *s = static_cast<wss_session *>(self.get());
     s->buffer_.consume(s->buffer_.size());
-    s->_do_read();
+    s->do_read();
   });
 }
 

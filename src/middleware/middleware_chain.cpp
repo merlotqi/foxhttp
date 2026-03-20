@@ -18,12 +18,12 @@ namespace foxhttp {
 
 middleware_chain::middleware_chain(boost::asio::io_context &io_context) : io_context_(&io_context) {}
 
-void middleware_chain::_register_run(std::shared_ptr<detail::pipeline_execution_state> state) {
+void middleware_chain::register_run(std::shared_ptr<detail::pipeline_execution_state> state) {
   std::lock_guard<std::mutex> lock(runs_mutex_);
   active_runs_.push_back(std::move(state));
 }
 
-void middleware_chain::_unregister_run(detail::pipeline_execution_state *raw) {
+void middleware_chain::unregister_run(detail::pipeline_execution_state *raw) {
   std::lock_guard<std::mutex> lock(runs_mutex_);
   active_runs_.erase(std::remove_if(active_runs_.begin(), active_runs_.end(),
                                     [raw](const std::shared_ptr<detail::pipeline_execution_state> &p) {
@@ -32,7 +32,7 @@ void middleware_chain::_unregister_run(detail::pipeline_execution_state *raw) {
                      active_runs_.end());
 }
 
-bool middleware_chain::_try_finish_run(const std::shared_ptr<detail::pipeline_execution_state> &state) {
+bool middleware_chain::try_finish_run(const std::shared_ptr<detail::pipeline_execution_state> &state) {
   bool expected = false;
   if (!state->finished.compare_exchange_strong(expected, true)) {
     return false;
@@ -45,14 +45,14 @@ bool middleware_chain::_try_finish_run(const std::shared_ptr<detail::pipeline_ex
     boost::system::error_code ec;
     state->middleware_timeout_timer->cancel(ec);
   }
-  _unregister_run(state.get());
+  unregister_run(state.get());
   return true;
 }
 
-void middleware_chain::_complete_async_run(const std::shared_ptr<detail::pipeline_execution_state> &state,
+void middleware_chain::complete_async_run(const std::shared_ptr<detail::pipeline_execution_state> &state,
                                            completion_callback callback, middleware_result result,
                                            const std::string &message) {
-  if (!_try_finish_run(state)) {
+  if (!try_finish_run(state)) {
     return;
   }
   if (callback) {
@@ -65,7 +65,7 @@ void middleware_chain::use(std::shared_ptr<middleware> mw) {
   std::lock_guard<std::mutex> lock(config_mutex_);
   mws_.push_back({std::move(mw)});
   if (auto_sort_by_priority_) {
-    _sort_middlewares_by_priority();
+    sort_middlewares_by_priority();
   }
 }
 
@@ -75,7 +75,7 @@ void middleware_chain::use(std::initializer_list<std::shared_ptr<middleware>> mw
     mws_.push_back({std::move(mw)});
   }
   if (auto_sort_by_priority_) {
-    _sort_middlewares_by_priority();
+    sort_middlewares_by_priority();
   }
 }
 
@@ -91,7 +91,7 @@ void middleware_chain::insert(std::size_t index, std::shared_ptr<middleware> mw)
 void middleware_chain::insert_by_priority(std::shared_ptr<middleware> mw) {
   std::lock_guard<std::mutex> lock(config_mutex_);
   mws_.push_back({std::move(mw)});
-  _sort_middlewares_by_priority();
+  sort_middlewares_by_priority();
 }
 
 void middleware_chain::remove(const std::string &middleware_name) {
@@ -148,16 +148,16 @@ void middleware_chain::execute(request_context &ctx, http::response<http::string
 
   auto state = std::make_shared<detail::pipeline_execution_state>();
   state->execution_start = std::chrono::steady_clock::now();
-  _register_run(state);
+  register_run(state);
 
   try {
-    _execute_next_sync(pipeline, state, ctx, res, eh, th, global_to, stats);
+    execute_next_sync(pipeline, state, ctx, res, eh, th, global_to, stats);
   } catch (...) {
-    _try_finish_run(state);
+    try_finish_run(state);
     throw;
   }
 
-  _try_finish_run(state);
+  try_finish_run(state);
 }
 
 void middleware_chain::execute_async(request_context &ctx, http::response<http::string_body> &res,
@@ -188,7 +188,7 @@ void middleware_chain::execute_async(request_context &ctx, http::response<http::
 
   auto state = std::make_shared<detail::pipeline_execution_state>();
   state->execution_start = std::chrono::steady_clock::now();
-  _register_run(state);
+  register_run(state);
 
   if (global_to > std::chrono::milliseconds{0} && io) {
     state->global_timeout_timer = std::make_shared<boost::asio::steady_timer>(*io, global_to);
@@ -200,17 +200,17 @@ void middleware_chain::execute_async(request_context &ctx, http::response<http::
             return;
           }
           if (!s->timed_out.exchange(true)) {
-            _handle_timeout_run(ctx, res, s, callback, th);
+            handle_timeout_run(ctx, res, s, callback, th);
           }
         });
   }
 
   try {
-    _execute_next_async_step(pipeline, state, ctx, res, callback, eh, th, global_to, stats);
+    execute_next_async_step(pipeline, state, ctx, res, callback, eh, th, global_to, stats);
   } catch (const std::exception &e) {
-    _handle_error_run(ctx, res, e, state, callback, eh);
+    handle_error_run(ctx, res, e, state, callback, eh);
   } catch (...) {
-    if (_try_finish_run(state) && callback) {
+    if (try_finish_run(state) && callback) {
       callback(middleware_result::error, "unknown error");
     }
     throw;
@@ -294,7 +294,7 @@ void middleware_chain::print_statistics() const {
   }
 }
 
-void middleware_chain::_execute_next_sync(const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
+void middleware_chain::execute_next_sync(const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
                                           const std::shared_ptr<detail::pipeline_execution_state> &state,
                                           request_context &ctx, http::response<http::string_body> &res,
                                           const error_handler &eh, const timeout_handler &th,
@@ -327,7 +327,7 @@ void middleware_chain::_execute_next_sync(const std::shared_ptr<std::vector<std:
   lk.unlock();
 
   if (!mw->should_execute(ctx)) {
-    _execute_next_sync(pipeline, state, ctx, res, eh, th, global_timeout, statistics_enabled);
+    execute_next_sync(pipeline, state, ctx, res, eh, th, global_timeout, statistics_enabled);
     return;
   }
 
@@ -345,7 +345,7 @@ void middleware_chain::_execute_next_sync(const std::shared_ptr<std::vector<std:
         state->middleware_timeout_timer.reset();
       }
     }
-    _execute_next_sync(pipeline, state, ctx, res, eh, th, global_timeout, statistics_enabled);
+    execute_next_sync(pipeline, state, ctx, res, eh, th, global_timeout, statistics_enabled);
   };
 
   try {
@@ -372,7 +372,7 @@ void middleware_chain::_execute_next_sync(const std::shared_ptr<std::vector<std:
   }
 }
 
-void middleware_chain::_execute_next_async_step(
+void middleware_chain::execute_next_async_step(
     const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
     const std::shared_ptr<detail::pipeline_execution_state> &state, request_context &ctx,
     http::response<http::string_body> &res, completion_callback callback, const error_handler &eh,
@@ -384,7 +384,7 @@ void middleware_chain::_execute_next_async_step(
     middleware_result r = state->cancelled.load()   ? middleware_result::stop
                           : state->timed_out.load() ? middleware_result::timeout
                                                     : middleware_result::continue_;
-    _complete_async_run(state, callback, r, "");
+    complete_async_run(state, callback, r, "");
     return;
   }
 
@@ -393,7 +393,7 @@ void middleware_chain::_execute_next_async_step(
     if (now - state->execution_start > global_timeout) {
       state->timed_out.store(true);
       lk.unlock();
-      _handle_timeout_run(ctx, res, state, callback, th);
+      handle_timeout_run(ctx, res, state, callback, th);
       return;
     }
   }
@@ -403,7 +403,7 @@ void middleware_chain::_execute_next_async_step(
   lk.unlock();
 
   if (!mw->should_execute(ctx)) {
-    _execute_next_async_step(pipeline, state, ctx, res, callback, eh, th, global_timeout, statistics_enabled);
+    execute_next_async_step(pipeline, state, ctx, res, callback, eh, th, global_timeout, statistics_enabled);
     return;
   }
 
@@ -421,7 +421,7 @@ void middleware_chain::_execute_next_async_step(
         state->middleware_timeout_timer.reset();
       }
     }
-    _execute_next_async_step(pipeline, state, ctx, res, callback, eh, th, global_timeout, statistics_enabled);
+    execute_next_async_step(pipeline, state, ctx, res, callback, eh, th, global_timeout, statistics_enabled);
   };
 
   auto async_callback = [this, pipeline, state, mw, execution_start, statistics_enabled, &ctx, &res, callback, eh, th,
@@ -448,13 +448,13 @@ void middleware_chain::_execute_next_async_step(
       }
     }
 
-    _handle_middleware_result_run(ctx, res, result, error_message, pipeline, state, callback, eh, th, global_timeout,
+    handle_middleware_result_run(ctx, res, result, error_message, pipeline, state, callback, eh, th, global_timeout,
                                   statistics_enabled);
   };
 
   auto middleware_timeout = mw->timeout();
   if (middleware_timeout > std::chrono::milliseconds{0} && io_context_) {
-    _setup_middleware_timeout(mw, ctx, res, callback, state, th, statistics_enabled);
+    setup_middleware_timeout(mw, ctx, res, callback, state, th, statistics_enabled);
   }
 
   try {
@@ -463,11 +463,11 @@ void middleware_chain::_execute_next_async_step(
     if (statistics_enabled) {
       mw->stats().error_count++;
     }
-    _handle_error_run(ctx, res, e, state, callback, eh);
+    handle_error_run(ctx, res, e, state, callback, eh);
   }
 }
 
-void middleware_chain::_handle_error_run(request_context &ctx, http::response<http::string_body> &res,
+void middleware_chain::handle_error_run(request_context &ctx, http::response<http::string_body> &res,
                                          const std::exception &e,
                                          const std::shared_ptr<detail::pipeline_execution_state> &state,
                                          completion_callback callback, const error_handler &eh) {
@@ -479,10 +479,10 @@ void middleware_chain::_handle_error_run(request_context &ctx, http::response<ht
     res.body() = "middleware error: " + std::string(e.what());
   }
 
-  _complete_async_run(state, callback, middleware_result::error, e.what());
+  complete_async_run(state, callback, middleware_result::error, e.what());
 }
 
-void middleware_chain::_handle_timeout_run(request_context &ctx, http::response<http::string_body> &res,
+void middleware_chain::handle_timeout_run(request_context &ctx, http::response<http::string_body> &res,
                                            const std::shared_ptr<detail::pipeline_execution_state> &state,
                                            completion_callback callback, const timeout_handler &th) {
   if (th) {
@@ -493,10 +493,10 @@ void middleware_chain::_handle_timeout_run(request_context &ctx, http::response<
     res.body() = "Request timeout";
   }
 
-  _complete_async_run(state, callback, middleware_result::timeout, "Request timeout");
+  complete_async_run(state, callback, middleware_result::timeout, "Request timeout");
 }
 
-void middleware_chain::_handle_middleware_result_run(
+void middleware_chain::handle_middleware_result_run(
     request_context &ctx, http::response<http::string_body> &res, middleware_result result,
     const std::string &error_message, const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
     const std::shared_ptr<detail::pipeline_execution_state> &state, completion_callback callback,
@@ -504,27 +504,27 @@ void middleware_chain::_handle_middleware_result_run(
     bool statistics_enabled) {
   switch (result) {
     case middleware_result::continue_:
-      _execute_next_async_step(pipeline, state, ctx, res, callback, eh, th, global_timeout, statistics_enabled);
+      execute_next_async_step(pipeline, state, ctx, res, callback, eh, th, global_timeout, statistics_enabled);
       break;
     case middleware_result::stop:
-      _complete_async_run(state, callback, middleware_result::stop, "");
+      complete_async_run(state, callback, middleware_result::stop, "");
       break;
     case middleware_result::error:
-      _complete_async_run(state, callback, middleware_result::error, error_message);
+      complete_async_run(state, callback, middleware_result::error, error_message);
       break;
     case middleware_result::timeout:
-      _complete_async_run(state, callback, middleware_result::timeout, error_message);
+      complete_async_run(state, callback, middleware_result::timeout, error_message);
       break;
   }
 }
 
-void middleware_chain::_sort_middlewares_by_priority() {
+void middleware_chain::sort_middlewares_by_priority() {
   std::sort(mws_.begin(), mws_.end(), [](const middleware_info &a, const middleware_info &b) {
     return static_cast<int>(a.mw_->priority()) < static_cast<int>(b.mw_->priority());
   });
 }
 
-void middleware_chain::_setup_middleware_timeout(std::shared_ptr<middleware> mw, request_context &ctx,
+void middleware_chain::setup_middleware_timeout(std::shared_ptr<middleware> mw, request_context &ctx,
                                                  http::response<http::string_body> &res, completion_callback callback,
                                                  const std::shared_ptr<detail::pipeline_execution_state> &state,
                                                  const timeout_handler &th, bool statistics_enabled) {
@@ -553,7 +553,7 @@ void middleware_chain::_setup_middleware_timeout(std::shared_ptr<middleware> mw,
       if (statistics_enabled) {
         mw->stats().timeout_count++;
       }
-      _handle_timeout_run(ctx, res, s, callback, th);
+      handle_timeout_run(ctx, res, s, callback, th);
     }
   });
 }

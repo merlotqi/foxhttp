@@ -80,41 +80,41 @@ class middleware_chain {
     std::shared_ptr<middleware> mw_;
   };
 
-  void _register_run(std::shared_ptr<detail::pipeline_execution_state> state);
-  void _unregister_run(detail::pipeline_execution_state *raw);
+  void register_run(std::shared_ptr<detail::pipeline_execution_state> state);
+  void unregister_run(detail::pipeline_execution_state *raw);
 
-  bool _try_finish_run(const std::shared_ptr<detail::pipeline_execution_state> &state);
-  void _complete_async_run(const std::shared_ptr<detail::pipeline_execution_state> &state,
+  bool try_finish_run(const std::shared_ptr<detail::pipeline_execution_state> &state);
+  void complete_async_run(const std::shared_ptr<detail::pipeline_execution_state> &state,
                            completion_callback callback, middleware_result result, const std::string &message);
 
-  void _execute_next_sync(const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
+  void execute_next_sync(const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
                           const std::shared_ptr<detail::pipeline_execution_state> &state, request_context &ctx,
                           http::response<http::string_body> &res, const error_handler &eh, const timeout_handler &th,
                           std::chrono::milliseconds global_timeout, bool statistics_enabled);
 
-  void _execute_next_async_step(const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
+  void execute_next_async_step(const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
                                 const std::shared_ptr<detail::pipeline_execution_state> &state, request_context &ctx,
                                 http::response<http::string_body> &res, completion_callback callback,
                                 const error_handler &eh, const timeout_handler &th,
                                 std::chrono::milliseconds global_timeout, bool statistics_enabled);
 
-  void _handle_error_run(request_context &ctx, http::response<http::string_body> &res, const std::exception &e,
+  void handle_error_run(request_context &ctx, http::response<http::string_body> &res, const std::exception &e,
                          const std::shared_ptr<detail::pipeline_execution_state> &state, completion_callback callback,
                          const error_handler &eh);
 
-  void _handle_timeout_run(request_context &ctx, http::response<http::string_body> &res,
+  void handle_timeout_run(request_context &ctx, http::response<http::string_body> &res,
                            const std::shared_ptr<detail::pipeline_execution_state> &state, completion_callback callback,
                            const timeout_handler &th);
 
-  void _handle_middleware_result_run(request_context &ctx, http::response<http::string_body> &res,
+  void handle_middleware_result_run(request_context &ctx, http::response<http::string_body> &res,
                                      middleware_result result, const std::string &error_message,
                                      const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
                                      const std::shared_ptr<detail::pipeline_execution_state> &state,
                                      completion_callback callback, const error_handler &eh, const timeout_handler &th,
                                      std::chrono::milliseconds global_timeout, bool statistics_enabled);
 
-  void _sort_middlewares_by_priority();
-  void _setup_middleware_timeout(std::shared_ptr<middleware> mw, request_context &ctx,
+  void sort_middlewares_by_priority();
+  void setup_middleware_timeout(std::shared_ptr<middleware> mw, request_context &ctx,
                                  http::response<http::string_body> &res, completion_callback callback,
                                  const std::shared_ptr<detail::pipeline_execution_state> &state,
                                  const timeout_handler &th, bool statistics_enabled);

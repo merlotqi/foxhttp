@@ -33,8 +33,8 @@ void compression_middleware::operator()(request_context &ctx, http::response<htt
                                         std::function<void()> next) {
   next();
 
-  if (_should_compress(ctx, res)) {
-    _compress_response(ctx, res);
+  if (should_compress(ctx, res)) {
+    compress_response(ctx, res);
   }
 }
 
@@ -42,15 +42,14 @@ void compression_middleware::operator()(request_context &ctx, http::response<htt
                                         std::function<void()> next, async_middleware_callback callback) {
   next();
 
-  if (_should_compress(ctx, res)) {
-    _compress_response(ctx, res);
+  if (should_compress(ctx, res)) {
+    compress_response(ctx, res);
   }
 
   callback(middleware_result::continue_, "");
 }
 
-bool compression_middleware::_should_compress(const request_context &ctx,
-                                              const http::response<http::string_body> &res) {
+bool compression_middleware::should_compress(const request_context &ctx, const http::response<http::string_body> &res) {
   // Don't compress if already compressed
   if (res.find("Content-Encoding") != res.end()) {
     return false;
@@ -68,7 +67,7 @@ bool compression_middleware::_should_compress(const request_context &ctx,
   }
 
   for (const auto &type : supported_types_) {
-    if (accept_encoding.find(_get_encoding_name(type)) != std::string::npos) {
+    if (accept_encoding.find(get_encoding_name(type)) != std::string::npos) {
       return true;
     }
   }
@@ -76,14 +75,14 @@ bool compression_middleware::_should_compress(const request_context &ctx,
   return false;
 }
 
-void compression_middleware::_compress_response(const request_context &ctx, http::response<http::string_body> &res) {
+void compression_middleware::compress_response(const request_context &ctx, http::response<http::string_body> &res) {
   auto accept_encoding = ctx.header("Accept-Encoding");
   compression_type best_type = compression_type::none;
   int best_priority = -1;
 
   // Find the best supported compression type that the client accepts
   for (const auto &type : supported_types_) {
-    std::string encoding = _get_encoding_name(type);
+    std::string encoding = get_encoding_name(type);
     size_t pos = accept_encoding.find(encoding);
     if (pos != std::string::npos) {
       int priority = 1;  // Default priority
@@ -109,26 +108,26 @@ void compression_middleware::_compress_response(const request_context &ctx, http
     std::string compressed;
     switch (best_type) {
       case compression_type::gzip:
-        compressed = _compress_gzip(res.body());
+        compressed = compress_gzip(res.body());
         break;
       case compression_type::deflate:
-        compressed = _compress_deflate(res.body());
+        compressed = compress_deflate(res.body());
         break;
       case compression_type::br:
-        compressed = _compress_brotli(res.body());
+        compressed = compress_brotli(res.body());
         break;
       default:
         return;
     }
 
-    res.set("Content-Encoding", _get_encoding_name(best_type));
+    res.set("Content-Encoding", get_encoding_name(best_type));
     res.body() = compressed;
     // Update Content-Length after compression
     res.set("Content-Length", std::to_string(compressed.size()));
   }
 }
 
-std::string compression_middleware::_get_encoding_name(compression_type type) {
+std::string compression_middleware::get_encoding_name(compression_type type) {
   switch (type) {
     case compression_type::gzip:
       return "gzip";
@@ -141,7 +140,7 @@ std::string compression_middleware::_get_encoding_name(compression_type type) {
   }
 }
 
-std::string compression_middleware::_compress_gzip(const std::string &input) {
+std::string compression_middleware::compress_gzip(const std::string &input) {
   namespace bio = boost::iostreams;
   std::stringstream compressed;
   std::stringstream origin(input);
@@ -154,7 +153,7 @@ std::string compression_middleware::_compress_gzip(const std::string &input) {
   return compressed.str();
 }
 
-std::string compression_middleware::_compress_deflate(const std::string &input) {
+std::string compression_middleware::compress_deflate(const std::string &input) {
   namespace bio = boost::iostreams;
   std::stringstream compressed;
   std::stringstream origin(input);
@@ -176,7 +175,7 @@ std::string compression_middleware::_compress_deflate(const std::string &input) 
   return compressed.str();
 }
 
-std::string compression_middleware::_compress_brotli(const std::string &input) {
+std::string compression_middleware::compress_brotli(const std::string &input) {
 #ifdef USING_BROTLI
   // Allocate output buffer (typically 1.5x input size for worst case)
   std::vector<uint8_t> output(BrotliEncoderMaxCompressedSize(input.size()));
@@ -193,7 +192,7 @@ std::string compression_middleware::_compress_brotli(const std::string &input) {
 
   if (!result) {
     // If compression fails, fallback to gzip
-    return _compress_gzip(input);
+    return compress_gzip(input);
   }
 
   // Resize the output vector to the actual compressed size
@@ -201,7 +200,7 @@ std::string compression_middleware::_compress_brotli(const std::string &input) {
   return std::string(output.begin(), output.end());
 #else
   // Fallback to gzip if Brotli is not available
-  return _compress_gzip(input);
+  return compress_gzip(input);
 #endif
 }
 

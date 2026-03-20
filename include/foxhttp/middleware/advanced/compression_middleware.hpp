@@ -28,12 +28,12 @@ class compression_middleware : public priority_middleware<middleware_priority::h
                   async_middleware_callback callback) override;
 
  private:
-  bool _should_compress(const request_context &ctx, const http::response<http::string_body> &res);
-  void _compress_response(const request_context &ctx, http::response<http::string_body> &res);
-  std::string _get_encoding_name(compression_type type);
-  std::string _compress_gzip(const std::string &input);
-  std::string _compress_deflate(const std::string &input);
-  std::string _compress_brotli(const std::string &input);
+  bool should_compress(const request_context &ctx, const http::response<http::string_body> &res);
+  void compress_response(const request_context &ctx, http::response<http::string_body> &res);
+  std::string get_encoding_name(compression_type type);
+  std::string compress_gzip(const std::string &input);
+  std::string compress_deflate(const std::string &input);
+  std::string compress_brotli(const std::string &input);
 
  private:
   size_t threshold_;

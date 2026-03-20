@@ -58,8 +58,8 @@ class request_context {
   T parsed_body() const;
 
  private:
-  void _parse_query(const std::string &query);
-  void _parse_cookies();
+  void parse_query(const std::string &query);
+  void parse_cookies();
 
  private:
   http::request<http::string_body> req_;

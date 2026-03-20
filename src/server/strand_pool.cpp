@@ -115,7 +115,7 @@ strand_pool::strand_pool(boost::asio::io_context &io_context, const strand_pool_
       metrics_timer_(io_context),
       health_check_timer_(io_context),
       is_running_(false) {
-  _initialize();
+  initialize();
 }
 
 strand_pool::~strand_pool() { stop(); }
@@ -123,8 +123,8 @@ strand_pool::~strand_pool() { stop(); }
 void strand_pool::start() {
   if (is_running_.exchange(true)) return;
 
-  _start_metrics_reporting();
-  _start_health_checking();
+  start_metrics_reporting();
+  start_health_checking();
 }
 
 void strand_pool::stop() {
@@ -137,26 +137,26 @@ void strand_pool::stop() {
 strand_pool::strand_ptr strand_pool::next_strand() {
   switch (config_.strategy) {
     case load_balance_strategy::round_robin:
-      return _round_robin_strand();
+      return round_robin_strand();
     case load_balance_strategy::least_connections:
-      return _least_connections_strand();
+      return least_connections_strand();
     case load_balance_strategy::consistent_hash:
-      return _consistent_hash_strand(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+      return consistent_hash_strand(std::hash<std::thread::id>{}(std::this_thread::get_id()));
     case load_balance_strategy::random:
-      return _random_strand();
+      return random_strand();
     case load_balance_strategy::weighted_round_robin:
-      return _weighted_round_robin_strand();
+      return weightedround_robin_strand();
     default:
-      return _round_robin_strand();
+      return round_robin_strand();
   }
 }
 
 strand_pool::strand_ptr strand_pool::strand_for_session(const std::string &session_id) {
   std::size_t hash = std::hash<std::string>{}(session_id);
-  return _consistent_hash_strand(hash);
+  return consistent_hash_strand(hash);
 }
 
-strand_pool::strand_ptr strand_pool::strand_by_hash(std::size_t hash) { return _consistent_hash_strand(hash); }
+strand_pool::strand_ptr strand_pool::strand_by_hash(std::size_t hash) { return consistent_hash_strand(hash); }
 
 void strand_pool::resize(std::size_t new_size) {
   if (new_size < config_.min_size || new_size > config_.max_size) {
@@ -169,7 +169,7 @@ void strand_pool::resize(std::size_t new_size) {
 
   if (new_size > current_size_) {
     for (std::size_t i = current_size_; i < new_size; ++i) {
-      _create_strand(i);
+      create_strand(i);
     }
   } else {
     std::vector<std::pair<std::size_t, double>> load_factors;
@@ -182,12 +182,12 @@ void strand_pool::resize(std::size_t new_size) {
 
     for (std::size_t i = 0; i < current_size_ - new_size; ++i) {
       std::size_t index_to_remove = load_factors[i].first;
-      _remove_strand(index_to_remove);
+      remove_strand(index_to_remove);
     }
   }
 
   current_size_ = new_size;
-  _update_consistent_hash_ring();
+  update_consistent_hash_ring();
 }
 
 void strand_pool::set_load_balance_strategy(load_balance_strategy strategy) { config_.strategy = strategy; }
@@ -222,47 +222,47 @@ void strand_pool::update_config(const strand_pool_config &new_config) {
   }
 }
 
-void strand_pool::perform_health_check() { _perform_health_check_internal(); }
+void strand_pool::perform_health_check() { perform_health_check_internal(); }
 
-void strand_pool::report_metrics() { _report_metrics_internal(); }
+void strand_pool::report_metrics() { report_metrics_internal(); }
 
-void strand_pool::_initialize() {
+void strand_pool::initialize() {
   std::unique_lock<std::shared_mutex> lock(strands_mutex_);
 
   strands_.reserve(config_.max_size);
   strands_stats_.reserve(config_.max_size);
 
   for (std::size_t i = 0; i < config_.initial_size; ++i) {
-    _create_strand(i);
+    create_strand(i);
   }
 
   current_size_ = config_.initial_size;
-  _update_consistent_hash_ring();
+  update_consistent_hash_ring();
 }
 
-void strand_pool::_create_strand(std::size_t index) {
+void strand_pool::create_strand(std::size_t index) {
   auto strand = std::make_shared<boost::asio::strand<executor_type>>(io_context_.get_executor());
   strands_.push_back(strand);
   strands_stats_.emplace_back();
 }
 
-void strand_pool::_remove_strand(std::size_t index) {
+void strand_pool::remove_strand(std::size_t index) {
   if (index < strands_.size()) {
     strands_.erase(strands_.begin() + index);
     strands_stats_.erase(strands_stats_.begin() + index);
   }
 }
 
-strand_pool::strand_ptr strand_pool::_round_robin_strand() {
+strand_pool::strand_ptr strand_pool::round_robin_strand() {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
   if (strands_.empty()) return nullptr;
 
   std::size_t index = round_robin_index_.fetch_add(1, std::memory_order_relaxed) % current_size_;
-  _update_strand_stats(index);
+  update_strand_stats(index);
   return strands_[index];
 }
 
-strand_pool::strand_ptr strand_pool::_least_connections_strand() {
+strand_pool::strand_ptr strand_pool::least_connections_strand() {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
   if (strands_.empty()) return nullptr;
 
@@ -277,11 +277,11 @@ strand_pool::strand_ptr strand_pool::_least_connections_strand() {
     }
   }
 
-  _update_strand_stats(best_index);
+  update_strand_stats(best_index);
   return strands_[best_index];
 }
 
-strand_pool::strand_ptr strand_pool::_consistent_hash_strand(std::size_t hash) {
+strand_pool::strand_ptr strand_pool::consistent_hash_strand(std::size_t hash) {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
   if (strands_.empty()) return nullptr;
 
@@ -293,21 +293,21 @@ strand_pool::strand_ptr strand_pool::_consistent_hash_strand(std::size_t hash) {
   }
 
   std::size_t index = it->second;
-  _update_strand_stats(index);
+  update_strand_stats(index);
   return strands_[index];
 }
 
-strand_pool::strand_ptr strand_pool::_random_strand() {
+strand_pool::strand_ptr strand_pool::random_strand() {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
   if (strands_.empty()) return nullptr;
 
   std::uniform_int_distribution<std::size_t> dist(0, current_size_ - 1);
   std::size_t index = dist(random_generator_);
-  _update_strand_stats(index);
+  update_strand_stats(index);
   return strands_[index];
 }
 
-strand_pool::strand_ptr strand_pool::_weighted_round_robin_strand() {
+strand_pool::strand_ptr strand_pool::weightedround_robin_strand() {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
   if (strands_.empty()) return nullptr;
 
@@ -318,7 +318,7 @@ strand_pool::strand_ptr strand_pool::_weighted_round_robin_strand() {
     }
   }
 
-  if (total_weight == 0) return _round_robin_strand();
+  if (total_weight == 0) return round_robin_strand();
 
   std::uniform_int_distribution<std::size_t> dist(0, total_weight - 1);
   std::size_t random_weight = dist(random_generator_);
@@ -328,16 +328,16 @@ strand_pool::strand_ptr strand_pool::_weighted_round_robin_strand() {
     if (strands_stats_[i].is_healthy.load()) {
       current_weight += (100 - static_cast<std::size_t>(strands_stats_[i].load_factor() * 100));
       if (random_weight < current_weight) {
-        _update_strand_stats(i);
+        update_strand_stats(i);
         return strands_[i];
       }
     }
   }
 
-  return _round_robin_strand();
+  return round_robin_strand();
 }
 
-void strand_pool::_update_strand_stats(std::size_t index) {
+void strand_pool::update_strand_stats(std::size_t index) {
   if (index < strands_stats_.size()) {
     strands_stats_[index].total_requests.fetch_add(1, std::memory_order_relaxed);
     strands_stats_[index].active_requests.fetch_add(1, std::memory_order_relaxed);
@@ -345,7 +345,7 @@ void strand_pool::_update_strand_stats(std::size_t index) {
   }
 }
 
-void strand_pool::_update_consistent_hash_ring() {
+void strand_pool::update_consistent_hash_ring() {
   hash_ring_.clear();
   hash_ring_.reserve(current_size_ * 100);
 
@@ -360,27 +360,27 @@ void strand_pool::_update_consistent_hash_ring() {
   std::sort(hash_ring_.begin(), hash_ring_.end());
 }
 
-void strand_pool::_start_metrics_reporting() {
+void strand_pool::start_metrics_reporting() {
   metrics_timer_.expires_after(config_.metrics_report_interval);
   metrics_timer_.async_wait([this](boost::system::error_code ec) {
     if (!ec && is_running_.load()) {
-      _report_metrics_internal();
-      _start_metrics_reporting();
+      report_metrics_internal();
+      start_metrics_reporting();
     }
   });
 }
 
-void strand_pool::_start_health_checking() {
+void strand_pool::start_health_checking() {
   health_check_timer_.expires_after(config_.health_check_interval);
   health_check_timer_.async_wait([this](boost::system::error_code ec) {
     if (!ec && is_running_.load()) {
-      _perform_health_check_internal();
-      _start_health_checking();
+      perform_health_check_internal();
+      start_health_checking();
     }
   });
 }
 
-void strand_pool::_report_metrics_internal() {
+void strand_pool::report_metrics_internal() {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
 
   std::lock_guard<std::mutex> metrics_lock(metrics_mutex_);
@@ -397,7 +397,7 @@ void strand_pool::_report_metrics_internal() {
   }
 }
 
-void strand_pool::_perform_health_check_internal() {
+void strand_pool::perform_health_check_internal() {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
 
   std::lock_guard<std::mutex> health_lock(health_check_mutex_);

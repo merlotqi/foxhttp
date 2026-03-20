@@ -71,7 +71,7 @@ class request {
   bool verify_ssl_ = true;
   int timeout_ = 30;
 
-  static void _parse_url(const std::string &url, std::string &protocol, std::string &host, std::string &port,
+  static void parse_url(const std::string &url, std::string &protocol, std::string &host, std::string &port,
                          std::string &target);
 };
 

@@ -23,9 +23,9 @@ class signal_set : public std::enable_shared_from_this<signal_set> {
   void stop();
 
  private:
-  void _do_async_wait();
-  void _handle_signal(int sig);
-  static std::string _siganl_name(int sig);
+  void do_async_wait();
+  void handle_signal(int sig);
+  static std::string signal_name(int sig);
 
  private:
   boost::asio::signal_set signals_;

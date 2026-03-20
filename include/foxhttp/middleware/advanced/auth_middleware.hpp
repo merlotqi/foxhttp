@@ -81,8 +81,8 @@ class auth_middleware : public middleware {
     api_key_header_ = std::move(name);
     return *this;
   }
-  auth_middleware &set_api_key_query_param(std::string name) {
-    api_key_query_param_ = std::move(name);
+  auth_middleware &set_api_keyquery_param(std::string name) {
+    api_keyquery_param_ = std::move(name);
     return *this;
   }
   auth_middleware &set_session_cookie_name(std::string name) {
@@ -149,7 +149,7 @@ class auth_middleware : public middleware {
 
  private:
   // Simple Base64 decode for Basic auth
-  static std::string _base64_decode(const std::string &in) {
+  static std::string base64_decode(const std::string &in) {
     static const int T[256] = {
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63, 52, 53, 54, 55,
@@ -178,7 +178,7 @@ class auth_middleware : public middleware {
     return out;
   }
 
-  static std::unordered_map<std::string, std::string> _parse_kv(const std::string &s) {
+  static std::unordered_map<std::string, std::string> parse_kv(const std::string &s) {
     std::unordered_map<std::string, std::string> out;
     std::string key, val;
     enum {
@@ -214,14 +214,14 @@ class auth_middleware : public middleware {
     return out;
   }
 
-  static std::optional<std::string> _query_param(const request_context &ctx, const std::string &key) {
+  static std::optional<std::string> query_param(const request_context &ctx, const std::string &key) {
     auto &q = ctx.query_parameters();
     auto it = q.find(key);
     if (it != q.end() && !it->second.empty()) return it->second.front();
     return std::nullopt;
   }
 
-  static std::pair<std::string, std::string> _split_first(const std::string &s, char delim) {
+  static std::pair<std::string, std::string> split_first(const std::string &s, char delim) {
     auto p = s.find(delim);
     if (p == std::string::npos) return {s, std::string()};
     return {s.substr(0, p), s.substr(p + 1)};
@@ -274,8 +274,8 @@ class auth_middleware : public middleware {
         auto h = ctx.header(http::field::authorization);
         if (h.rfind("Basic ", 0) == 0) {
           auto b64 = h.substr(6);
-          auto decoded = _base64_decode(b64);
-          auto pair = _split_first(decoded, ':');
+          auto decoded = base64_decode(b64);
+          auto pair = split_first(decoded, ':');
           return basic_validator_(pair.first, pair.second);
         }
         return std::nullopt;
@@ -284,7 +284,7 @@ class auth_middleware : public middleware {
         if (!digest_validator_) return std::nullopt;
         auto h = ctx.header(http::field::authorization);
         if (h.rfind("Digest ", 0) == 0) {
-          auto params = _parse_kv(h.substr(7));
+          auto params = parse_kv(h.substr(7));
           return digest_validator_(params, ctx.method_string());
         }
         return std::nullopt;
@@ -294,7 +294,7 @@ class auth_middleware : public middleware {
         // header first
         auto key = ctx.header(api_key_header_);
         if (key.empty()) {
-          auto q = _query_param(ctx, api_key_query_param_);
+          auto q = query_param(ctx, api_keyquery_param_);
           if (q.has_value()) key = *q;
         }
         if (!key.empty()) {
@@ -358,7 +358,7 @@ class auth_middleware : public middleware {
  private:
   std::vector<auth_scheme> schemes_;
   std::string api_key_header_ = "X-API-Key";
-  std::string api_key_query_param_ = "api_key";
+  std::string api_keyquery_param_ = "api_key";
   std::string session_cookie_name_ = "SESSIONID";
   std::string realm_ = "foxhttp";
 
