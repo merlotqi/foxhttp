@@ -1,12 +1,3 @@
-/**
- * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Merlot.Qi
- * Licensed under GPLv3: https://www.gnu.org/licenses/
- *
- * Recommended middleware Usage Example
- * Demonstrates the proper way to use middlewares without MiddlewareBuilder
- */
-
 #include <chrono>
 #include <foxhttp/foxhttp.hpp>
 #include <iostream>

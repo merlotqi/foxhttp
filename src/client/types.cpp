@@ -123,7 +123,7 @@ const http::request<http::string_body> &request::native() const { return request
 http::request<http::string_body> &request::native() { return request_; }
 
 void request::parse_url(const std::string &url, std::string &protocol, std::string &host, std::string &port,
-                         std::string &target) {
+                        std::string &target) {
   parse_url_impl(url, protocol, host, port, target);
 }
 

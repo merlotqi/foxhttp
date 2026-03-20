@@ -1,7 +1,3 @@
-/**
- * foxhttp - Advanced Authentication Middleware
- */
-
 #pragma once
 
 #include <boost/beast/http.hpp>
@@ -166,7 +162,7 @@ class auth_middleware : public middleware {
     int val = 0, valb = -8;
     for (unsigned char c : in) {
       if (c == '=') break;
-      int t = (c < 256) ? T[c] : -1;
+      int t = (c <= UCHAR_MAX) ? T[c] : -1;
       if (t == -1) continue;
       val = (val << 6) + t;
       valb += 6;

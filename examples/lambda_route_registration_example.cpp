@@ -1,7 +1,3 @@
-/**
- * foxhttp - static + dynamic route registration with lambdas (same handler signature)
- */
-
 #include <foxhttp/foxhttp.hpp>
 #include <iostream>
 

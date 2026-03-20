@@ -1,16 +1,8 @@
-/**
- * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Merlot.Qi
- * Licensed under GPLv3: https://www.gnu.org/licenses/
- *
- */
-
 #include <foxhttp/middleware/middleware.hpp>
 #include <foxhttp/middleware/middleware_chain.hpp>
 #include <foxhttp/server/io_context_pool.hpp>
 #include <foxhttp/server/server.hpp>
 #include <foxhttp/server/session.hpp>
-
 
 namespace foxhttp {
 

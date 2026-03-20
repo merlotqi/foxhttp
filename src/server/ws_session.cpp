@@ -1,11 +1,3 @@
-/**
- * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Merlot.Qi
- * Licensed under GPLv3: https://www.gnu.org/licenses/
- *
- * middleware utilities and helper classes
- */
-
 #include <foxhttp/server/ws_session.hpp>
 
 namespace beast = boost::beast;

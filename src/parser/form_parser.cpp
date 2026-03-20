@@ -1,11 +1,3 @@
-/**
- * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Merlot.Qi
- * Licensed under GPLv3: https://www.gnu.org/licenses/
- *
- */
-
-#include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include <cctype>
 #include <foxhttp/parser/details/form_parser_core.hpp>

@@ -2,7 +2,7 @@
 
 C++17 HTTP server library built on **Boost.Beast / Boost.Asio**: middleware pipeline, routing helpers, parsers (JSON, form, multipart), optional **TLS** and **WebSocket**, YAML-based config helpers.
 
-Licensed under **GPLv3** (see file headers).
+Licensed under **GPLv3**.
 
 ## Dependencies
 

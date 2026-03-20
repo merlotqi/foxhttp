@@ -1,11 +1,3 @@
-/**
- * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Merlot.Qi
- * Licensed under GPLv3: https://www.gnu.org/licenses/
- *
- * Timer Manager Implementation
- */
-
 #include <algorithm>
 #include <foxhttp/server/timer_manager.hpp>
 #include <iostream>
@@ -344,7 +336,7 @@ void timer_manager::initialize() {
 }
 
 timer_id_t timer_manager::schedule_impl(time_point_t when, duration_t interval, timer_callback_t callback,
-                                         bool is_repeating, timer_priority priority) {
+                                        bool is_repeating, timer_priority priority) {
   if (!is_running_.load()) {
     throw std::runtime_error("Timer manager is not running");
   }

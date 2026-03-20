@@ -1,12 +1,3 @@
-/**
- * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Merlot.Qi
- * Licensed under GPLv3: https://www.gnu.org/licenses/
- *
- * SPDLog middleware Example
- * Demonstrates the enhanced logging capabilities with spdlog
- */
-
 #include <chrono>
 #include <foxhttp/foxhttp.hpp>
 #include <iostream>

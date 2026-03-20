@@ -1,10 +1,3 @@
-/**
- * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Merlot.Qi
- * Licensed under GPLv3: https://www.gnu.org/licenses/
- *
- */
-
 #pragma once
 
 #include <spdlog/spdlog.h>
@@ -55,13 +48,13 @@ class logger_middleware : public priority_middleware<middleware_priority::high> 
   std::string generate_request_id();
   void log_request_start(const request_context &ctx, const std::string &request_id);
   void log_request_complete(const request_context &ctx, const http::response<http::string_body> &res,
-                             const std::string &request_id, std::chrono::microseconds duration, bool async);
+                            const std::string &request_id, std::chrono::microseconds duration, bool async);
   void log_request_error(const request_context &ctx, const http::response<http::string_body> &res,
-                          const std::string &request_id, std::chrono::microseconds duration, const std::string &error);
+                         const std::string &request_id, std::chrono::microseconds duration, const std::string &error);
   void log_request_timeout(const request_context &ctx, const http::response<http::string_body> &res,
-                            const std::string &request_id, std::chrono::microseconds duration);
+                           const std::string &request_id, std::chrono::microseconds duration);
   void log_request_stopped(const request_context &ctx, const http::response<http::string_body> &res,
-                            const std::string &request_id, std::chrono::microseconds duration);
+                           const std::string &request_id, std::chrono::microseconds duration);
   std::string get_apache_timestamp();
 
  private:

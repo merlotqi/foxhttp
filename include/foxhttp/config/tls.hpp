@@ -1,7 +1,3 @@
-/**
- * foxhttp - TLS config helpers
- */
-
 #pragma once
 
 #include <boost/asio/ssl.hpp>

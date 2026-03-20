@@ -1,24 +1,13 @@
-/**
- * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Merlot.Qi
- * Licensed under GPLv3: https://www.gnu.org/licenses/
- *
- */
-
 #pragma once
 
-#include <array>
 #include <atomic>
 #include <boost/asio.hpp>
 #include <chrono>
 #include <foxhttp/config/configs.hpp>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <queue>
-#include <shared_mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -121,7 +110,7 @@ class timer_manager {
  private:
   void initialize();
   timer_id_t schedule_impl(time_point_t when, duration_t interval, timer_callback_t callback, bool is_repeating,
-                            timer_priority priority);
+                           timer_priority priority);
   void start_cleanup_timer();
   void start_statistics_timer();
 

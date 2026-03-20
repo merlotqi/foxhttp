@@ -1,16 +1,8 @@
-/**
- * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Merlot.Qi
- * Licensed under GPLv3: https://www.gnu.org/licenses/
- *
- */
-
 #include <spdlog/sinks/daily_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #include <foxhttp/middleware/basic/logger_middleware.hpp>
-
 
 namespace foxhttp {
 
@@ -175,8 +167,8 @@ void logger_middleware::log_request_start(const request_context &ctx, const std:
 }
 
 void logger_middleware::log_request_complete(const request_context &ctx, const http::response<http::string_body> &res,
-                                              const std::string &request_id, std::chrono::microseconds duration,
-                                              bool async) {
+                                             const std::string &request_id, std::chrono::microseconds duration,
+                                             bool async) {
   if (!logger_) return;
 
   auto status_code = static_cast<int>(res.result());
@@ -213,8 +205,8 @@ void logger_middleware::log_request_complete(const request_context &ctx, const h
 }
 
 void logger_middleware::log_request_error(const request_context &ctx, const http::response<http::string_body> &res,
-                                           const std::string &request_id, std::chrono::microseconds duration,
-                                           const std::string &error) {
+                                          const std::string &request_id, std::chrono::microseconds duration,
+                                          const std::string &error) {
   if (!logger_) return;
 
   auto status_code = static_cast<int>(res.result());
@@ -250,7 +242,7 @@ void logger_middleware::log_request_error(const request_context &ctx, const http
 }
 
 void logger_middleware::log_request_timeout(const request_context &ctx, const http::response<http::string_body> &res,
-                                             const std::string &request_id, std::chrono::microseconds duration) {
+                                            const std::string &request_id, std::chrono::microseconds duration) {
   if (!logger_) return;
 
   auto duration_ms = duration.count() / 1000.0;
@@ -259,7 +251,7 @@ void logger_middleware::log_request_timeout(const request_context &ctx, const ht
 }
 
 void logger_middleware::log_request_stopped(const request_context &ctx, const http::response<http::string_body> &res,
-                                             const std::string &request_id, std::chrono::microseconds duration) {
+                                            const std::string &request_id, std::chrono::microseconds duration) {
   if (!logger_) return;
 
   auto duration_ms = duration.count() / 1000.0;

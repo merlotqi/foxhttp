@@ -1,7 +1,3 @@
-/**
- * foxhttp - Security Headers Middleware
- */
-
 #pragma once
 
 #include <boost/beast/http.hpp>

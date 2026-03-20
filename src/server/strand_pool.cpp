@@ -1,11 +1,3 @@
-/**
- * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Merlot.Qi
- * Licensed under GPLv3: https://www.gnu.org/licenses/
- *
- * Advanced Strand Pool Implementation
- */
-
 #include <algorithm>
 #include <foxhttp/server/strand_pool.hpp>
 #include <iostream>

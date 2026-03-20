@@ -1,11 +1,3 @@
-/**
- * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Merlot.Qi
- * Licensed under GPLv3: https://www.gnu.org/licenses/
- *
- * Advanced example usage of multipart_parser with streaming support
- */
-
 #include <boost/beast/http.hpp>
 #include <chrono>
 #include <foxhttp/foxhttp.hpp>

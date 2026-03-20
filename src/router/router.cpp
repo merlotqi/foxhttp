@@ -1,13 +1,5 @@
-/**
- * foxhttp - lightweight async HTTP server (Boost.Asio)
- * Copyright (C) 2025 Merlot.Qi
- * Licensed under GPLv3: https://www.gnu.org/licenses/
- *
- */
-
-#include <foxhttp/router/router.hpp>
-// include route table
 #include <foxhttp/router/route_table.hpp>
+#include <foxhttp/router/router.hpp>
 
 namespace foxhttp {
 

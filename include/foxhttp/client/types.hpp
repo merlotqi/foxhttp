@@ -72,7 +72,7 @@ class request {
   int timeout_ = 30;
 
   static void parse_url(const std::string &url, std::string &protocol, std::string &host, std::string &port,
-                         std::string &target);
+                        std::string &target);
 };
 
 }  // namespace foxhttp
