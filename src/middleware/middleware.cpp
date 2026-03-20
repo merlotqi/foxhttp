@@ -96,41 +96,41 @@ std::chrono::milliseconds conditional_middleware::timeout() const { return mw_->
 middleware_stats &conditional_middleware::stats() { return mw_->stats(); }
 const middleware_stats &conditional_middleware::stats() const { return mw_->stats(); }
 
-/* --------------------------- midddleware_builder -------------------------- */
+/* ----------------------------- middleware_builder ------------------------- */
 
-midddleware_builder::midddleware_builder() {}
+middleware_builder::middleware_builder() {}
 
-midddleware_builder &midddleware_builder::set_name(const std::string &name) {
+middleware_builder &middleware_builder::set_name(const std::string &name) {
   name_ = name;
   return *this;
 }
 
-midddleware_builder &midddleware_builder::set_priority(middleware_priority priority) {
+middleware_builder &middleware_builder::set_priority(middleware_priority priority) {
   priority_ = priority;
   return *this;
 }
 
-midddleware_builder &midddleware_builder::set_timeout(std::chrono::milliseconds timeout) {
+middleware_builder &middleware_builder::set_timeout(std::chrono::milliseconds timeout) {
   timeout_ = timeout;
   return *this;
 }
 
-midddleware_builder &midddleware_builder::set_sync_func(sync_func func) {
+middleware_builder &middleware_builder::set_sync_func(sync_func func) {
   sync_func_ = std::move(func);
   return *this;
 }
 
-midddleware_builder &midddleware_builder::set_async_func(async_func func) {
+middleware_builder &middleware_builder::set_async_func(async_func func) {
   async_func_ = std::move(func);
   return *this;
 }
 
-midddleware_builder &midddleware_builder::set_condition(condition_func condition) {
+middleware_builder &middleware_builder::set_condition(condition_func condition) {
   condition_ = std::move(condition);
   return *this;
 }
 
-std::shared_ptr<middleware> midddleware_builder::build() {
+std::shared_ptr<middleware> middleware_builder::build() {
   return std::make_shared<functional_middleware>(name_, sync_func_, async_func_, condition_, priority_, timeout_);
 }
 

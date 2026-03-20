@@ -92,22 +92,22 @@ class conditional_middleware : public middleware {
   condition_func condition_;
 };
 
-class midddleware_builder {
+class middleware_builder {
  public:
   using sync_func = std::function<void(request_context &, http::response<http::string_body> &, std::function<void()>)>;
   using async_func = std::function<void(request_context &, http::response<http::string_body> &, std::function<void()>,
                                         async_middleware_callback)>;
   using condition_func = std::function<bool(request_context &)>;
 
-  midddleware_builder();
-  ~midddleware_builder() = default;
+  middleware_builder();
+  ~middleware_builder() = default;
 
-  midddleware_builder &set_name(const std::string &name);
-  midddleware_builder &set_priority(middleware_priority priority);
-  midddleware_builder &set_timeout(std::chrono::milliseconds timeout);
-  midddleware_builder &set_sync_func(sync_func func);
-  midddleware_builder &set_async_func(async_func func);
-  midddleware_builder &set_condition(condition_func condition);
+  middleware_builder &set_name(const std::string &name);
+  middleware_builder &set_priority(middleware_priority priority);
+  middleware_builder &set_timeout(std::chrono::milliseconds timeout);
+  middleware_builder &set_sync_func(sync_func func);
+  middleware_builder &set_async_func(async_func func);
+  middleware_builder &set_condition(condition_func condition);
   std::shared_ptr<middleware> build();
 
  private:

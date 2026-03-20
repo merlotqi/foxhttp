@@ -34,6 +34,10 @@ endif()
 
 add_subdirectory(src)
 
+if(FOXHTTP_BUILD_EXAMPLES)
+  add_subdirectory(examples)
+endif()
+
 # Install targets
 install(TARGETS foxhttplib
     EXPORT foxhttplib-targets

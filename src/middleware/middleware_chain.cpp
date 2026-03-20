@@ -8,8 +8,8 @@
 #include <algorithm>
 #include <chrono>
 #include <foxhttp/middleware/middleware_chain.hpp>
+#include <spdlog/spdlog.h>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -284,14 +284,13 @@ void middleware_chain::reset_statistics() {
 
 void middleware_chain::print_statistics() const {
   auto stats = get_statistics();
-  std::cout << "=== middleware Statistics ===" << std::endl;
+  spdlog::info("=== middleware statistics ===");
   for (const auto &[name, stat] : stats) {
-    std::cout << "middleware: " << name << std::endl;
-    std::cout << "  Executions: " << stat.execution_count.load() << std::endl;
-    std::cout << "  Total Time: " << stat.total_execution_time.load().count() << " μs" << std::endl;
-    std::cout << "  Errors: " << stat.error_count.load() << std::endl;
-    std::cout << "  Timeouts: " << stat.timeout_count.load() << std::endl;
-    std::cout << std::endl;
+    spdlog::info("middleware: {}", name);
+    spdlog::info("  executions: {}", stat.execution_count.load());
+    spdlog::info("  total time (μs): {}", stat.total_execution_time.load().count());
+    spdlog::info("  errors: {}", stat.error_count.load());
+    spdlog::info("  timeouts: {}", stat.timeout_count.load());
   }
 }
 

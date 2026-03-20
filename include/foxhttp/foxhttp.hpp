@@ -29,6 +29,7 @@
 #include <foxhttp/middleware/advanced/auth_middleware.hpp>
 #include <foxhttp/middleware/advanced/compression_middleware.hpp>
 #include <foxhttp/middleware/advanced/rate_limit_middleware.hpp>
+#include <foxhttp/middleware/advanced/security_headers_middleware.hpp>
 
 // Parser components
 #include <foxhttp/parser/form_parser.hpp>
