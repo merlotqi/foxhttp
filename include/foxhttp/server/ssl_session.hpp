@@ -41,6 +41,7 @@ class ssl_session : public session_base, public std::enable_shared_from_this<ssl
   boost::beast::http::request<boost::beast::http::string_body> req_;
   boost::beast::http::response<boost::beast::http::string_body> res_;
   std::shared_ptr<middleware_chain> global_chain_;
+  std::size_t requests_served_{0};
 };
 
 }  // namespace foxhttp

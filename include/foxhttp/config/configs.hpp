@@ -102,6 +102,11 @@ struct session_limits {
 
   // Rate limiting (optional minimal expected progress)
   std::size_t min_read_progress_bytes{1024};  // bytes required per body window
+
+  /// When true, honor HTTP keep-alive (Connection / HTTP version) after each response.
+  bool enable_keep_alive{true};
+  /// Close after this many completed responses on one connection; 0 means no limit.
+  std::size_t max_requests_per_connection{1000};
 };
 
 struct websocket_limits {

@@ -19,15 +19,20 @@ io_context_pool::io_context_pool(std::size_t pool_size) : next_io_context_(0), p
   }
 }
 
-void io_context_pool::start() {
+void io_context_pool::run_blocking() {
   for (std::size_t i = 0; i < pool_size_; ++i) {
     threads_.emplace_back([io = io_contexts_[i]] { io->run(); });
   }
 
   for (auto &t : threads_) {
-    if (t.joinable()) t.join();
+    if (t.joinable()) {
+      t.join();
+    }
   }
+  threads_.clear();
 }
+
+void io_context_pool::start() { run_blocking(); }
 
 boost::asio::io_context &io_context_pool::get_io_context() {
   auto index = next_io_context_.fetch_add(1, std::memory_order_relaxed) % pool_size_;

@@ -19,6 +19,10 @@ class io_context_pool {
  public:
   explicit io_context_pool(std::size_t pool_size = std::thread::hardware_concurrency());
   ~io_context_pool();
+
+  /// Runs worker threads and blocks the calling thread until stop() is invoked elsewhere.
+  void run_blocking();
+  /// Same as run_blocking(); kept for existing call sites.
   void start();
 
   boost::asio::io_context &get_io_context();

@@ -29,11 +29,9 @@ void ssl_server::use(std::shared_ptr<middleware_chain> chain) { global_chain_ = 
 std::shared_ptr<middleware_chain> ssl_server::global_chain() const { return global_chain_; }
 
 void ssl_server::_do_accept() {
-  auto &io = io_pool_.get_io_context();
-  auto socket = tcp::socket(io);
-  acceptor_.async_accept(socket, [this, s = std::move(socket)](const boost::system::error_code &ec) mutable {
+  acceptor_.async_accept([this](boost::system::error_code ec, tcp::socket socket) {
     if (!ec) {
-      auto stream = boost::asio::ssl::stream<tcp::socket>(std::move(s), ssl_ctx_);
+      auto stream = boost::asio::ssl::stream<tcp::socket>(std::move(socket), ssl_ctx_);
       std::make_shared<ssl_session>(std::move(stream), global_chain_)->start();
     }
     _do_accept();

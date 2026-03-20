@@ -6,7 +6,9 @@
  * middleware utilities and helper classes
  */
 
+#include <boost/asio/error.hpp>
 #include <boost/asio/io_context.hpp>
+#include <boost/beast/http/error.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <foxhttp/middleware/middleware_chain.hpp>
@@ -15,6 +17,7 @@
 #if USING_TLS
 #include <foxhttp/server/wss_session.hpp>
 #endif
+#include <spdlog/spdlog.h>
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -35,11 +38,15 @@ void ssl_session::start() {
 void ssl_session::_handshake() {
   auto self = shared_from_this();
   stream_.async_handshake(boost::asio::ssl::stream_base::server, [self](boost::system::error_code ec) {
-    if (!ec) {
-      self->on_activity();
-      self->arm_header_timer();
-      self->_read_request();
+    if (ec) {
+      if (ec != boost::asio::error::operation_aborted) {
+        spdlog::warn("foxhttp ssl_session handshake error: {}", ec.message());
+      }
+      return;
     }
+    self->on_activity();
+    self->arm_header_timer();
+    self->_read_request();
   });
 }
 
@@ -52,6 +59,9 @@ void ssl_session::_read_request() {
 
 void ssl_session::_handle_read(beast::error_code ec, std::size_t) {
   if (ec) {
+    if (ec != http::error::end_of_stream && ec != boost::asio::error::operation_aborted) {
+      spdlog::warn("foxhttp ssl_session read error: {}", ec.message());
+    }
     return;
   }
   cancel_header_timer();
@@ -80,9 +90,33 @@ void ssl_session::_process_request() {
 void ssl_session::_write_response() {
   auto self = shared_from_this();
   res_.prepare_payload();
-  http::async_write(stream_, res_, [self](beast::error_code, std::size_t) {
-    beast::error_code ec;
-    self->stream_.shutdown(ec);
+  http::async_write(stream_, res_, [self](beast::error_code ec, std::size_t) {
+    if (ec) {
+      if (ec != boost::asio::error::operation_aborted) {
+        spdlog::warn("foxhttp ssl_session write error: {}", ec.message());
+      }
+      beast::error_code sec;
+      self->stream_.lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, sec);
+      return;
+    }
+
+    ++self->requests_served_;
+    const auto &lim = self->limits();
+    const bool keep_open =
+        lim.enable_keep_alive && self->res_.keep_alive() &&
+        (lim.max_requests_per_connection == 0 || self->requests_served_ < lim.max_requests_per_connection);
+    if (!keep_open) {
+      beast::error_code sec;
+      self->stream_.lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, sec);
+      return;
+    }
+
+    const unsigned req_ver = self->req_.version();
+    self->req_ = {};
+    self->res_ = http::response<http::string_body>{http::status::ok, req_ver};
+    self->on_activity();
+    self->arm_header_timer();
+    self->_read_request();
   });
 }
 

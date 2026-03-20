@@ -5,8 +5,6 @@
  *
  */
 
-#include <boost/asio/spawn.hpp>
-#include <boost/system/detail/error_code.hpp>
 #include <foxhttp/middleware/middleware.hpp>
 #include <foxhttp/middleware/middleware_chain.hpp>
 #include <foxhttp/server/io_context_pool.hpp>
@@ -29,8 +27,7 @@ void server::use(std::shared_ptr<middleware> mw) { global_chain_->use(std::move(
 std::shared_ptr<middleware_chain> server::global_chain() const { return global_chain_; }
 
 void server::_do_accept() {
-  auto &io_context = io_pool_.get_io_context();
-  acceptor_.async_accept(io_context, [this](beast::error_code ec, tcp::socket socket) {
+  acceptor_.async_accept([this](boost::system::error_code ec, tcp::socket socket) {
     if (!ec) {
       std::make_shared<session>(std::move(socket), global_chain_)->start();
     }

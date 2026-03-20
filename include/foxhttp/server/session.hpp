@@ -43,6 +43,7 @@ class session : public session_base, public std::enable_shared_from_this<session
   http::request<http::string_body> req_;
   http::response<http::string_body> res_;
   std::shared_ptr<middleware_chain> global_chain_;
+  std::size_t requests_served_{0};
 };
 
 }  // namespace foxhttp
