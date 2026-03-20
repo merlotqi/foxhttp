@@ -28,6 +28,7 @@ class server {
   void _do_accept();
 
   io_context_pool &io_pool_;
+  boost::asio::io_context *listen_io_;
   tcp::acceptor acceptor_;
   std::shared_ptr<middleware_chain> global_chain_;
 };

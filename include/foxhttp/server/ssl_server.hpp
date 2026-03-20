@@ -31,6 +31,7 @@ class ssl_server {
 
  private:
   io_context_pool &io_pool_;
+  boost::asio::io_context *listen_io_;
   boost::asio::ip::tcp::acceptor acceptor_;
   boost::asio::ssl::context &ssl_ctx_;
   std::shared_ptr<middleware_chain> global_chain_;

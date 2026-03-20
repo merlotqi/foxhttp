@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y \
     libboost-all-dev \
     libspdlog-dev \
     nlohmann-json3-dev \
-    libgflags-dev \
     libyaml-cpp-dev \
     && rm -rf /var/lib/apt/lists/*
 

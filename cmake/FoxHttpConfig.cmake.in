@@ -3,7 +3,6 @@ find_dependency(Boost REQUIRED COMPONENTS system json iostreams)
 find_dependency(ZLIB REQUIRED)
 find_dependency(spdlog REQUIRED)
 find_dependency(nlohmann_json CONFIG REQUIRED)
-find_dependency(gflags REQUIRED)
 find_dependency(yaml-cpp CONFIG REQUIRED)
 
 if(FOXHTTP_ENABLE_TLS)

@@ -17,9 +17,10 @@ namespace foxhttp {
 
 ssl_server::ssl_server(io_context_pool &io_pool, unsigned short port, boost::asio::ssl::context &ssl_ctx)
     : io_pool_(io_pool),
-      acceptor_(io_pool.get_io_context(), tcp::endpoint(tcp::v4(), port)),
+      listen_io_(&io_pool.get_io_context()),
+      acceptor_(*listen_io_, tcp::endpoint(tcp::v4(), port)),
       ssl_ctx_(ssl_ctx),
-      global_chain_(std::make_shared<middleware_chain>(io_pool.get_io_context())) {
+      global_chain_(std::make_shared<middleware_chain>(*listen_io_)) {
   _do_accept();
 }
 

@@ -18,8 +18,9 @@ namespace foxhttp {
 
 server::server(io_context_pool &io_pool, unsigned short port)
     : io_pool_(io_pool),
-      acceptor_(io_pool_.get_io_context(), {tcp::v4(), port}),
-      global_chain_(std::make_shared<middleware_chain>()) {
+      listen_io_(&io_pool_.get_io_context()),
+      acceptor_(*listen_io_, {tcp::v4(), port}),
+      global_chain_(std::make_shared<middleware_chain>(*listen_io_)) {
   _do_accept();
 }
 

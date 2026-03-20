@@ -19,6 +19,22 @@
 
 namespace foxhttp {
 
+namespace detail {
+
+// Per-request execution state (shared by async continuations); middleware list is snapshotted separately.
+struct pipeline_execution_state {
+  std::mutex mu;
+  std::size_t current_index = 0;
+  std::atomic<bool> timed_out{false};
+  std::atomic<bool> cancelled{false};
+  std::atomic<bool> finished{false};
+  std::chrono::steady_clock::time_point execution_start{};
+  std::shared_ptr<boost::asio::steady_timer> global_timeout_timer;
+  std::shared_ptr<boost::asio::steady_timer> middleware_timeout_timer;
+};
+
+}  // namespace detail
+
 class middleware_chain {
  public:
   using error_handler =
@@ -62,27 +78,53 @@ class middleware_chain {
  private:
   struct middleware_info {
     std::shared_ptr<middleware> mw_;
-    std::chrono::steady_clock::time_point execution_start;
-    std::shared_ptr<boost::asio::steady_timer> timeout_timer;
   };
 
-  void _execute_next(request_context &ctx, http::response<http::string_body> &res);
-  void _execute_next_async(request_context &ctx, http::response<http::string_body> &res, completion_callback callback);
-  void _handle_error(request_context &ctx, http::response<http::string_body> &res, const std::exception &e,
-                     completion_callback callback = nullptr);
-  void _handle_timeout(request_context &ctx, http::response<http::string_body> &res,
-                       completion_callback callback = nullptr);
-  void _handle_middleware_result(request_context &ctx, http::response<http::string_body> &res, middleware_result result,
-                                 const std::string &error_message, completion_callback callback);
+  void _register_run(std::shared_ptr<detail::pipeline_execution_state> state);
+  void _unregister_run(detail::pipeline_execution_state *raw);
+
+  bool _try_finish_run(const std::shared_ptr<detail::pipeline_execution_state> &state);
+  void _complete_async_run(const std::shared_ptr<detail::pipeline_execution_state> &state,
+                           completion_callback callback, middleware_result result, const std::string &message);
+
+  void _execute_next_sync(const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
+                          const std::shared_ptr<detail::pipeline_execution_state> &state, request_context &ctx,
+                          http::response<http::string_body> &res, const error_handler &eh, const timeout_handler &th,
+                          std::chrono::milliseconds global_timeout, bool statistics_enabled);
+
+  void _execute_next_async_step(const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
+                                const std::shared_ptr<detail::pipeline_execution_state> &state, request_context &ctx,
+                                http::response<http::string_body> &res, completion_callback callback,
+                                const error_handler &eh, const timeout_handler &th,
+                                std::chrono::milliseconds global_timeout, bool statistics_enabled);
+
+  void _handle_error_run(request_context &ctx, http::response<http::string_body> &res, const std::exception &e,
+                         const std::shared_ptr<detail::pipeline_execution_state> &state, completion_callback callback,
+                         const error_handler &eh);
+
+  void _handle_timeout_run(request_context &ctx, http::response<http::string_body> &res,
+                           const std::shared_ptr<detail::pipeline_execution_state> &state, completion_callback callback,
+                           const timeout_handler &th);
+
+  void _handle_middleware_result_run(request_context &ctx, http::response<http::string_body> &res,
+                                     middleware_result result, const std::string &error_message,
+                                     const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
+                                     const std::shared_ptr<detail::pipeline_execution_state> &state,
+                                     completion_callback callback, const error_handler &eh, const timeout_handler &th,
+                                     std::chrono::milliseconds global_timeout, bool statistics_enabled);
 
   void _sort_middlewares_by_priority();
   void _setup_middleware_timeout(std::shared_ptr<middleware> mw, request_context &ctx,
-                                 http::response<http::string_body> &res, completion_callback callback);
+                                 http::response<http::string_body> &res, completion_callback callback,
+                                 const std::shared_ptr<detail::pipeline_execution_state> &state,
+                                 const timeout_handler &th, bool statistics_enabled);
 
  private:
-  mutable std::mutex mutex_;
+  mutable std::mutex config_mutex_;
   std::vector<middleware_info> mws_;
-  std::size_t current_index_ = 0;
+  mutable std::mutex runs_mutex_;
+  std::vector<std::shared_ptr<detail::pipeline_execution_state>> active_runs_;
+
   bool statistics_enabled_ = true;
   bool auto_sort_by_priority_ = true;
 
@@ -90,17 +132,10 @@ class middleware_chain {
   timeout_handler timeout_handler_;
 
   std::chrono::milliseconds global_timeout_{0};
-  std::chrono::steady_clock::time_point execution_start_;
 
-  std::atomic<bool> timed_out_{false};
-  std::atomic<bool> cancelled_{false};
   std::atomic<bool> paused_{false};
-  std::atomic<bool> running_{false};
 
   boost::asio::io_context *io_context_ = nullptr;
-  std::shared_ptr<boost::asio::steady_timer> global_timeout_timer_;
-
-  std::weak_ptr<middleware_info> current_middleware_;
 };
 
 }  // namespace foxhttp
