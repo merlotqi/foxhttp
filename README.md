@@ -1,6 +1,6 @@
 # FoxHttp
 
-C++17 HTTP server library built on **Boost.Beast / Boost.Asio**: middleware pipeline, routing helpers, parsers (JSON, form, multipart), optional **TLS** and **WebSocket**, YAML-based config helpers.
+**C++20** HTTP server library built on **Boost.Beast / Boost.Asio** (accept/session I/O uses **Asio coroutines**): middleware pipeline, routing helpers, parsers (JSON, form, multipart), optional **TLS** and **WebSocket**, YAML-based config helpers.
 
 Licensed under **GPLv3**.
 
@@ -8,7 +8,7 @@ Licensed under **GPLv3**.
 
 [![CI](https://github.com/merlotqi/foxhttp/actions/workflows/ci.yml/badge.svg)](https://github.com/merlotqi/foxhttp/actions/workflows/ci.yml)
 
-- **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): Ubuntu 22.04, CMake **Release** build with tests, examples, and benchmarks; full `ctest`.
+- **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): Ubuntu 24.04, CMake **Release** build with tests, examples, and benchmarks; full `ctest`.
 - **Docker** ([`.github/workflows/docker.yml`](.github/workflows/docker.yml)): builds the `Dockerfile` when it changes (PR or push to `main`).
 - **CD** ([`.github/workflows/cd-docker.yml`](.github/workflows/cd-docker.yml)): on git tags matching `v*`, builds and pushes `ghcr.io/merlotqi/foxhttp:<tag>` and `:latest` (repository must allow **Packages** write for `GITHUB_TOKEN`).
 
@@ -47,10 +47,11 @@ cmake --install build --prefix /path/to/prefix
 From your project root (after `add_subdirectory(third_party/foxhttp)` or similar):
 
 ```cmake
+set(CMAKE_CXX_STANDARD 20)
 target_link_libraries(your_target PRIVATE foxhttp::foxhttplib)
 ```
 
-FoxHttp runs `find_package` for Boost, ZLIB, spdlog, nlohmann_json, yaml-cpp, and OpenSSL when TLS is on—your toolchain must expose them (e.g. `CMAKE_PREFIX_PATH`, vcpkg, or system packages). The library uses **`FOXHTTP_SOURCE_DIR`** for public include paths so it stays correct when embedded; avoid copying patterns that use **`CMAKE_SOURCE_DIR`** inside a reusable library (that always points at the **top-level** project, not FoxHttp).
+FoxHttp runs `find_package` for Boost, ZLIB, spdlog, nlohmann_json, yaml-cpp, and OpenSSL when TLS is on—your toolchain must expose them (e.g. `CMAKE_PREFIX_PATH`, vcpkg, or system packages). **Consumers must use C++20** (the library target propagates `cxx_std_20`). The library uses **`FOXHTTP_SOURCE_DIR`** for public include paths so it stays correct when embedded; avoid copying patterns that use **`CMAKE_SOURCE_DIR`** inside a reusable library (that always points at the **top-level** project, not FoxHttp).
 
 The generic option name `BUILD_WITH_BROTLI` can clash with another dependency; if that happens, set it before adding FoxHttp or fork the option name to `FOXHTTP_BUILD_WITH_BROTLI` in a future change.
 

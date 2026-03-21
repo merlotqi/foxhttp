@@ -1,7 +1,7 @@
 FoxHttp documentation
 =====================
 
-FoxHttp is a C++17 HTTP server library built on **Boost.Beast** and **Boost.Asio**. It provides a middleware pipeline, static and parameterized routing, body parsers (JSON, form, multipart, plain text), and optional **TLS**, **WebSocket**, compression, rate limiting, and security headers.
+FoxHttp is a **C++20** HTTP server library built on **Boost.Beast** and **Boost.Asio**. It provides a middleware pipeline, static and parameterized routing, body parsers (JSON, form, multipart, plain text), and optional **TLS**, **WebSocket**, compression, rate limiting, and security headers. The server stack uses **Asio coroutines** for accept/read/write (see :ref:`coroutines`).
 
 .. note::
 
@@ -14,6 +14,7 @@ FoxHttp is a C++17 HTTP server library built on **Boost.Beast** and **Boost.Asio
    intro
    build_install
    architecture
+   coroutines
    server_io
    routing
    middleware

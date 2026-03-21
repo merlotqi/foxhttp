@@ -1,8 +1,11 @@
 #include <spdlog/spdlog.h>
 
-#include <boost/asio/error.hpp>
-#include <boost/beast/http/error.hpp>
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/redirect_error.hpp>
+#include <boost/asio/use_awaitable.hpp>
 #include <boost/beast/websocket.hpp>
+#include <foxhttp/detail/await_middleware_async.hpp>
 #include <foxhttp/middleware/middleware_chain.hpp>
 #include <foxhttp/server/request_context.hpp>
 #include <foxhttp/server/session.hpp>
@@ -10,6 +13,7 @@
 
 namespace beast = boost::beast;
 namespace http = beast::http;
+namespace asio = boost::asio;
 
 namespace foxhttp {
 
@@ -20,96 +24,103 @@ session::session(tcp::socket socket, std::shared_ptr<middleware_chain> global_ch
 
 void session::start() {
   arm_idle_timer();
-  arm_header_timer();
-  read_request();
+  asio::co_spawn(
+      socket_.get_executor(), [self = shared_from_this()]() -> asio::awaitable<void> { co_await self->run(); },
+      asio::detached);
 }
 
-void session::read_request() {
-  auto self = shared_from_this();
-  http::async_read(socket_, buffer_, req_, [self](beast::error_code ec, std::size_t bytes_transferred) {
-    self->handle_read(ec, bytes_transferred);
-  });
-}
+asio::awaitable<void> session::run() {
+  try {
+    while (true) {
+      arm_header_timer();
+      read_abort_ = read_abort_reason::none;
 
-void session::handle_read(beast::error_code ec, size_t) {
-  if (ec) {
-    if (ec != http::error::end_of_stream && ec != boost::asio::error::operation_aborted) {
-      spdlog::warn("foxhttp session read error: {}", ec.message());
-    }
-    return;
-  }
-  cancel_header_timer();
-  on_activity();
-  process_request();
-}
-
-void session::process_request() {
-  auto self = shared_from_this();
-  request_context ctx(req_);
-  // WebSocket upgrade detection
-  bool is_ws = boost::beast::websocket::is_upgrade(req_);
-  if (is_ws) {
-    // Create WebSocket stream using beast::tcp_stream to satisfy teardown
-    boost::beast::tcp_stream ts(std::move(socket_));
-    boost::beast::websocket::stream<boost::beast::tcp_stream> ws(std::move(ts));
-    auto ws_sess = std::make_shared<ws_session>(std::move(ws));
-    // ws_session handles its own lifecycle
-    ws_sess->start_accept(req_);
-    return;
-  }
-  global_chain_->execute_async(ctx, res_, [self](middleware_result, const std::string &) { self->write_response(); });
-}
-
-void session::write_response() {
-  auto self = shared_from_this();
-  res_.prepare_payload();
-  http::async_write(socket_, res_, [self](beast::error_code ec, std::size_t) {
-    if (ec) {
-      if (ec != boost::asio::error::operation_aborted) {
-        spdlog::warn("foxhttp session write error: {}", ec.message());
+      beast::error_code ec;
+      co_await http::async_read(socket_, buffer_, req_, asio::redirect_error(asio::use_awaitable, ec));
+      if (ec) {
+        cancel_header_timer();
+        if (ec == asio::error::operation_aborted) {
+          const auto why = read_abort_.exchange(read_abort_reason::none);
+          if (why == read_abort_reason::header_timeout) {
+            res_ = http::response<http::string_body>{http::status::request_timeout, req_.version()};
+            res_.set(http::field::content_type, "text/plain");
+            res_.body() = "Header read timeout";
+            res_.prepare_payload();
+            co_await http::async_write(socket_, res_, asio::redirect_error(asio::use_awaitable, ec));
+          } else if (why == read_abort_reason::body_timeout) {
+            res_ = http::response<http::string_body>{http::status::request_timeout, req_.version()};
+            res_.set(http::field::content_type, "text/plain");
+            res_.body() = "Body read timeout";
+            res_.prepare_payload();
+            co_await http::async_write(socket_, res_, asio::redirect_error(asio::use_awaitable, ec));
+          }
+        } else if (ec != http::error::end_of_stream && ec != asio::error::operation_aborted) {
+          spdlog::warn("foxhttp session read error: {}", ec.message());
+        }
+        co_return;
       }
-      beast::error_code sec;
-      self->socket_.shutdown(tcp::socket::shutdown_both, sec);
-      return;
-    }
 
-    ++self->requests_served_;
-    const auto &lim = self->limits();
-    const bool keep_open =
-        lim.enable_keep_alive && self->res_.keep_alive() &&
-        (lim.max_requests_per_connection == 0 || self->requests_served_ < lim.max_requests_per_connection);
-    if (!keep_open) {
-      beast::error_code sec;
-      self->socket_.shutdown(tcp::socket::shutdown_both, sec);
-      return;
-    }
+      cancel_header_timer();
+      on_activity();
 
-    const unsigned req_ver = self->req_.version();
-    self->req_ = {};
-    self->res_ = http::response<http::string_body>{http::status::ok, req_ver};
-    self->on_activity();
-    self->arm_header_timer();
-    self->read_request();
-  });
+      if (beast::websocket::is_upgrade(req_)) {
+        beast::tcp_stream ts(std::move(socket_));
+        beast::websocket::stream<beast::tcp_stream> ws(std::move(ts));
+        auto ws_sess = std::make_shared<ws_session>(std::move(ws));
+        ws_sess->start_accept(std::move(req_));
+        co_return;
+      }
+
+      {
+        request_context ctx(req_);
+        co_await detail::await_middleware_chain_async(socket_.get_executor(), global_chain_, ctx, res_);
+      }
+
+      res_.prepare_payload();
+      co_await http::async_write(socket_, res_, asio::redirect_error(asio::use_awaitable, ec));
+      if (ec) {
+        if (ec != asio::error::operation_aborted) {
+          spdlog::warn("foxhttp session write error: {}", ec.message());
+        }
+        beast::error_code sec;
+        socket_.shutdown(tcp::socket::shutdown_both, sec);
+        co_return;
+      }
+
+      ++requests_served_;
+      const auto &lim = limits();
+      const bool keep_open =
+          lim.enable_keep_alive && res_.keep_alive() &&
+          (lim.max_requests_per_connection == 0 || requests_served_ < lim.max_requests_per_connection);
+      if (!keep_open) {
+        beast::error_code sec;
+        socket_.shutdown(tcp::socket::shutdown_both, sec);
+        co_return;
+      }
+
+      const unsigned req_ver = req_.version();
+      req_ = {};
+      res_ = http::response<http::string_body>{http::status::ok, req_ver};
+      on_activity();
+    }
+  } catch (const std::exception &e) {
+    spdlog::warn("foxhttp session coroutine: {}", e.what());
+  }
 }
 
 void session::on_timeout_idle() {
   beast::error_code ec;
-  socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+  socket_.shutdown(tcp::socket::shutdown_both, ec);
 }
 
 void session::on_timeout_header() {
-  res_.result(http::status::request_timeout);
-  res_.set(http::field::content_type, "text/plain");
-  res_.body() = "Header read timeout";
-  write_response();
+  read_abort_ = read_abort_reason::header_timeout;
+  beast::get_lowest_layer(socket_).cancel();
 }
 
 void session::on_timeout_body() {
-  res_.result(http::status::request_timeout);
-  res_.set(http::field::content_type, "text/plain");
-  res_.body() = "Body read timeout";
-  write_response();
+  read_abort_ = read_abort_reason::body_timeout;
+  beast::get_lowest_layer(socket_).cancel();
 }
 
 }  // namespace foxhttp

@@ -17,6 +17,7 @@ Binaries appear under `build/benchmark/` (one executable per `*.cpp`):
 | `json_parse_benchmark` | Small/medium/deep JSON payloads, `supports()` hot paths |
 | `middleware_chain_benchmark` | Empty `execute()`, pass-through depth (noop functional middlewares) |
 | `form_plaintext_benchmark` | `application/x-www-form-urlencoded` parse (field count), plaintext body |
+| `coroutine_throughput_benchmark` | `await_middleware_chain_async` hot loop; loopback **TCP** with real `session` (HTTP/1.0 cold vs HTTP/1.1 keep-alive). POSIX client; on Windows only the bridge microbench runs (TCP cases skipped). Use **Release** for meaningful RPS. |
 
 ## Run
 
@@ -43,3 +44,4 @@ cmake --build build --target foxhttp_run_benchmarks
 
 - Benchmark sources must **not** define `BENCHMARK_MAIN()` when linking `benchmark::benchmark_main`.
 - Router benchmarks clear `route_table` around each suite to avoid cross-case pollution.
+- Throughput-style cases (`coroutine_throughput_benchmark`) report **`items_per_second`** from Google Benchmark (processed items / CPU time). Prefer **`CMAKE_BUILD_TYPE=Release`** and a longer `--benchmark_min_time` (e.g. `0.5s`) when comparing runs.

@@ -6,13 +6,12 @@
 // Try: curl -s http://127.0.0.1:8083/static/index.html
 //      curl -s http://127.0.0.1:8083/api/ping
 
-#include <foxhttp/foxhttp.hpp>
-
-#include "detail/router_dispatch_middleware.hpp"
-
 #include <filesystem>
+#include <foxhttp/foxhttp.hpp>
 #include <iostream>
 #include <thread>
+
+#include "detail/router_dispatch_middleware.hpp"
 
 namespace http = boost::beast::http;
 
@@ -43,13 +42,13 @@ int main() {
           res.body() = "Example 04 — static files at /static/ (from examples/www). API: GET /api/ping\n";
         });
 
-    foxhttp::router::register_static_handler(
-        "/api/ping", [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
-          (void)ctx;
-          res.result(http::status::ok);
-          res.set(http::field::content_type, "application/json");
-          res.body() = R"({"ping":"pong"})";
-        });
+    foxhttp::router::register_static_handler("/api/ping",
+                                             [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+                                               (void)ctx;
+                                               res.result(http::status::ok);
+                                               res.set(http::field::content_type, "application/json");
+                                               res.body() = R"({"ping":"pong"})";
+                                             });
 
     std::cerr << "Listening on http://127.0.0.1:" << port << "/\n";
     std::cerr << "Static root: " << std::filesystem::weakly_canonical(www).string() << "\n";

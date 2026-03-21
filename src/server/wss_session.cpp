@@ -1,9 +1,14 @@
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/detached.hpp>
+#include <boost/asio/redirect_error.hpp>
+#include <boost/asio/use_awaitable.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <foxhttp/server/wss_session.hpp>
 
 namespace beast = boost::beast;
 namespace websocket = beast::websocket;
 namespace http = beast::http;
+namespace asio = boost::asio;
 
 namespace foxhttp {
 
@@ -15,30 +20,27 @@ wss_session::wss_session(websocket_t ws, const websocket_limits &wsl, const sess
 void wss_session::start_accept(http::request<http::string_body> req) {
   arm_idle_timer();
   ws_.set_option(websocket::stream_base::timeout::suggested(beast::role_type::server));
-  ws_.async_accept(req, [self = shared_from_this()](boost::system::error_code ec) {
-    static_cast<wss_session *>(self.get())->on_accept(ec);
-  });
+  asio::co_spawn(
+      ws_.get_executor(),
+      [self = shared_from_this(), req = std::move(req)]() mutable -> asio::awaitable<void> {
+        boost::system::error_code ec;
+        co_await self->ws_.async_accept(req, asio::redirect_error(asio::use_awaitable, ec));
+        if (ec) co_return;
+        co_await self->echo_loop();
+      },
+      asio::detached);
 }
 
-void wss_session::on_accept(boost::system::error_code ec) {
-  if (ec) return;
-  do_read();
-}
-
-void wss_session::do_read() {
-  ws_.async_read(buffer_, [self = shared_from_this()](boost::system::error_code ec, std::size_t bytes_transferred) {
-    static_cast<wss_session *>(self.get())->on_read(ec, bytes_transferred);
-  });
-}
-
-void wss_session::on_read(boost::system::error_code ec, std::size_t) {
-  if (ec) return;
-  ws_.text(ws_.got_text());
-  ws_.async_write(buffer_.data(), [self = shared_from_this()](boost::system::error_code, std::size_t) {
-    auto *s = static_cast<wss_session *>(self.get());
-    s->buffer_.consume(s->buffer_.size());
-    s->do_read();
-  });
+asio::awaitable<void> wss_session::echo_loop() {
+  while (true) {
+    boost::system::error_code ec;
+    co_await ws_.async_read(buffer_, asio::redirect_error(asio::use_awaitable, ec));
+    if (ec) co_return;
+    ws_.text(ws_.got_text());
+    co_await ws_.async_write(buffer_.data(), asio::redirect_error(asio::use_awaitable, ec));
+    if (ec) co_return;
+    buffer_.consume(buffer_.size());
+  }
 }
 
 void wss_session::on_timeout_idle() {

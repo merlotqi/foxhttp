@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/asio.hpp>
+#include <boost/asio/awaitable.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
 #include <memory>
@@ -19,6 +19,7 @@ class ssl_server {
 
  private:
   void do_accept();
+  boost::asio::awaitable<void> accept_loop();
 
  private:
   io_context_pool &io_pool_;

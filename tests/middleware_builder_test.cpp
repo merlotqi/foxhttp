@@ -1,10 +1,11 @@
+#include <gtest/gtest.h>
+
 #include <boost/asio/io_context.hpp>
 #include <boost/beast/http.hpp>
 #include <foxhttp/middleware/basic/functional_middleware.hpp>
 #include <foxhttp/middleware/middleware.hpp>
 #include <foxhttp/middleware/middleware_chain.hpp>
 #include <foxhttp/server/request_context.hpp>
-#include <gtest/gtest.h>
 
 namespace http = boost::beast::http;
 
@@ -13,11 +14,11 @@ TEST(MiddlewareBuilder, BuildRunsSyncHandler) {
   auto mw = foxhttp::middleware_builder()
                 .set_name("built")
                 .set_priority(foxhttp::middleware_priority::high)
-                .set_sync_func([&](foxhttp::request_context &, http::response<http::string_body> &,
-                                   std::function<void()> next) {
-                  state = 7;
-                  next();
-                })
+                .set_sync_func(
+                    [&](foxhttp::request_context &, http::response<http::string_body> &, std::function<void()> next) {
+                      state = 7;
+                      next();
+                    })
                 .build();
 
   EXPECT_EQ(mw->name(), "built");

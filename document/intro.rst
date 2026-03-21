@@ -9,7 +9,7 @@ What you get
 ------------
 
 * **I/O and threading**: ``io_context_pool`` runs worker ``io_context``\ s; ``run_blocking()`` (or ``start()``) blocks until ``stop()``.
-* **HTTP server**: ``server`` / ``ssl_server`` accept connections; each session runs the global middleware chain then dispatches to your routes.
+* **HTTP server**: ``server`` / ``ssl_server`` accept connections; each session runs the global middleware chain (via ``execute_async``, bridged from a **C++20 coroutine**) then dispatches to your routes.
 * **Middleware**: ordered pipeline with priorities, optional timeouts, sync and async completion callbacks.
 * **Routing**: ``router`` registers handlers on a process-wide ``route_table``; static paths and patterns such as ``/api/users/{id}``.
 * **Parsers**: pluggable parsers registered in ``parser_factory``; optional ``body_parser_middleware`` fills ``request_context`` from ``Content-Type``.

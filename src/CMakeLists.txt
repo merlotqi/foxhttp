@@ -3,7 +3,7 @@ file(GLOB_RECURSE _headers ${FOXHTTP_SOURCE_DIR}/include/*.hpp)
 
 add_library(foxhttplib STATIC ${_sources} ${_headers})
 add_library(foxhttp::foxhttplib ALIAS foxhttplib)
-
+target_compile_features(foxhttplib PUBLIC cxx_std_20)
 
 # Install headers
 install(DIRECTORY ${FOXHTTP_SOURCE_DIR}/include/foxhttp

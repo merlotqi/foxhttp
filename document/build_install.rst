@@ -7,7 +7,7 @@ Requirements
 ------------
 
 * **CMake** 3.16 or newer
-* **C++17** compiler
+* **C++20** compiler (coroutines / ``co_await``)
 * **Boost** (system, json, iostreams)
 * **ZLIB**
 * **spdlog**

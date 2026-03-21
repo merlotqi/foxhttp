@@ -1,7 +1,9 @@
+#include <gtest/gtest.h>
+
 #include <boost/beast/http.hpp>
 #include <foxhttp/server/request_context.hpp>
-#include <gtest/gtest.h>
 #include <unordered_map>
+
 
 namespace http = boost::beast::http;
 

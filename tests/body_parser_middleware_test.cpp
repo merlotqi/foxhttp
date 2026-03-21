@@ -1,10 +1,10 @@
+#include <gtest/gtest.h>
+
 #include <boost/beast/http.hpp>
 #include <foxhttp/middleware/basic/body_parser_middleware.hpp>
 #include <foxhttp/parser/form_parser.hpp>
 #include <foxhttp/parser/json_parser.hpp>
 #include <foxhttp/server/request_context.hpp>
-#include <gtest/gtest.h>
-
 #include <nlohmann/json.hpp>
 
 namespace http = boost::beast::http;

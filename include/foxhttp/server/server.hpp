@@ -1,7 +1,8 @@
 #pragma once
 
-#include <boost/asio.hpp>
+#include <boost/asio/awaitable.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <memory>
 
 using tcp = boost::asio::ip::tcp;
 
@@ -10,6 +11,7 @@ namespace foxhttp {
 class middleware;
 class io_context_pool;
 class middleware_chain;
+
 class server {
  public:
   server(io_context_pool &io_pool, unsigned short port);
@@ -19,6 +21,7 @@ class server {
 
  private:
   void do_accept();
+  boost::asio::awaitable<void> accept_loop();
 
   io_context_pool &io_pool_;
   boost::asio::io_context *listen_io_;

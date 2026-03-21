@@ -1,4 +1,5 @@
 #include <benchmark/benchmark.h>
+
 #include <boost/beast/http.hpp>
 #include <foxhttp/parser/json_parser.hpp>
 #include <nlohmann/json.hpp>

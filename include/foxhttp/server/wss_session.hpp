@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/asio/awaitable.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -19,9 +20,8 @@ class wss_session : public session_base, public std::enable_shared_from_this<wss
   void start_accept(boost::beast::http::request<boost::beast::http::string_body> req);
 
  private:
-  void on_accept(boost::system::error_code ec);
-  void do_read();
-  void on_read(boost::system::error_code ec, std::size_t bytes_transferred);
+  boost::asio::awaitable<void> echo_loop();
+
   void on_timeout_idle() override;
 
  private:

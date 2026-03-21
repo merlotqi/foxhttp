@@ -1,6 +1,7 @@
+#include <gtest/gtest.h>
+
 #include <boost/beast/http.hpp>
 #include <foxhttp/parser/json_parser.hpp>
-#include <gtest/gtest.h>
 
 namespace http = boost::beast::http;
 

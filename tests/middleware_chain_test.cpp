@@ -1,9 +1,11 @@
+#include <gtest/gtest.h>
+
 #include <boost/asio/io_context.hpp>
 #include <boost/beast/http.hpp>
 #include <foxhttp/middleware/basic/functional_middleware.hpp>
 #include <foxhttp/middleware/middleware_chain.hpp>
 #include <foxhttp/server/request_context.hpp>
-#include <gtest/gtest.h>
+
 
 namespace http = boost::beast::http;
 

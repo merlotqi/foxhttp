@@ -19,7 +19,7 @@ Executables are created under your build directory (e.g. `build/examples/01_hell
 
 ## Router dispatch
 
-HTTP sessions run the global middleware chain with `execute_async`. The last middleware should resolve `router::` handlers and fill the response. Shared helper: `examples/detail/router_dispatch_middleware.hpp` (namespace `foxhttp::examples`). It uses **`middleware_priority::highest`** so it runs **after** other middleware once the chain sorts by priority (ascending numeric order).
+HTTP sessions run the global middleware chain with `execute_async` (invoked from an internal **coroutine**; your middleware API is unchanged). The last middleware should resolve `router::` handlers and fill the response. Shared helper: `examples/detail/router_dispatch_middleware.hpp` (namespace `foxhttp::examples`). It uses **`middleware_priority::highest`** so it runs **after** other middleware once the chain sorts by priority (ascending numeric order).
 
 ## Middleware order
 
