@@ -1,4 +1,8 @@
-cmake_minimum_required(VERSION 3.14...3.24)
+cmake_minimum_required(VERSION 3.14)
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
+
 project(FoxHttp VERSION 0.1.0 LANGUAGES CXX)
 
 # Always this directory (FoxHttp root), never CMAKE_SOURCE_DIR — that is the top-level

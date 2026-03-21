@@ -12,7 +12,8 @@ concurrency:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-22.04
+    # Ubuntu 22.04 ships Boost 1.74 without a usable Boost.JSON CMake package; FoxHttp needs Boost ≥ 1.75 (Boost::json).
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 

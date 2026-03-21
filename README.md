@@ -14,7 +14,7 @@ Licensed under **GPLv3**.
 
 ## Dependencies
 
-- Boost (system, json, iostreams), OpenSSL (when `FOXHTTP_ENABLE_TLS=ON`), ZLIB, **spdlog**, **nlohmann_json**, **yaml-cpp**
+- **Boost ≥ 1.75** (components: system, **json**, iostreams — Boost.JSON is not in 1.74), OpenSSL (when `FOXHTTP_ENABLE_TLS=ON`), ZLIB, **spdlog**, **nlohmann_json**, **yaml-cpp**
 
 ## Build
 
