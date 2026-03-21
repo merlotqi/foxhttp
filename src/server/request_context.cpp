@@ -148,4 +148,9 @@ bool request_context::has(const std::string &key) const {
   return items_.find(key) != items_.end();
 }
 
+template void request_context::set<std::string>(const std::string &, std::string);
+template std::string request_context::get<std::string>(const std::string &, const std::string &) const;
+template void request_context::set_parsed_body<std::string>(std::string);
+template std::string request_context::parsed_body<std::string>() const;
+
 }  // namespace foxhttp

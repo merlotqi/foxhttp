@@ -1,12 +1,12 @@
 file(GLOB_RECURSE _sources ${CMAKE_CURRENT_LIST_DIR}/*.cpp CONFIGURE_DEPEND)
-file(GLOB_RECURSE _headers ${PROJECT_SOURCE_DIR}/include/*.hpp)
+file(GLOB_RECURSE _headers ${FOXHTTP_SOURCE_DIR}/include/*.hpp)
 
 add_library(foxhttplib STATIC ${_sources} ${_headers})
 add_library(foxhttp::foxhttplib ALIAS foxhttplib)
 
 
 # Install headers
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/foxhttp
+install(DIRECTORY ${FOXHTTP_SOURCE_DIR}/include/foxhttp
     DESTINATION include
     FILES_MATCHING PATTERN "*.hpp"
 )
@@ -14,7 +14,7 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/foxhttp
 # Set include directories
 target_include_directories(foxhttplib
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${FOXHTTP_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
     INTERFACE
         $<INSTALL_INTERFACE:include>

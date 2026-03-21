@@ -1,9 +1,13 @@
 #pragma once
 
+#include <filesystem>
+#include <foxhttp/middleware/basic/body_parser_middleware.hpp>
 #include <foxhttp/middleware/basic/cors_middleware.hpp>
 #include <foxhttp/middleware/basic/logger_middleware.hpp>
 #include <foxhttp/middleware/basic/response_time_middleware.hpp>
+#include <foxhttp/middleware/basic/static_middleware.hpp>
 #include <memory>
+#include <string>
 
 namespace foxhttp {
 namespace middleware_factories {
@@ -48,6 +52,17 @@ inline std::shared_ptr<middleware> create_debug_logger(const std::string &name =
 inline std::shared_ptr<middleware> create_performance_logger(const std::string &name = "PerformanceLogger",
                                                              const std::string &log_file = "performance.log") {
   return create_logger_middleware(name, log_level::warn, log_format::simple, log_file, false);
+}
+
+inline std::shared_ptr<middleware> create_static_middleware(const std::string &url_prefix,
+                                                            const std::filesystem::path &document_root,
+                                                            const std::string &index_file = "index.html") {
+  return std::make_shared<static_middleware>(url_prefix, document_root, index_file);
+}
+
+inline std::shared_ptr<middleware> create_body_parser_middleware(const std::string &name = "BodyParserMiddleware",
+                                                                 bool bad_request_on_parse_error = true) {
+  return std::make_shared<body_parser_middleware>(name, bad_request_on_parse_error);
 }
 
 }  // namespace middleware_factories

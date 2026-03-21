@@ -20,3 +20,7 @@ CMakeUserPresets.json
 .vscode
 build
 .cache
+build-pc
+
+# Sphinx output
+document/_build

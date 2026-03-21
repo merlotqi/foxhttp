@@ -1,3 +1,10 @@
+/**
+ * foxhttp - lightweight async HTTP server (Boost.Asio)
+ * Copyright (C) 2025 Merlot.Qi
+ * Licensed under GPLv3: https://www.gnu.org/licenses/
+ *
+ */
+
 #pragma once
 
 #include <any>
@@ -66,11 +73,6 @@ class request_context {
   mutable std::shared_mutex parsed_body_mutex_;
   std::unordered_map<std::type_index, std::any> parsed_body_cache_;
 };
-
-template void request_context::set<std::string>(const std::string &, std::string);
-template std::string request_context::get<std::string>(const std::string &, const std::string &) const;
-template void request_context::set_parsed_body<std::string>(std::string);
-template std::string request_context::parsed_body<std::string>() const;
 
 template <typename T>
 void request_context::set(const std::string &key, T value) {

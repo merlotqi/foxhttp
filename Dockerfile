@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y \
     cmake \
     git \
     libboost-all-dev \
+    libssl-dev \
+    zlib1g-dev \
     libspdlog-dev \
     nlohmann-json3-dev \
     libyaml-cpp-dev \

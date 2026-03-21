@@ -1,0 +1,15 @@
+# pkg-config template for FoxHttp (configured at CMake configure time).
+# Install: lib/pkgconfig/foxhttp.pc — use: pkg-config --cflags --libs foxhttp
+
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: FoxHttp
+Description: @FOXHTTP_PC_DESCRIPTION@
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -lfoxhttplib
+Cflags: -I${includedir}
+Requires: @FOXHTTP_PC_REQUIRES@
+Libs.private: @FOXHTTP_PC_LIBS_PRIVATE@

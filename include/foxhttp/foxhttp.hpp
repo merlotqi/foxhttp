@@ -13,10 +13,12 @@
 #include <foxhttp/middleware/middleware_factories.hpp>
 
 // Basic middleware implementations
+#include <foxhttp/middleware/basic/body_parser_middleware.hpp>
 #include <foxhttp/middleware/basic/cors_middleware.hpp>
 #include <foxhttp/middleware/basic/functional_middleware.hpp>
 #include <foxhttp/middleware/basic/logger_middleware.hpp>
 #include <foxhttp/middleware/basic/response_time_middleware.hpp>
+#include <foxhttp/middleware/basic/static_middleware.hpp>
 
 // Advanced middleware implementations
 #include <foxhttp/middleware/advanced/auth_middleware.hpp>

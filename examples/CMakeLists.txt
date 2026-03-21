@@ -1,7 +1,18 @@
-file(GLOB_RECURSE EXAMPLES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-foreach(EXAMPLE ${EXAMPLES})
-    get_filename_component(EXAMPLE_NAME ${EXAMPLE} NAME_WE)
-    add_executable(${EXAMPLE_NAME} ${EXAMPLE})
-    target_link_libraries(${EXAMPLE_NAME} PRIVATE foxhttplib)
-    set_target_properties(${EXAMPLE_NAME} PROPERTIES FOLDER "examples")
-endforeach(EXAMPLE ${EXAMPLES})
+set(FOXHTTP_EXAMPLES
+    01_hello_server
+    02_routing
+    03_middleware_chain
+    04_static_files
+    05_json_body
+)
+
+foreach(name ${FOXHTTP_EXAMPLES})
+  add_executable(${name} ${name}.cpp)
+  target_link_libraries(${name} PRIVATE foxhttplib)
+  target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  set_target_properties(${name} PROPERTIES FOLDER "examples")
+endforeach()
+
+target_compile_definitions(04_static_files PRIVATE
+  "FOXHTTP_EXAMPLE_WWW_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/www\""
+)
