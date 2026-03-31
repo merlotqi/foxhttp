@@ -1,10 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <boost/beast/http.hpp>
-#include <foxhttp/router/route_table.hpp>
-#include <foxhttp/router/router.hpp>
-#include <foxhttp/server/request_context.hpp>
-
+#include <foxhttp/foxhttp.hpp>
 
 namespace http = boost::beast::http;
 

@@ -2,7 +2,7 @@
 
 #include <chrono>
 #include <cstddef>
-#include <foxhttp/constants.hpp>
+#include <foxhttp/core/constants.hpp>
 
 namespace foxhttp::client {
 

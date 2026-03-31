@@ -5,8 +5,8 @@
 #include <boost/asio/redirect_error.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/beast/websocket.hpp>
+#include <foxhttp/core/error_codes.hpp>
 #include <foxhttp/detail/await_middleware_async.hpp>
-#include <foxhttp/error_codes.hpp>
 #include <foxhttp/middleware/middleware_chain.hpp>
 #include <foxhttp/server/request_context.hpp>
 #include <foxhttp/server/session.hpp>
@@ -69,11 +69,11 @@ asio::awaitable<void> session::run() {
         beast::websocket::stream<beast::tcp_stream> ws(std::move(ts));
         auto ws_sess = std::make_shared<ws_session>(std::move(ws));
         ws_sess->start_accept(std::move(req_));
-        
+
         cancel_idle_timer();
         cancel_header_timer();
         cancel_body_timer();
-        
+
         co_return;
       }
 

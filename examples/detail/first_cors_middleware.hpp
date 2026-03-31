@@ -1,6 +1,6 @@
 #pragma once
 
-#include <foxhttp/middleware/basic/cors_middleware.hpp>
+#include <foxhttp/foxhttp.hpp>
 
 namespace foxhttp::examples {
 

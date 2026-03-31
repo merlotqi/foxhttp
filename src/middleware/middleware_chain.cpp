@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
-#include <foxhttp/error_codes.hpp>
+#include <foxhttp/core/error_codes.hpp>
 #include <foxhttp/middleware/middleware_chain.hpp>
 #include <functional>
 #include <memory>
@@ -499,16 +499,17 @@ void middleware_chain::handle_error_run(request_context &ctx, http::response<htt
                                         completion_callback callback, const error_handler &eh) {
   // 转换异常类型
   error_code code = error_code::server_internal_error;
-  if (const auto* mw_e = dynamic_cast<const middleware_exception*>(&e)) {
+  if (const auto *mw_e = dynamic_cast<const middleware_exception *>(&e)) {
     code = mw_e->code();
   }
-  
+
   if (eh) {
     eh(ctx, res, e);
   } else {
     res.result(http::status::internal_server_error);
     res.set(http::field::content_type, "application/json");
-    res.body() = R"({"error": ")" + std::string(e.what()) + R"(", "code": )" + std::to_string(static_cast<int>(code)) + R"(})";
+    res.body() =
+        R"({"error": ")" + std::string(e.what()) + R"(", "code": )" + std::to_string(static_cast<int>(code)) + R"(})";
   }
 
   complete_async_run(state, callback, middleware_result::error, e.what());

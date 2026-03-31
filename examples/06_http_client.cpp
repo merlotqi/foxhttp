@@ -4,7 +4,7 @@
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
-#include <foxhttp/client/http_client.hpp>
+#include <foxhttp/foxhttp.hpp>
 
 #include <future>
 #include <iostream>

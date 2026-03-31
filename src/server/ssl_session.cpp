@@ -41,21 +41,21 @@ asio::awaitable<void> ssl_session::run() {
     arm_handshake_timer();
     co_await stream_.async_handshake(asio::ssl::stream_base::server, asio::redirect_error(asio::use_awaitable, ec));
     cancel_handshake_timer();
-      if (ec) {
-        if (ec == asio::error::operation_aborted && read_abort_ == read_abort_reason::handshake_timeout) {
-          spdlog::warn("foxhttp ssl_session handshake timeout");
-          try {
-            stream_.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both);
-          } catch (const boost::system::system_error &e) {
-            spdlog::warn("Failed to shutdown socket after handshake timeout: {}", e.what());
-          }
-          co_return;
-        }
-        if (ec != asio::error::operation_aborted) {
-          spdlog::warn("foxhttp ssl_session handshake error: {}", ec.message());
+    if (ec) {
+      if (ec == asio::error::operation_aborted && read_abort_ == read_abort_reason::handshake_timeout) {
+        spdlog::warn("foxhttp ssl_session handshake timeout");
+        try {
+          stream_.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both);
+        } catch (const boost::system::system_error &e) {
+          spdlog::warn("Failed to shutdown socket after handshake timeout: {}", e.what());
         }
         co_return;
       }
+      if (ec != asio::error::operation_aborted) {
+        spdlog::warn("foxhttp ssl_session handshake error: {}", ec.message());
+      }
+      co_return;
+    }
     on_activity();
 
     while (true) {
@@ -174,8 +174,6 @@ void ssl_session::arm_handshake_timer() {
   });
 }
 
-void ssl_session::cancel_handshake_timer() {
-  handshake_timer_.cancel();
-}
+void ssl_session::cancel_handshake_timer() { handshake_timer_.cancel(); }
 
 }  // namespace foxhttp

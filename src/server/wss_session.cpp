@@ -1,10 +1,11 @@
+#include <spdlog/spdlog.h>
+
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/redirect_error.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <foxhttp/server/wss_session.hpp>
-#include <spdlog/spdlog.h>
 
 namespace beast = boost::beast;
 namespace websocket = beast::websocket;

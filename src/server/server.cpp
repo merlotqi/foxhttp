@@ -52,7 +52,7 @@ boost::asio::awaitable<void> server::accept_loop() {
       spdlog::warn("server::accept_loop: accept error: {}", ec.message());
       continue;
     }
-    
+
     auto stopping = stopping_.load(std::memory_order_acquire);
     if (!stopping) {
       std::make_shared<session>(std::move(sock), global_chain_)->start();

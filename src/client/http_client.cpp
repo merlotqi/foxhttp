@@ -1,3 +1,5 @@
+#include <spdlog/spdlog.h>
+
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -9,8 +11,7 @@
 #include <boost/beast/version.hpp>
 #include <boost/system/error_code.hpp>
 #include <foxhttp/client/http_client.hpp>
-#include <foxhttp/constants.hpp>
-#include <spdlog/spdlog.h>
+#include <foxhttp/core/constants.hpp>
 
 #if defined(USING_TLS)
 #include <boost/asio/ssl/stream.hpp>

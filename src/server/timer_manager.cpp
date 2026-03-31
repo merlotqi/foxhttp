@@ -4,16 +4,6 @@
 
 namespace foxhttp {
 
-std::string format_duration(std::chrono::microseconds duration) {
-  if (duration.count() < 1000) {
-    return std::to_string(duration.count()) + "μs";
-  } else if (duration.count() < 1000000) {
-    return std::to_string(duration.count() / 1000) + "ms";
-  } else {
-    return std::to_string(duration.count() / 1000000) + "s";
-  }
-}
-
 std::string get_priority_name(timer_priority priority) {
   switch (priority) {
     case timer_priority::low:
@@ -30,6 +20,16 @@ std::string get_priority_name(timer_priority priority) {
 }
 
 void print_timer_statistics(const timer_manager &manager) {
+  auto format_duration = [](std::chrono::microseconds duration) -> std::string {
+    if (duration.count() < 1000) {
+      return std::to_string(duration.count()) + "μs";
+    } else if (duration.count() < 1000000) {
+      return std::to_string(duration.count() / 1000) + "ms";
+    } else {
+      return std::to_string(duration.count() / 1000000) + "s";
+    }
+  };
+
   auto stats = manager.get_statistics();
   std::cout << "=== Timer Manager Statistics ===" << std::endl;
   std::cout << "Total Scheduled: " << stats.total_scheduled.load() << std::endl;

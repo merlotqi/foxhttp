@@ -7,8 +7,7 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/io_context.hpp>
-#include <foxhttp/client/http_client.hpp>
-#include <foxhttp/client/client_options.hpp>
+#include <foxhttp/foxhttp.hpp>
 #include <iostream>
 
 namespace asio = boost::asio;

@@ -3,8 +3,7 @@
 #include <boost/beast/http.hpp>
 #include <chrono>
 #include <filesystem>
-#include <foxhttp/middleware/basic/static_middleware.hpp>
-#include <foxhttp/server/request_context.hpp>
+#include <foxhttp/foxhttp.hpp>
 #include <fstream>
 #include <string>
 

@@ -1,3 +1,5 @@
+#include <spdlog/spdlog.h>
+
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/redirect_error.hpp>
@@ -6,7 +8,6 @@
 #include <foxhttp/server/io_context_pool.hpp>
 #include <foxhttp/server/ssl_server.hpp>
 #include <foxhttp/server/ssl_session.hpp>
-#include <spdlog/spdlog.h>
 
 using boost::asio::ip::tcp;
 

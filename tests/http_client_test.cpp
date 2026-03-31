@@ -6,9 +6,7 @@
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
-#include <foxhttp/client/http_client.hpp>
-
-#include <chrono>
+#include <foxhttp/foxhttp.hpp>
 #include <future>
 #include <string>
 #include <thread>
@@ -66,8 +64,7 @@ TEST(HttpClient, ThenChainPostsAndReadsBody) {
   const unsigned short port = port_f.get();
 
   asio::io_context ioc;
-  foxhttp::client::http_client client(ioc.get_executor(),
-                                      "http://127.0.0.1:" + std::to_string(port));
+  foxhttp::client::http_client client(ioc.get_executor(), "http://127.0.0.1:" + std::to_string(port));
 
   bool done = false;
   client.post("/echo?q=1")
@@ -100,8 +97,7 @@ TEST(HttpClient, CoAwaitAsAwaitable) {
   const unsigned short port = port_f.get();
 
   asio::io_context ioc;
-  foxhttp::client::http_client client(ioc.get_executor(),
-                                      "http://127.0.0.1:" + std::to_string(port));
+  foxhttp::client::http_client client(ioc.get_executor(), "http://127.0.0.1:" + std::to_string(port));
 
   asio::co_spawn(
       ioc,

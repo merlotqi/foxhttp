@@ -1,7 +1,7 @@
-#include <boost/asio/io_context.hpp>
-#include <foxhttp/client/http_client.hpp>
-#include <foxhttp/client/client_options.hpp>
 #include <gtest/gtest.h>
+
+#include <boost/asio/io_context.hpp>
+#include <foxhttp/foxhttp.hpp>
 
 using namespace foxhttp::client;
 
@@ -56,8 +56,7 @@ TEST(HttpClientTest, SetOptions) {
   http_client client(ioc.get_executor(), "http://localhost:8080");
 
   client_options opts;
-  opts.set_connection_timeout(std::chrono::milliseconds(5000))
-      .set_request_timeout(std::chrono::milliseconds(10000));
+  opts.set_connection_timeout(std::chrono::milliseconds(5000)).set_request_timeout(std::chrono::milliseconds(10000));
 
   client.set_options(opts);
 

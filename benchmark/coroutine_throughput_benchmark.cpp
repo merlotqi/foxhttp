@@ -9,11 +9,7 @@
 #include <chrono>
 #include <csignal>
 #include <cstddef>
-#include <foxhttp/detail/await_middleware_async.hpp>
-#include <foxhttp/middleware/basic/functional_middleware.hpp>
-#include <foxhttp/middleware/middleware_chain.hpp>
-#include <foxhttp/server/request_context.hpp>
-#include <foxhttp/server/session.hpp>
+#include <foxhttp/foxhttp.hpp>
 #include <memory>
 #include <string>
 #include <thread>
