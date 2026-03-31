@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <foxhttp/error_codes.hpp>
 #include <foxhttp/middleware/middleware_chain.hpp>
 #include <functional>
 #include <memory>
@@ -31,12 +32,18 @@ bool middleware_chain::try_finish_run(const std::shared_ptr<detail::pipeline_exe
     return false;
   }
   if (state->global_timeout_timer) {
-    boost::system::error_code ec;
-    state->global_timeout_timer->cancel(ec);
+    try {
+      state->global_timeout_timer->cancel();
+    } catch (const boost::system::system_error &e) {
+      spdlog::warn("Failed to cancel global timeout timer: {}", e.what());
+    }
   }
   if (state->middleware_timeout_timer) {
-    boost::system::error_code ec;
-    state->middleware_timeout_timer->cancel(ec);
+    try {
+      state->middleware_timeout_timer->cancel();
+    } catch (const boost::system::system_error &e) {
+      spdlog::warn("Failed to cancel middleware timeout timer: {}", e.what());
+    }
   }
   unregister_run(state.get());
   return true;
@@ -111,11 +118,20 @@ void middleware_chain::set_timeout_handler(timeout_handler handler) {
   timeout_handler_ = std::move(handler);
 }
 
-void middleware_chain::set_global_timeout(std::chrono::milliseconds timeout) { global_timeout_ = timeout; }
+void middleware_chain::set_global_timeout(std::chrono::milliseconds timeout) {
+  std::lock_guard<std::mutex> lock(config_mutex_);
+  global_timeout_ = timeout;
+}
 
-void middleware_chain::set_io_context(boost::asio::io_context &io_context) { io_context_ = &io_context; }
+void middleware_chain::set_io_context(boost::asio::io_context &io_context) {
+  std::lock_guard<std::mutex> lock(config_mutex_);
+  io_context_ = &io_context;
+}
 
-void middleware_chain::enable_statistics(bool enable) { statistics_enabled_ = enable; }
+void middleware_chain::enable_statistics(bool enable) {
+  std::lock_guard<std::mutex> lock(config_mutex_);
+  statistics_enabled_ = enable;
+}
 
 void middleware_chain::execute(request_context &ctx, http::response<http::string_body> &res) {
   std::shared_ptr<std::vector<std::shared_ptr<middleware>>> pipeline =
@@ -182,18 +198,22 @@ void middleware_chain::execute_async(request_context &ctx, http::response<http::
   state->execution_start = std::chrono::steady_clock::now();
   register_run(state);
 
-  if (global_to > std::chrono::milliseconds{0} && io) {
-    state->global_timeout_timer = std::make_shared<boost::asio::steady_timer>(*io, global_to);
-    std::weak_ptr<detail::pipeline_execution_state> wstate = state;
-    state->global_timeout_timer->async_wait([this, wstate, &ctx, &res, callback, th](boost::system::error_code ec) {
-      auto s = wstate.lock();
-      if (!s || ec) {
-        return;
-      }
-      if (!s->timed_out.exchange(true)) {
-        handle_timeout_run(ctx, res, s, callback, th);
-      }
-    });
+  if (global_to > std::chrono::milliseconds{0}) {
+    if (io) {
+      state->global_timeout_timer = std::make_shared<boost::asio::steady_timer>(*io, global_to);
+      std::weak_ptr<detail::pipeline_execution_state> wstate = state;
+      state->global_timeout_timer->async_wait([this, wstate, &ctx, &res, callback, th](boost::system::error_code ec) {
+        auto s = wstate.lock();
+        if (!s || ec) {
+          return;
+        }
+        if (!s->timed_out.exchange(true)) {
+          handle_timeout_run(ctx, res, s, callback, th);
+        }
+      });
+    } else {
+      spdlog::warn("Global timeout set but io_context is null, timeout will not be enforced");
+    }
   }
 
   try {
@@ -218,12 +238,18 @@ void middleware_chain::cancel() {
     s->cancelled.store(true);
     std::lock_guard<std::mutex> lk(s->mu);
     if (s->global_timeout_timer) {
-      boost::system::error_code ec;
-      s->global_timeout_timer->cancel(ec);
+      try {
+        s->global_timeout_timer->cancel();
+      } catch (const boost::system::system_error &e) {
+        spdlog::warn("Failed to cancel global timeout timer: {}", e.what());
+      }
     }
     if (s->middleware_timeout_timer) {
-      boost::system::error_code ec;
-      s->middleware_timeout_timer->cancel(ec);
+      try {
+        s->middleware_timeout_timer->cancel();
+      } catch (const boost::system::system_error &e) {
+        spdlog::warn("Failed to cancel middleware timeout timer: {}", e.what());
+      }
     }
   }
 }
@@ -331,8 +357,11 @@ void middleware_chain::execute_next_sync(const std::shared_ptr<std::vector<std::
     {
       std::lock_guard<std::mutex> lk(state->mu);
       if (state->middleware_timeout_timer) {
-        boost::system::error_code ec;
-        state->middleware_timeout_timer->cancel(ec);
+        try {
+          state->middleware_timeout_timer->cancel();
+        } catch (const boost::system::system_error &e) {
+          spdlog::warn("Failed to cancel middleware timeout timer: {}", e.what());
+        }
         state->middleware_timeout_timer.reset();
       }
     }
@@ -407,8 +436,11 @@ void middleware_chain::execute_next_async_step(
     {
       std::lock_guard<std::mutex> lk(state->mu);
       if (state->middleware_timeout_timer) {
-        boost::system::error_code ec;
-        state->middleware_timeout_timer->cancel(ec);
+        try {
+          state->middleware_timeout_timer->cancel();
+        } catch (const boost::system::system_error &e) {
+          spdlog::warn("Failed to cancel middleware timeout timer: {}", e.what());
+        }
         state->middleware_timeout_timer.reset();
       }
     }
@@ -420,8 +452,11 @@ void middleware_chain::execute_next_async_step(
     {
       std::lock_guard<std::mutex> lk(state->mu);
       if (state->middleware_timeout_timer) {
-        boost::system::error_code ec;
-        state->middleware_timeout_timer->cancel(ec);
+        try {
+          state->middleware_timeout_timer->cancel();
+        } catch (const boost::system::system_error &e) {
+          spdlog::warn("Failed to cancel middleware timeout timer: {}", e.what());
+        }
         state->middleware_timeout_timer.reset();
       }
     }
@@ -462,12 +497,18 @@ void middleware_chain::handle_error_run(request_context &ctx, http::response<htt
                                         const std::exception &e,
                                         const std::shared_ptr<detail::pipeline_execution_state> &state,
                                         completion_callback callback, const error_handler &eh) {
+  // 转换异常类型
+  error_code code = error_code::server_internal_error;
+  if (const auto* mw_e = dynamic_cast<const middleware_exception*>(&e)) {
+    code = mw_e->code();
+  }
+  
   if (eh) {
     eh(ctx, res, e);
   } else {
     res.result(http::status::internal_server_error);
-    res.set(http::field::content_type, "text/plain");
-    res.body() = "middleware error: " + std::string(e.what());
+    res.set(http::field::content_type, "application/json");
+    res.body() = R"({"error": ")" + std::string(e.what()) + R"(", "code": )" + std::to_string(static_cast<int>(code)) + R"(})";
   }
 
   complete_async_run(state, callback, middleware_result::error, e.what());
@@ -528,14 +569,17 @@ void middleware_chain::setup_middleware_timeout(std::shared_ptr<middleware> mw, 
   {
     std::lock_guard<std::mutex> lk(state->mu);
     if (state->middleware_timeout_timer) {
-      boost::system::error_code ec;
-      state->middleware_timeout_timer->cancel(ec);
+      try {
+        state->middleware_timeout_timer->cancel();
+      } catch (const boost::system::system_error &e) {
+        spdlog::warn("Failed to cancel middleware timeout timer: {}", e.what());
+      }
     }
     state->middleware_timeout_timer = timer;
   }
 
   std::weak_ptr<detail::pipeline_execution_state> wstate = state;
-  timer->async_wait([this, wstate, mw, &ctx, &res, callback, th, statistics_enabled](boost::system::error_code ec) {
+  timer->async_wait([wstate, mw, &ctx, &res, callback, th, statistics_enabled](boost::system::error_code ec) {
     auto s = wstate.lock();
     if (!s || ec) {
       return;
@@ -544,7 +588,13 @@ void middleware_chain::setup_middleware_timeout(std::shared_ptr<middleware> mw, 
       if (statistics_enabled) {
         mw->stats().timeout_count++;
       }
-      handle_timeout_run(ctx, res, s, callback, th);
+      if (th) {
+        th(ctx, res);
+      } else {
+        res.result(http::status::gateway_timeout);
+        res.set(http::field::content_type, "text/plain");
+        res.body() = "Request timeout";
+      }
     }
   });
 }

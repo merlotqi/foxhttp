@@ -4,6 +4,7 @@
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <foxhttp/server/wss_session.hpp>
+#include <spdlog/spdlog.h>
 
 namespace beast = boost::beast;
 namespace websocket = beast::websocket;
@@ -44,8 +45,11 @@ asio::awaitable<void> wss_session::echo_loop() {
 }
 
 void wss_session::on_timeout_idle() {
-  beast::error_code ec;
-  ws_.next_layer().next_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+  try {
+    ws_.next_layer().next_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+  } catch (const boost::system::system_error &e) {
+    spdlog::warn("Failed to shutdown socket on idle timeout: {}", e.what());
+  }
 }
 
 }  // namespace foxhttp

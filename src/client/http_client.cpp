@@ -1,5 +1,3 @@
-#include <foxhttp/client/http_client.hpp>
-
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -10,6 +8,9 @@
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
 #include <boost/system/error_code.hpp>
+#include <foxhttp/client/http_client.hpp>
+#include <foxhttp/constants.hpp>
+#include <spdlog/spdlog.h>
 
 #if defined(USING_TLS)
 #include <boost/asio/ssl/stream.hpp>
@@ -17,8 +18,8 @@
 #include <boost/beast/ssl/ssl_stream.hpp>
 #endif
 
-#include <chrono>
 #include <cctype>
+#include <chrono>
 #include <stdexcept>
 #include <string_view>
 
@@ -33,7 +34,6 @@ namespace {
 
 constexpr int k_default_http_port = 80;
 constexpr int k_default_https_port = 443;
-constexpr auto k_io_timeout = std::chrono::seconds(30);
 
 bool ci_eq(char a, char b) {
   return std::tolower(static_cast<unsigned char>(a)) == std::tolower(static_cast<unsigned char>(b));
@@ -105,7 +105,7 @@ asio::awaitable<void> transfer_http(std::shared_ptr<detail::request_spec> spec, 
   if (ec) co_return;
 
   beast::tcp_stream stream(co_await asio::this_coro::executor);
-  stream.expires_after(k_io_timeout);
+  stream.expires_after(constants::kDefaultIoTimeout);
   co_await stream.async_connect(results, asio::redirect_error(asio::use_awaitable, ec));
   if (ec) co_return;
 
@@ -123,8 +123,11 @@ asio::awaitable<void> transfer_http(std::shared_ptr<detail::request_spec> spec, 
   co_await http::async_read(stream, buffer, res, asio::redirect_error(asio::use_awaitable, ec));
   if (ec) co_return;
 
-  beast::error_code sec;
-  stream.socket().shutdown(tcp::socket::shutdown_both, sec);
+  try {
+    stream.socket().shutdown(tcp::socket::shutdown_both);
+  } catch (const boost::system::system_error &e) {
+    spdlog::warn("Failed to shutdown socket after HTTP transfer: {}", e.what());
+  }
 }
 
 #if defined(USING_TLS)
@@ -140,12 +143,12 @@ asio::awaitable<void> transfer_https(std::shared_ptr<detail::request_spec> spec,
   if (ec) co_return;
 
   beast::tcp_stream plain(co_await asio::this_coro::executor);
-  plain.expires_after(k_io_timeout);
+  plain.expires_after(constants::kDefaultIoTimeout);
   co_await plain.async_connect(results, asio::redirect_error(asio::use_awaitable, ec));
   if (ec) co_return;
 
   beast::ssl_stream<beast::tcp_stream> stream(std::move(plain), *spec->ssl_ctx);
-  stream.next_layer().expires_after(k_io_timeout);
+  stream.next_layer().expires_after(constants::kDefaultHandshakeTimeout);
   co_await stream.async_handshake(asio::ssl::stream_base::client, asio::redirect_error(asio::use_awaitable, ec));
   if (ec) co_return;
 
@@ -163,8 +166,11 @@ asio::awaitable<void> transfer_https(std::shared_ptr<detail::request_spec> spec,
   co_await http::async_read(stream, buffer, res, asio::redirect_error(asio::use_awaitable, ec));
   if (ec) co_return;
 
-  beast::error_code sec;
-  stream.next_layer().socket().shutdown(tcp::socket::shutdown_both, sec);
+  try {
+    stream.next_layer().socket().shutdown(tcp::socket::shutdown_both);
+  } catch (const boost::system::system_error &e) {
+    spdlog::warn("Failed to shutdown socket after HTTPS transfer: {}", e.what());
+  }
 }
 #endif
 
@@ -223,6 +229,11 @@ http_client::http_client(asio::any_io_executor ex, std::string base_url, asio::s
 }
 #endif
 
+http_client &http_client::set_options(const client_options &opts) {
+  opts_ = opts;
+  return *this;
+}
+
 request_builder http_client::get(std::string_view target_or_url) {
   return request_builder(*this, http::verb::get, std::string(target_or_url));
 }
@@ -279,6 +290,24 @@ request_builder &request_builder::body_json(const nlohmann::json &j) {
   ensure_not_consumed();
   spec_->headers.emplace_back("Content-Type", "application/json");
   spec_->body = j.dump();
+  return *this;
+}
+
+request_builder &request_builder::timeout(const request_timeout_options &opts) {
+  ensure_not_consumed();
+  timeout_opts_ = opts;
+  return *this;
+}
+
+request_builder &request_builder::connection_timeout(std::chrono::milliseconds timeout) {
+  ensure_not_consumed();
+  timeout_opts_.connection_timeout = timeout;
+  return *this;
+}
+
+request_builder &request_builder::request_timeout(std::chrono::milliseconds timeout) {
+  ensure_not_consumed();
+  timeout_opts_.request_timeout = timeout;
   return *this;
 }
 

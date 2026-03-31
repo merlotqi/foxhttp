@@ -20,6 +20,7 @@ class config_manager {
   using log_fn = std::function<void(const std::string &)>;
 
   struct snapshot {
+    uint64_t version{0};  // Config version number for change detection
     json_config json;
     multipart_config multipart;
     form_config form;

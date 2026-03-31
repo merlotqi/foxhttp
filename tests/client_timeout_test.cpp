@@ -1,0 +1,97 @@
+#include <boost/asio/io_context.hpp>
+#include <foxhttp/client/http_client.hpp>
+#include <foxhttp/client/client_options.hpp>
+#include <gtest/gtest.h>
+
+using namespace foxhttp::client;
+
+TEST(ClientOptionsTest, DefaultValues) {
+  client_options opts;
+  EXPECT_EQ(opts.connection_timeout.count(), 30000);
+  EXPECT_EQ(opts.request_timeout.count(), 30000);
+  EXPECT_EQ(opts.handshake_timeout.count(), 30000);
+  EXPECT_EQ(opts.max_response_size, 0u);
+  EXPECT_FALSE(opts.follow_redirects);
+  EXPECT_EQ(opts.max_redirects, 5u);
+}
+
+TEST(ClientOptionsTest, FluentSetters) {
+  client_options opts;
+  opts.set_connection_timeout(std::chrono::milliseconds(5000))
+      .set_request_timeout(std::chrono::milliseconds(10000))
+      .set_handshake_timeout(std::chrono::milliseconds(15000))
+      .set_max_response_size(1024 * 1024)
+      .set_follow_redirects(true, 10)
+      .set_user_agent("TestAgent/1.0");
+
+  EXPECT_EQ(opts.connection_timeout.count(), 5000);
+  EXPECT_EQ(opts.request_timeout.count(), 10000);
+  EXPECT_EQ(opts.handshake_timeout.count(), 15000);
+  EXPECT_EQ(opts.max_response_size, 1024u * 1024);
+  EXPECT_TRUE(opts.follow_redirects);
+  EXPECT_EQ(opts.max_redirects, 10u);
+  EXPECT_EQ(opts.user_agent, "TestAgent/1.0");
+}
+
+TEST(RequestTimeoutOptionsTest, DefaultValues) {
+  request_timeout_options opts;
+  EXPECT_EQ(opts.connection_timeout.count(), 0);
+  EXPECT_EQ(opts.request_timeout.count(), 0);
+  EXPECT_EQ(opts.handshake_timeout.count(), 0);
+}
+
+TEST(RequestTimeoutOptionsTest, FluentSetters) {
+  request_timeout_options opts;
+  opts.set_connection_timeout(std::chrono::milliseconds(2000))
+      .set_request_timeout(std::chrono::milliseconds(3000))
+      .set_handshake_timeout(std::chrono::milliseconds(4000));
+
+  EXPECT_EQ(opts.connection_timeout.count(), 2000);
+  EXPECT_EQ(opts.request_timeout.count(), 3000);
+  EXPECT_EQ(opts.handshake_timeout.count(), 4000);
+}
+
+TEST(HttpClientTest, SetOptions) {
+  boost::asio::io_context ioc;
+  http_client client(ioc.get_executor(), "http://localhost:8080");
+
+  client_options opts;
+  opts.set_connection_timeout(std::chrono::milliseconds(5000))
+      .set_request_timeout(std::chrono::milliseconds(10000));
+
+  client.set_options(opts);
+
+  EXPECT_EQ(client.get_options().connection_timeout.count(), 5000);
+  EXPECT_EQ(client.get_options().request_timeout.count(), 10000);
+}
+
+TEST(RequestBuilderTest, TimeoutMethods) {
+  boost::asio::io_context ioc;
+  http_client client(ioc.get_executor(), "http://localhost:8080");
+
+  auto builder = client.get("/test")
+                     .connection_timeout(std::chrono::milliseconds(1000))
+                     .request_timeout(std::chrono::milliseconds(2000));
+
+  // Verify builder was created successfully (no exceptions)
+  SUCCEED();
+}
+
+TEST(RequestBuilderTest, TimeoutWithOptions) {
+  boost::asio::io_context ioc;
+  http_client client(ioc.get_executor(), "http://localhost:8080");
+
+  request_timeout_options timeout_opts;
+  timeout_opts.set_connection_timeout(std::chrono::milliseconds(1500))
+      .set_request_timeout(std::chrono::milliseconds(2500));
+
+  auto builder = client.get("/test").timeout(timeout_opts);
+
+  // Verify builder was created successfully (no exceptions)
+  SUCCEED();
+}
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}

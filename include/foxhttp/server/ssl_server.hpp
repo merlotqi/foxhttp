@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
@@ -17,6 +18,8 @@ class ssl_server {
   void use(std::shared_ptr<middleware_chain> chain);
   std::shared_ptr<middleware_chain> global_chain() const;
 
+  void stop();
+
  private:
   void do_accept();
   boost::asio::awaitable<void> accept_loop();
@@ -27,6 +30,7 @@ class ssl_server {
   boost::asio::ip::tcp::acceptor acceptor_;
   boost::asio::ssl::context &ssl_ctx_;
   std::shared_ptr<middleware_chain> global_chain_;
+  std::atomic<bool> stopping_{false};
 };
 
 }  // namespace foxhttp

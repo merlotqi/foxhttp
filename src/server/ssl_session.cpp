@@ -25,7 +25,8 @@ ssl_session::ssl_session(asio::ssl::stream<asio::ip::tcp::socket> stream,
                          std::shared_ptr<middleware_chain> global_chain)
     : session_base(stream.get_executor(), global_chain),
       stream_(std::move(stream)),
-      global_chain_(std::move(global_chain)) {}
+      global_chain_(std::move(global_chain)),
+      handshake_timer_(stream_.get_executor()) {}
 
 void ssl_session::start() {
   arm_idle_timer();
@@ -37,13 +38,24 @@ void ssl_session::start() {
 asio::awaitable<void> ssl_session::run() {
   try {
     beast::error_code ec;
+    arm_handshake_timer();
     co_await stream_.async_handshake(asio::ssl::stream_base::server, asio::redirect_error(asio::use_awaitable, ec));
-    if (ec) {
-      if (ec != asio::error::operation_aborted) {
-        spdlog::warn("foxhttp ssl_session handshake error: {}", ec.message());
+    cancel_handshake_timer();
+      if (ec) {
+        if (ec == asio::error::operation_aborted && read_abort_ == read_abort_reason::handshake_timeout) {
+          spdlog::warn("foxhttp ssl_session handshake timeout");
+          try {
+            stream_.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both);
+          } catch (const boost::system::system_error &e) {
+            spdlog::warn("Failed to shutdown socket after handshake timeout: {}", e.what());
+          }
+          co_return;
+        }
+        if (ec != asio::error::operation_aborted) {
+          spdlog::warn("foxhttp ssl_session handshake error: {}", ec.message());
+        }
+        co_return;
       }
-      co_return;
-    }
     on_activity();
 
     while (true) {
@@ -98,8 +110,11 @@ asio::awaitable<void> ssl_session::run() {
         if (ec != asio::error::operation_aborted) {
           spdlog::warn("foxhttp ssl_session write error: {}", ec.message());
         }
-        beast::error_code sec;
-        stream_.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both, sec);
+        try {
+          stream_.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both);
+        } catch (const boost::system::system_error &e) {
+          spdlog::warn("Failed to shutdown socket after write error: {}", e.what());
+        }
         co_return;
       }
 
@@ -109,8 +124,11 @@ asio::awaitable<void> ssl_session::run() {
           lim.enable_keep_alive && res_.keep_alive() &&
           (lim.max_requests_per_connection == 0 || requests_served_ < lim.max_requests_per_connection);
       if (!keep_open) {
-        beast::error_code sec;
-        stream_.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both, sec);
+        try {
+          stream_.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both);
+        } catch (const boost::system::system_error &e) {
+          spdlog::warn("Failed to shutdown socket on connection close: {}", e.what());
+        }
         co_return;
       }
 
@@ -121,12 +139,19 @@ asio::awaitable<void> ssl_session::run() {
     }
   } catch (const std::exception &e) {
     spdlog::warn("foxhttp ssl_session coroutine: {}", e.what());
+    notify_error(std::current_exception());
+  } catch (...) {
+    spdlog::warn("foxhttp ssl_session coroutine: unknown exception");
+    notify_error(std::current_exception());
   }
 }
 
 void ssl_session::on_timeout_idle() {
-  beast::error_code ec;
-  stream_.next_layer().shutdown(asio::ip::tcp::socket::shutdown_both, ec);
+  try {
+    stream_.next_layer().shutdown(asio::ip::tcp::socket::shutdown_both);
+  } catch (const boost::system::system_error &e) {
+    spdlog::warn("Failed to shutdown socket on idle timeout: {}", e.what());
+  }
 }
 
 void ssl_session::on_timeout_header() {
@@ -137,6 +162,20 @@ void ssl_session::on_timeout_header() {
 void ssl_session::on_timeout_body() {
   read_abort_ = read_abort_reason::body_timeout;
   beast::get_lowest_layer(stream_).cancel();
+}
+
+void ssl_session::arm_handshake_timer() {
+  handshake_timer_.expires_after(std::chrono::seconds(30));
+  handshake_timer_.async_wait([this](const boost::system::error_code &ec) {
+    if (!ec) {
+      read_abort_ = read_abort_reason::handshake_timeout;
+      beast::get_lowest_layer(stream_).cancel();
+    }
+  });
+}
+
+void ssl_session::cancel_handshake_timer() {
+  handshake_timer_.cancel();
 }
 
 }  // namespace foxhttp

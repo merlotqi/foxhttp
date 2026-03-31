@@ -20,11 +20,14 @@ class ssl_session : public session_base, public std::enable_shared_from_this<ssl
 
  private:
   boost::asio::awaitable<void> run();
+  void arm_handshake_timer();
+  void cancel_handshake_timer();
 
   enum class read_abort_reason {
     none,
     header_timeout,
-    body_timeout
+    body_timeout,
+    handshake_timeout
   };
   std::atomic<read_abort_reason> read_abort_{read_abort_reason::none};
 
@@ -39,6 +42,7 @@ class ssl_session : public session_base, public std::enable_shared_from_this<ssl
   boost::beast::http::response<boost::beast::http::string_body> res_;
   std::shared_ptr<middleware_chain> global_chain_;
   std::size_t requests_served_{0};
+  boost::asio::steady_timer handshake_timer_;
 };
 
 }  // namespace foxhttp

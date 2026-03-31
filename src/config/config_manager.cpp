@@ -89,13 +89,11 @@ bool config_manager::load_file(const std::string &path) {
   std::optional<nlohmann::json> doc = loader(path);
   if (!doc) return false;
 
-  // Safe merge: new over defaults, retain defaults for missing keys
-  std::unique_lock<std::shared_mutex> lk(mutex_);
-  nlohmann::json old_doc = document_;
+  // Prepare merged document outside the lock
   nlohmann::json merged = default_document_;
   deep_merge(merged, *doc);
 
-  // optional validation hook
+  // optional validation hook (outside main lock)
   std::string err;
   {
     std::lock_guard<std::mutex> vk(validator_mutex_);
@@ -105,9 +103,16 @@ bool config_manager::load_file(const std::string &path) {
     }
   }
 
-  document_ = merged;
-  last_good_document_ = document_;
-  rebuild_snapshot_unlocked();
+  // Atomic update: acquire lock, swap document and rebuild snapshot
+  nlohmann::json old_doc;
+  {
+    std::unique_lock<std::shared_mutex> lk(mutex_);
+    old_doc = std::move(document_);
+    document_ = std::move(merged);
+    last_good_document_ = document_;
+    rebuild_snapshot_unlocked();
+  }
+  // Notify subscribers outside the lock to prevent deadlocks
   notify_subscribers_unlocked(document_, old_doc);
   return true;
 }
@@ -266,6 +271,9 @@ timer_manager_config config_manager::timer_from_doc() const {
 
 void config_manager::rebuild_snapshot_unlocked() {
   auto snap = std::make_shared<snapshot>();
+  // Increment version number for change detection
+  static uint64_t version_counter = 0;
+  snap->version = ++version_counter;
   snap->json = json_from_doc();
   snap->multipart = multipart_from_doc();
   snap->form = form_from_doc();

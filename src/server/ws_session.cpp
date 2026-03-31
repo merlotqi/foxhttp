@@ -1,3 +1,5 @@
+#include <spdlog/spdlog.h>
+
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/redirect_error.hpp>
@@ -43,8 +45,11 @@ asio::awaitable<void> ws_session::echo_loop() {
 }
 
 void ws_session::on_timeout_idle() {
-  beast::error_code ec;
-  ws_.next_layer().socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+  try {
+    ws_.next_layer().socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+  } catch (const boost::system::system_error &e) {
+    spdlog::warn("Failed to shutdown socket on idle timeout: {}", e.what());
+  }
 }
 
 }  // namespace foxhttp

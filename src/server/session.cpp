@@ -6,6 +6,7 @@
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/beast/websocket.hpp>
 #include <foxhttp/detail/await_middleware_async.hpp>
+#include <foxhttp/error_codes.hpp>
 #include <foxhttp/middleware/middleware_chain.hpp>
 #include <foxhttp/server/request_context.hpp>
 #include <foxhttp/server/session.hpp>
@@ -68,6 +69,11 @@ asio::awaitable<void> session::run() {
         beast::websocket::stream<beast::tcp_stream> ws(std::move(ts));
         auto ws_sess = std::make_shared<ws_session>(std::move(ws));
         ws_sess->start_accept(std::move(req_));
+        
+        cancel_idle_timer();
+        cancel_header_timer();
+        cancel_body_timer();
+        
         co_return;
       }
 
@@ -82,8 +88,11 @@ asio::awaitable<void> session::run() {
         if (ec != asio::error::operation_aborted) {
           spdlog::warn("foxhttp session write error: {}", ec.message());
         }
-        beast::error_code sec;
-        socket_.shutdown(tcp::socket::shutdown_both, sec);
+        try {
+          socket_.shutdown(tcp::socket::shutdown_both);
+        } catch (const boost::system::system_error &e) {
+          spdlog::warn("Failed to shutdown socket after write error: {}", e.what());
+        }
         co_return;
       }
 
@@ -93,8 +102,11 @@ asio::awaitable<void> session::run() {
           lim.enable_keep_alive && res_.keep_alive() &&
           (lim.max_requests_per_connection == 0 || requests_served_ < lim.max_requests_per_connection);
       if (!keep_open) {
-        beast::error_code sec;
-        socket_.shutdown(tcp::socket::shutdown_both, sec);
+        try {
+          socket_.shutdown(tcp::socket::shutdown_both);
+        } catch (const boost::system::system_error &e) {
+          spdlog::warn("Failed to shutdown socket on connection close: {}", e.what());
+        }
         co_return;
       }
 
@@ -105,12 +117,19 @@ asio::awaitable<void> session::run() {
     }
   } catch (const std::exception &e) {
     spdlog::warn("foxhttp session coroutine: {}", e.what());
+    notify_error(std::current_exception());
+  } catch (...) {
+    spdlog::warn("foxhttp session coroutine: unknown exception");
+    notify_error(std::current_exception());
   }
 }
 
 void session::on_timeout_idle() {
-  beast::error_code ec;
-  socket_.shutdown(tcp::socket::shutdown_both, ec);
+  try {
+    socket_.shutdown(tcp::socket::shutdown_both);
+  } catch (const boost::system::system_error &e) {
+    spdlog::warn("Failed to shutdown socket on idle timeout: {}", e.what());
+  }
 }
 
 void session::on_timeout_header() {

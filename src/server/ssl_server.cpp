@@ -6,6 +6,7 @@
 #include <foxhttp/server/io_context_pool.hpp>
 #include <foxhttp/server/ssl_server.hpp>
 #include <foxhttp/server/ssl_session.hpp>
+#include <spdlog/spdlog.h>
 
 using boost::asio::ip::tcp;
 
@@ -24,6 +25,15 @@ void ssl_server::use(std::shared_ptr<middleware_chain> chain) { global_chain_ = 
 
 std::shared_ptr<middleware_chain> ssl_server::global_chain() const { return global_chain_; }
 
+void ssl_server::stop() {
+  stopping_.store(true, std::memory_order_release);
+  try {
+    acceptor_.close();
+  } catch (const boost::system::system_error &e) {
+    spdlog::warn("ssl_server::stop: failed to close acceptor: {}", e.what());
+  }
+}
+
 void ssl_server::do_accept() {
   boost::asio::co_spawn(
       acceptor_.get_executor(), [this]() -> boost::asio::awaitable<void> { co_await accept_loop(); },
@@ -32,11 +42,20 @@ void ssl_server::do_accept() {
 
 boost::asio::awaitable<void> ssl_server::accept_loop() {
   namespace asio = boost::asio;
-  while (true) {
+  while (!stopping_.load(std::memory_order_acquire)) {
     boost::system::error_code ec;
     tcp::socket sock(*listen_io_);
     co_await acceptor_.async_accept(sock, asio::redirect_error(asio::use_awaitable, ec));
-    if (!ec) {
+    if (ec) {
+      if (ec == asio::error::operation_aborted && stopping_.load(std::memory_order_acquire)) {
+        co_return;
+      }
+      if (ec != asio::error::operation_aborted) {
+        spdlog::warn("ssl_server::accept_loop: accept error: {}", ec.message());
+      }
+      continue;
+    }
+    if (!stopping_.load(std::memory_order_acquire)) {
       auto stream = asio::ssl::stream<tcp::socket>(std::move(sock), ssl_ctx_);
       std::make_shared<ssl_session>(std::move(stream), global_chain_)->start();
     }
