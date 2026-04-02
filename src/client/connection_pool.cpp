@@ -6,31 +6,31 @@
 namespace foxhttp::client {
 
 /* -------------------------------------------------------------------------- */
-/*                          connection implementation                         */
+/*                          Connection implementation                         */
 /* -------------------------------------------------------------------------- */
-connection::connection(socket_type socket)
+Connection::Connection(socket_type socket)
     : socket_(std::move(socket)), in_use_(false), last_activity_(std::chrono::steady_clock::now()) {}
 
-bool connection::is_alive() const { return socket_.is_open(); }
+bool Connection::is_alive() const { return socket_.is_open(); }
 
-void connection::mark_in_use() {
+void Connection::mark_in_use() {
   in_use_ = true;
   last_activity_ = std::chrono::steady_clock::now();
 }
 
-void connection::mark_idle() {
+void Connection::mark_idle() {
   in_use_ = false;
   last_activity_ = std::chrono::steady_clock::now();
 }
 
 /* -------------------------------------------------------------------------- */
-/*                       connection_pool implementation                       */
+/*                       ConnectionPool implementation                       */
 /* -------------------------------------------------------------------------- */
-connection_pool::connection_pool(std::size_t max_size, std::chrono::seconds idle_timeout,
+ConnectionPool::ConnectionPool(std::size_t max_size, std::chrono::seconds idle_timeout,
                                  std::chrono::seconds cleanup_interval)
     : max_size_(max_size), idle_timeout_(idle_timeout), cleanup_interval_(cleanup_interval) {}
 
-connection_pool::~connection_pool() {
+ConnectionPool::~ConnectionPool() {
   if (cleanup_timer_) {
     try {
       cleanup_timer_->cancel();
@@ -41,11 +41,11 @@ connection_pool::~connection_pool() {
   clear();
 }
 
-void connection_pool::start_cleanup_timer(boost::asio::io_context &io) {
+void ConnectionPool::start_cleanup_timer(boost::asio::io_context &io) {
   io_context_ = &io;
   cleanup_timer_ = std::make_unique<boost::asio::steady_timer>(io, cleanup_interval_);
 
-  std::weak_ptr<connection_pool> weak_self = shared_from_this();
+  std::weak_ptr<ConnectionPool> weak_self = shared_from_this();
   cleanup_timer_->async_wait([weak_self](const boost::system::error_code &ec) {
     if (ec == boost::asio::error::operation_aborted) {
       return;
@@ -58,25 +58,25 @@ void connection_pool::start_cleanup_timer(boost::asio::io_context &io) {
     }
   });
 
-  spdlog::debug("connection_pool: started cleanup timer with interval {}s", cleanup_interval_.count());
+  spdlog::debug("ConnectionPool: started cleanup timer with interval {}s", cleanup_interval_.count());
 }
 
-std::shared_ptr<connection> connection_pool::acquire(const std::string &host, uint16_t port) {
+std::shared_ptr<Connection> ConnectionPool::acquire(const std::string &host, uint16_t port) {
   std::lock_guard<std::mutex> lock(mutex_);
 
   const auto key = make_key(host, port);
   auto &pool = pools_[key];
 
-  // Try to find a usable connection
+  // Try to find a usable Connection
   while (!pool.empty()) {
     auto conn = pool.front();
     pool.pop();
 
-    // Check if connection is still alive
+    // Check if Connection is still alive
     if (conn && conn->is_alive()) {
       conn->mark_in_use();
       ++active_connections_;
-      spdlog::debug("connection_pool: acquired connection for {}:{}", host, port);
+      spdlog::debug("ConnectionPool: acquired Connection for {}:{}", host, port);
       return conn;
     }
 
@@ -84,12 +84,12 @@ std::shared_ptr<connection> connection_pool::acquire(const std::string &host, ui
     --total_connections_;
   }
 
-  // No available connection
-  spdlog::debug("connection_pool: no available connection for {}:{}", host, port);
+  // No available Connection
+  spdlog::debug("ConnectionPool: no available Connection for {}:{}", host, port);
   return nullptr;
 }
 
-void connection_pool::release(std::shared_ptr<connection> conn, const std::string &host, uint16_t port) {
+void ConnectionPool::release(std::shared_ptr<Connection> conn, const std::string &host, uint16_t port) {
   if (!conn) {
     return;
   }
@@ -99,52 +99,52 @@ void connection_pool::release(std::shared_ptr<connection> conn, const std::strin
   const auto key = make_key(host, port);
   auto &pool = pools_[key];
 
-  // Mark connection as idle
+  // Mark Connection as idle
   conn->mark_idle();
   --active_connections_;
 
-  // Check if connection is still alive
+  // Check if Connection is still alive
   if (!conn->is_alive()) {
     --total_connections_;
-    spdlog::debug("connection_pool: discarded dead connection for {}:{}", host, port);
+    spdlog::debug("ConnectionPool: discarded dead Connection for {}:{}", host, port);
     return;
   }
 
   // Check if pool is full
   if (total_connections_ >= max_size_) {
     --total_connections_;
-    spdlog::debug("connection_pool: pool full, discarded connection for {}:{}", host, port);
+    spdlog::debug("ConnectionPool: pool full, discarded Connection for {}:{}", host, port);
     return;
   }
 
-  // Add connection back to pool
+  // Add Connection back to pool
   pool.push(conn);
-  spdlog::debug("connection_pool: released connection for {}:{}, pool size: {}", host, port, pool.size());
+  spdlog::debug("ConnectionPool: released Connection for {}:{}, pool size: {}", host, port, pool.size());
 }
 
-std::size_t connection_pool::size() const {
+std::size_t ConnectionPool::size() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return total_connections_;
 }
 
-std::size_t connection_pool::active_count() const {
+std::size_t ConnectionPool::active_count() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return active_connections_;
 }
 
-void connection_pool::clear() {
+void ConnectionPool::clear() {
   std::lock_guard<std::mutex> lock(mutex_);
   pools_.clear();
   total_connections_ = 0;
   active_connections_ = 0;
-  spdlog::debug("connection_pool: cleared all connections");
+  spdlog::debug("ConnectionPool: cleared all connections");
 }
 
-std::string connection_pool::make_key(const std::string &host, uint16_t port) {
+std::string ConnectionPool::make_key(const std::string &host, uint16_t port) {
   return host + ":" + std::to_string(port);
 }
 
-void connection_pool::cleanup_expired() {
+void ConnectionPool::cleanup_expired() {
   std::lock_guard<std::mutex> lock(mutex_);
 
   const auto now = std::chrono::steady_clock::now();
@@ -161,12 +161,12 @@ void connection_pool::cleanup_expired() {
     }
   }
 
-  spdlog::debug("connection_pool: cleanup completed, total connections: {}", total_connections_);
+  spdlog::debug("ConnectionPool: cleanup completed, total connections: {}", total_connections_);
 }
 
-void connection_pool::cleanup_pool(std::queue<std::shared_ptr<connection>> &pool) {
+void ConnectionPool::cleanup_pool(std::queue<std::shared_ptr<Connection>> &pool) {
   const auto now = std::chrono::steady_clock::now();
-  std::queue<std::shared_ptr<connection>> valid_connections;
+  std::queue<std::shared_ptr<Connection>> valid_connections;
 
   while (!pool.empty()) {
     auto conn = pool.front();
@@ -178,11 +178,11 @@ void connection_pool::cleanup_pool(std::queue<std::shared_ptr<connection>> &pool
       continue;
     }
 
-    // Check if connection has been idle too long
+    // Check if Connection has been idle too long
     const auto idle_time = now - conn->last_activity();
     if (idle_time > idle_timeout_) {
       --total_connections_;
-      spdlog::debug("connection_pool: removed idle connection");
+      spdlog::debug("ConnectionPool: removed idle Connection");
       continue;
     }
 

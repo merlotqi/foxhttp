@@ -1,18 +1,18 @@
 #include <foxhttp/router/route_table.hpp>
 #include <foxhttp/router/router.hpp>
 
-namespace foxhttp {
+namespace foxhttp::router {
 
-void router::register_static_handler(const std::string &path, std::shared_ptr<api_handler> handler) {
-  route_table::instance().add_static_route(path, std::move(handler));
+void Router::register_static_handler(const std::string &path, std::shared_ptr<ApiHandler> handler) {
+  RouteTable::instance().add_static_route(path, std::move(handler));
 }
 
-void router::register_dynamic_handler(const std::string &path, std::shared_ptr<api_handler> handler) {
-  route_table::instance().add_dynamic_route(path, std::move(handler));
+void Router::register_dynamic_handler(const std::string &path, std::shared_ptr<ApiHandler> handler) {
+  RouteTable::instance().add_dynamic_route(path, std::move(handler));
 }
 
-std::shared_ptr<api_handler> router::resolve_route(const std::string &path, request_context &ctx) {
-  return route_table::instance().resolve_route(path, ctx);
+std::shared_ptr<ApiHandler> Router::resolve_route(const std::string &path, server::RequestContext &ctx) {
+  return RouteTable::instance().resolve_route(path, ctx);
 }
 
-}  // namespace foxhttp
+}  // namespace foxhttp::router

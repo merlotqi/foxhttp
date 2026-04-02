@@ -9,7 +9,12 @@ project(FoxHttp VERSION 0.1.0 LANGUAGES CXX)
 # project when FoxHttp is add_subdirectory()'d as a submodule.
 set(FOXHTTP_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
-set(CMAKE_CXX_STANDARD 20)
+option(FOXHTTP_USE_CPP20 "Enable C++20 coroutine support" OFF)
+if(FOXHTTP_USE_CPP20)
+    set(CMAKE_CXX_STANDARD 20)
+else()
+    set(CMAKE_CXX_STANDARD 17)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 option(FOXHTTP_BUILD_SHARED "Build shared library" OFF)

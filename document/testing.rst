@@ -25,11 +25,11 @@ Coverage areas (non-exhaustive)
 --------------------------------
 
 * **Router**: static/dynamic resolution, invalid patterns, static-vs-dynamic preference, dynamic route specificity.
-* **request_context**: path/query, path parameters, context bag.
-* **middleware_chain**: ordering, ``next()`` semantics.
-* **static_middleware**: file serving, HEAD, delegation, payload limit, directory index.
-* **body_parser_middleware**: JSON/form/text, skip rules, 400 on bad JSON.
-* **cors_middleware**, **json_parser**, **middleware_builder**, **response_time_middleware**.
+* **RequestContext** (``foxhttp::server::RequestContext``): path/query, path parameters, context bag.
+* **MiddlewareChain**: ordering, ``next()`` semantics.
+* **StaticMiddleware**: file serving, HEAD, delegation, payload limit, directory index.
+* **BodyParserMiddleware**: JSON/form/text, skip rules, 400 on bad JSON.
+* **CorsMiddleware**, **JsonParser**, **MiddlewareBuilder**, **ResponseTimeMiddleware**.
 
 Benchmarks (Google Benchmark)
 -----------------------------
@@ -38,11 +38,11 @@ Enable with ``-DFOXHTTP_BUILD_BENCHMARKS=ON``. Google Benchmark is fetched via *
 
 Microbenchmark areas (see table in ``benchmark/README.md``):
 
-* **Router / context**: static and dynamic resolution, not-found, scaling static map size, dynamic list scan (decoys + match), static preferred over dynamic, ``request_context`` with query + cookies.
+* **Router / context**: static and dynamic resolution, not-found, scaling static map size, dynamic list scan (decoys + match), static preferred over dynamic, ``foxhttp::server::RequestContext`` with query + cookies.
 * **JSON**: small document, medium array size, deeply nested object, ``supports()`` for JSON vs wrong ``Content-Type``.
 * **Middleware**: empty pipeline vs many synchronous pass-through layers.
 * **Form / plaintext**: URL-encoded field count, plaintext body size, ``supports()`` checks.
-* **Coroutine bridge**: ``tests/await_middleware_async_test.cpp`` — ``detail::await_middleware_chain_async`` with sync middleware, async ``asio::post`` completion, and empty chain.
+* **Coroutine bridge**: ``tests/await_middleware_async_test.cpp`` — ``foxhttp::detail::await_middleware_chain_async`` with sync middleware, async ``asio::post`` completion, and empty chain.
 * **Coroutine throughput** (benchmark): ``benchmark/coroutine_throughput_benchmark`` — middleware-await microbench and loopback session RPS (see ``benchmark/README.md``).
 
 Adding tests

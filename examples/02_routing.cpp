@@ -17,30 +17,30 @@ int main() {
   const unsigned short port = 8081;
 
   try {
-    foxhttp::io_context_pool pool(1);
-    auto sigs = std::make_shared<foxhttp::signal_set>(pool.get_io_context());
+    foxhttp::server::IoContextPool pool(1);
+    auto sigs = std::make_shared<foxhttp::server::SignalSet>(pool.get_io_context());
     sigs->register_handler(SIGINT, [&pool](int, const std::string &) { pool.stop(); });
     sigs->start();
 
-    foxhttp::server server(pool, port);
+    foxhttp::server::Server server(pool, port);
     server.use(std::make_shared<foxhttp::examples::router_dispatch_middleware>());
 
-    foxhttp::router::register_static_handler(
-        "/", [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler(
+        "/", [](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
           (void)ctx;
           res.result(http::status::ok);
           res.set(http::field::content_type, "text/plain");
           res.body() = "Example 02 — routing. Try /api/users/{id} and /api/items/{category}/{id}\n";
         });
 
-    foxhttp::router::register_dynamic_handler(
-        "/api/users/{id}", [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_dynamic_handler(
+        "/api/users/{id}", [](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
           res.result(http::status::ok);
           res.set(http::field::content_type, "application/json");
           res.body() = std::string(R"({"user_id":")") + ctx.path_parameter("id") + "\"}";
         });
 
-    foxhttp::router::register_dynamic_handler("/api/items/{category}/{id}", [](foxhttp::request_context &ctx,
+    foxhttp::router::Router::register_dynamic_handler("/api/items/{category}/{id}", [](foxhttp::server::RequestContext &ctx,
                                                                                http::response<http::string_body> &res) {
       res.result(http::status::ok);
       res.set(http::field::content_type, "application/json");

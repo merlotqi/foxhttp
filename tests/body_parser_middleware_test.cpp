@@ -12,8 +12,8 @@ TEST(BodyParserMiddleware, JsonBodyStoredInParsedBody) {
   req.set(http::field::content_type, "application/json; charset=utf-8");
   req.body() = R"({"n":42})";
 
-  foxhttp::request_context ctx(req);
-  foxhttp::body_parser_middleware mw;
+  foxhttp::server::RequestContext ctx(req);
+  foxhttp::middleware::BodyParserMiddleware mw;
   http::response<http::string_body> res;
   bool next_called = false;
   mw(ctx, res, [&] { next_called = true; });
@@ -28,8 +28,8 @@ TEST(BodyParserMiddleware, EmptyBodySkipsParsing) {
   req.set(http::field::content_type, "application/json");
   req.body() = "";
 
-  foxhttp::request_context ctx(req);
-  foxhttp::body_parser_middleware mw;
+  foxhttp::server::RequestContext ctx(req);
+  foxhttp::middleware::BodyParserMiddleware mw;
   http::response<http::string_body> res;
   bool next_called = false;
   mw(ctx, res, [&] { next_called = true; });
@@ -40,8 +40,8 @@ TEST(BodyParserMiddleware, NoContentTypeSkipsParsing) {
   http::request<http::string_body> req;
   req.body() = "{}";
 
-  foxhttp::request_context ctx(req);
-  foxhttp::body_parser_middleware mw;
+  foxhttp::server::RequestContext ctx(req);
+  foxhttp::middleware::BodyParserMiddleware mw;
   http::response<http::string_body> res;
   bool next_called = false;
   mw(ctx, res, [&] { next_called = true; });
@@ -53,8 +53,8 @@ TEST(BodyParserMiddleware, InvalidJsonReturns400WhenEnabled) {
   req.set(http::field::content_type, "application/json");
   req.body() = "not-json";
 
-  foxhttp::request_context ctx(req);
-  foxhttp::body_parser_middleware mw("BodyParser", true);
+  foxhttp::server::RequestContext ctx(req);
+  foxhttp::middleware::BodyParserMiddleware mw("BodyParser", true);
   http::response<http::string_body> res;
   mw(ctx, res, [] { FAIL() << "next should not run"; });
   EXPECT_EQ(res.result(), http::status::bad_request);
@@ -66,12 +66,12 @@ TEST(BodyParserMiddleware, FormUrlEncodedStoresUnderContextKey) {
   req.set(http::field::content_type, "application/x-www-form-urlencoded");
   req.body() = "a=1&b=two";
 
-  foxhttp::request_context ctx(req);
-  foxhttp::body_parser_middleware mw;
+  foxhttp::server::RequestContext ctx(req);
+  foxhttp::middleware::BodyParserMiddleware mw;
   http::response<http::string_body> res;
   mw(ctx, res, [] {});
 
-  auto fd = ctx.get<std::shared_ptr<foxhttp::form_data>>(foxhttp::body_parser_context_keys::form, nullptr);
+  auto fd = ctx.get<std::shared_ptr<foxhttp::parser::FormData>>(foxhttp::middleware::body_parser_context_keys::form, nullptr);
   ASSERT_NE(fd, nullptr);
   ASSERT_NE(fd->find("a"), fd->end());
   ASSERT_NE(fd->find("b"), fd->end());
@@ -84,8 +84,8 @@ TEST(BodyParserMiddleware, TextPlainStoredAsString) {
   req.set(http::field::content_type, "text/plain; charset=utf-8");
   req.body() = "plain";
 
-  foxhttp::request_context ctx(req);
-  foxhttp::body_parser_middleware mw;
+  foxhttp::server::RequestContext ctx(req);
+  foxhttp::middleware::BodyParserMiddleware mw;
   http::response<http::string_body> res;
   mw(ctx, res, [] {});
 

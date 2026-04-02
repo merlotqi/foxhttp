@@ -7,23 +7,23 @@
 
 namespace foxhttp::detail {
 
-class timer_guard {
+class TimerGuard {
  public:
-  explicit timer_guard(boost::asio::steady_timer& timer) : timer_(timer) {}
+  explicit TimerGuard(boost::asio::steady_timer& timer) : timer_(timer) {}
 
-  ~timer_guard() {
+  ~TimerGuard() {
     try {
       timer_.cancel();
     } catch (const boost::system::system_error& e) {
-      spdlog::warn("Failed to cancel timer in timer_guard: {}", e.what());
+      spdlog::warn("Failed to cancel timer in TimerGuard: {}", e.what());
     }
   }
 
-  timer_guard(const timer_guard&) = delete;
-  timer_guard& operator=(const timer_guard&) = delete;
+  TimerGuard(const TimerGuard&) = delete;
+  TimerGuard& operator=(const TimerGuard&) = delete;
 
-  timer_guard(timer_guard&&) = delete;
-  timer_guard& operator=(timer_guard&&) = delete;
+  TimerGuard(TimerGuard&&) = delete;
+  TimerGuard& operator=(TimerGuard&&) = delete;
 
  private:
   boost::asio::steady_timer& timer_;

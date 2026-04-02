@@ -8,17 +8,17 @@
 #include <unordered_map>
 #include <vector>
 
-namespace foxhttp {
+namespace foxhttp::parser {
+class MultipartField;
+}
 
-class multipart_field;
-class multipart_stream_parser;
-using multipart_data = std::vector<std::unique_ptr<multipart_field>>;
+namespace foxhttp::parser::detail {
+
+using multipart_data = std::vector<std::unique_ptr<MultipartField>>;
 using progress_callback = std::function<void(std::size_t, std::size_t, const std::string &)>;
 using error_callback = std::function<void(const std::string &, std::size_t)>;
 
-namespace details {
-
-class multipart_field_core {
+class MultipartFieldImpl {
  public:
   std::string name_;
   std::string filename_;
@@ -35,12 +35,12 @@ class multipart_field_core {
   std::string to_lower(const std::string &str) const;
 };
 
-class multipart_parser_core {
+class MultipartParserImpl {
  public:
-  multipart_config config_;
+  config::MultipartConfig config_;
 
   std::string extract_boundary(const std::string &content_type) const;
-  std::unique_ptr<multipart_field> parse_field(const std::string &field_data) const;
+  std::unique_ptr<MultipartField> parse_field(const std::string &field_data) const;
   std::unordered_map<std::string, std::string> parse_headers(const std::string &header_data) const;
   std::string decode_content(const std::string &content, const std::string &encoding) const;
   std::vector<uint8_t> decode_binary_content(const std::string &content, const std::string &encoding) const;
@@ -56,17 +56,17 @@ class multipart_parser_core {
   std::string quoted_printable_decode(const std::string &encoded) const;
 };
 
-class multipart_stream_parser_core {
+class MultipartStreamParserImpl {
  public:
   enum class ParseState {
-    BOUNDARY,
-    HEADERS,
-    CONTENT,
-    COMPLETE,
-    error
+    Boundary,
+    Headers,
+    Content,
+    Complete,
+    Error
   };
 
-  multipart_config config_;
+  config::MultipartConfig config_;
   std::string boundary_;
   std::string full_boundary_;
   std::string end_boundary_;
@@ -77,7 +77,7 @@ class multipart_stream_parser_core {
   std::string current_field_name_;
 
   std::string buffer_;
-  std::unique_ptr<multipart_field> current_field_;
+  std::unique_ptr<MultipartField> current_field_;
   multipart_data result_;
 
   progress_callback progress_callback_;
@@ -94,5 +94,4 @@ class multipart_stream_parser_core {
   void cleanup_temp_files();
 };
 
-}  // namespace details
-}  // namespace foxhttp
+}  // namespace foxhttp::parser::detail

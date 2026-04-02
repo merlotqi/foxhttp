@@ -64,7 +64,7 @@ TEST(HttpClient, ThenChainPostsAndReadsBody) {
   const unsigned short port = port_f.get();
 
   asio::io_context ioc;
-  foxhttp::client::http_client client(ioc.get_executor(), "http://127.0.0.1:" + std::to_string(port));
+  foxhttp::client::HttpClient client(ioc.get_executor(), "http://127.0.0.1:" + std::to_string(port));
 
   bool done = false;
   client.post("/echo?q=1")
@@ -97,7 +97,7 @@ TEST(HttpClient, CoAwaitAsAwaitable) {
   const unsigned short port = port_f.get();
 
   asio::io_context ioc;
-  foxhttp::client::http_client client(ioc.get_executor(), "http://127.0.0.1:" + std::to_string(port));
+  foxhttp::client::HttpClient client(ioc.get_executor(), "http://127.0.0.1:" + std::to_string(port));
 
   asio::co_spawn(
       ioc,
@@ -116,7 +116,7 @@ TEST(HttpClient, CoAwaitAsAwaitable) {
 
 TEST(HttpClient, CatchErrorOnConnectionRefused) {
   asio::io_context ioc;
-  foxhttp::client::http_client client(ioc.get_executor(), "http://127.0.0.1:59999");
+  foxhttp::client::HttpClient client(ioc.get_executor(), "http://127.0.0.1:59999");
 
   bool got_error = false;
   bool got_success = false;
@@ -138,7 +138,7 @@ TEST(HttpClient, CatchErrorOnConnectionRefused) {
 
 TEST(HttpClient, BuilderCannotBeReusedAfterThen) {
   asio::io_context ioc;
-  foxhttp::client::http_client client(ioc.get_executor(), "http://127.0.0.1:59999");
+  foxhttp::client::HttpClient client(ioc.get_executor(), "http://127.0.0.1:59999");
 
   auto builder = client.get("/");
   builder.catch_error([&](const boost::system::error_code &) { ioc.stop(); });
@@ -149,7 +149,7 @@ TEST(HttpClient, BuilderCannotBeReusedAfterThen) {
 
 TEST(HttpClient, AsAwaitableCannotMixWithThen) {
   asio::io_context ioc;
-  foxhttp::client::http_client client(ioc.get_executor(), "http://127.0.0.1:59999");
+  foxhttp::client::HttpClient client(ioc.get_executor(), "http://127.0.0.1:59999");
 
   auto builder = client.get("/");
   (void)builder.as_awaitable();

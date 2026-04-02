@@ -8,32 +8,32 @@
 #include <unordered_map>
 #include <vector>
 
-namespace foxhttp {
+namespace foxhttp::parser {
 
-class multipart_field;
-class multipart_parser;
-class multipart_stream_parser;
+class MultipartField;
+class MultipartParser;
+class MultipartStreamParser;
 
-using multipart_config = ::foxhttp::multipart_config;
+using MultipartConfig = config::MultipartConfig;
 
 using progress_callback =
     std::function<void(std::size_t bytes_received, std::size_t total_bytes, const std::string &field_name)>;
 
 using error_callback = std::function<void(const std::string &error, std::size_t position)>;
 
-namespace details {
-class multipart_field_core;
-class multipart_stream_parser_core;
-class multipart_parser_core;
-}  // namespace details
+namespace detail {
+class MultipartFieldImpl;
+class MultipartStreamParserImpl;
+class MultipartParserImpl;
+}  // namespace detail
 
-class multipart_field {
-  friend class details::multipart_parser_core;
-  friend class details::multipart_stream_parser_core;
+class MultipartField {
+  friend class detail::MultipartParserImpl;
+  friend class detail::MultipartStreamParserImpl;
 
  public:
-  multipart_field();
-  ~multipart_field();
+  MultipartField();
+  ~MultipartField();
 
   const std::string &name() const;
   const std::string &filename() const;
@@ -58,8 +58,8 @@ class multipart_field {
   std::string validation_error() const;
 
  private:
-  friend class multipart_parser;
-  friend class multipart_stream_parser;
+  friend class MultipartParser;
+  friend class MultipartStreamParser;
 
   void set_name(const std::string &name);
   void set_filename(const std::string &filename);
@@ -72,45 +72,45 @@ class multipart_field {
   void cleanup_temp_file();
 
  private:
-  std::unique_ptr<details::multipart_field_core> core_;
+  std::unique_ptr<detail::MultipartFieldImpl> core_;
 };
-using multipart_data = std::vector<std::unique_ptr<multipart_field>>;
+using MultipartData = std::vector<std::unique_ptr<MultipartField>>;
 
-class multipart_parser : public parser<multipart_data> {
+class MultipartParser : public Parser<MultipartData> {
  public:
-  explicit multipart_parser(const multipart_config &config = multipart_config{});
-  ~multipart_parser();
+  explicit MultipartParser(const MultipartConfig &config = MultipartConfig{});
+  ~MultipartParser();
 
   std::string name() const override;
   std::string content_type() const override;
   bool supports(const http::request<http::string_body> &req) const override;
-  multipart_data parse(const http::request<http::string_body> &req) const override;
+  MultipartData parse(const http::request<http::string_body> &req) const override;
 
-  multipart_data parse_with_boundary(const std::string &body, const std::string &boundary) const;
-  std::unique_ptr<multipart_stream_parser> create_stream_parser(const std::string &boundary,
+  MultipartData parse_with_boundary(const std::string &body, const std::string &boundary) const;
+  std::unique_ptr<MultipartStreamParser> create_stream_parser(const std::string &boundary,
                                                                 progress_callback progress_cb = nullptr,
                                                                 error_callback error_cb = nullptr) const;
 
-  const multipart_config &config() const;
-  void set_config(const multipart_config &config);
+  const MultipartConfig &config() const;
+  void set_config(const MultipartConfig &config);
 
-  bool validate_field(const multipart_field &field) const;
-  std::vector<std::string> validate_all_fields(const multipart_data &data) const;
+  bool validate_field(const MultipartField &field) const;
+  std::vector<std::string> validate_all_fields(const MultipartData &data) const;
 
  private:
-  std::unique_ptr<details::multipart_parser_core> core_;
+  std::unique_ptr<detail::MultipartParserImpl> core_;
 };
 
-class multipart_stream_parser {
+class MultipartStreamParser {
  public:
-  explicit multipart_stream_parser(const std::string &boundary, const multipart_config &config = multipart_config{},
+  explicit MultipartStreamParser(const std::string &boundary, const MultipartConfig &config = MultipartConfig{},
                                    progress_callback progress_cb = nullptr, error_callback error_cb = nullptr);
-  ~multipart_stream_parser();
+  ~MultipartStreamParser();
 
   bool feed_data(const char *data, std::size_t size);
   bool feed_data(const std::string &data);
   bool is_complete() const;
-  multipart_data get_result();
+  MultipartData get_result();
 
   void set_progress_callback(progress_callback callback);
   void set_error_callback(error_callback callback);
@@ -123,8 +123,8 @@ class multipart_stream_parser {
   void abort();
 
  private:
-  std::unique_ptr<details::multipart_stream_parser_core> core_;
+  std::unique_ptr<detail::MultipartStreamParserImpl> core_;
 };
-REGISTER_PARSER(multipart_data, multipart_parser);
+REGISTER_PARSER(MultipartData, MultipartParser);
 
-}  // namespace foxhttp
+}  // namespace foxhttp::parser

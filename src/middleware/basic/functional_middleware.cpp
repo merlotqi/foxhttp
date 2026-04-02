@@ -1,11 +1,11 @@
 #include <foxhttp/middleware/basic/functional_middleware.hpp>
 
-namespace foxhttp {
+namespace foxhttp::middleware {
 
-/* -------------------------- functional_middleware -------------------------- */
+/* -------------------------- FunctionalMiddleware -------------------------- */
 
-functional_middleware::functional_middleware(const std::string &name, sync_func sync_func, async_func async_func,
-                                             condition_func condition, middleware_priority priority,
+FunctionalMiddleware::FunctionalMiddleware(const std::string &name, sync_func sync_func, async_func async_func,
+                                             condition_func condition, MiddlewarePriority priority,
                                              std::chrono::milliseconds timeout)
     : name_(name),
       sync_func_(std::move(sync_func)),
@@ -14,24 +14,24 @@ functional_middleware::functional_middleware(const std::string &name, sync_func 
       priority_(priority),
       timeout_(timeout) {}
 
-std::string functional_middleware::name() const { return name_; }
-middleware_priority functional_middleware::priority() const { return priority_; }
-bool functional_middleware::should_execute(request_context &ctx) const { return condition_ ? condition_(ctx) : true; }
-std::chrono::milliseconds functional_middleware::timeout() const { return timeout_; }
+std::string FunctionalMiddleware::name() const { return name_; }
+MiddlewarePriority FunctionalMiddleware::priority() const { return priority_; }
+bool FunctionalMiddleware::should_execute(RequestContext &ctx) const { return condition_ ? condition_(ctx) : true; }
+std::chrono::milliseconds FunctionalMiddleware::timeout() const { return timeout_; }
 
-void functional_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+void FunctionalMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
                                        std::function<void()> next) {
   sync_func_(ctx, res, next);
 }
 
-void functional_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+void FunctionalMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
                                        std::function<void()> next, async_middleware_callback callback) {
   if (async_func_) {
     async_func_(ctx, res, next, callback);
   } else {
     // Fallback to sync implementation
-    middleware::operator()(ctx, res, next, callback);
+    Middleware::operator()(ctx, res, next, callback);
   }
 }
 
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware

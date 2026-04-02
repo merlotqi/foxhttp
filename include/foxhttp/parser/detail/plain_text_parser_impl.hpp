@@ -3,12 +3,11 @@
 #include <foxhttp/config/configs.hpp>
 #include <string>
 
-namespace foxhttp {
-namespace details {
+namespace foxhttp::parser::detail {
 
-class plain_text_parser_core {
+class PlainTextParserImpl {
  public:
-  plain_text_config config_;
+  config::PlainTextConfig config_;
 
   // Processing methods
   std::string process_text(const std::string &text) const;
@@ -20,5 +19,4 @@ class plain_text_parser_core {
   bool is_valid_utf8(const std::string &text) const;
 };
 
-}  // namespace details
-}  // namespace foxhttp
+}  // namespace foxhttp::parser::detail

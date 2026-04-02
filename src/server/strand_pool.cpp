@@ -2,28 +2,28 @@
 #include <foxhttp/server/strand_pool.hpp>
 #include <iostream>
 
-namespace foxhttp {
+namespace foxhttp::server {
 
-void print_strand_pool_statistics(const strand_pool &pool) {
+void print_strand_pool_statistics(const StrandPool &pool) {
   auto stats = pool.statistics();
   std::cout << "=== Strand Pool Statistics ===" << std::endl;
   std::cout << "Pool Size: " << pool.size() << std::endl;
   std::cout << "Strategy: ";
 
   switch (pool.config().strategy) {
-    case load_balance_strategy::round_robin:
+    case LoadBalanceStrategy::RoundRobin:
       std::cout << "Round Robin";
       break;
-    case load_balance_strategy::least_connections:
+    case LoadBalanceStrategy::LeastConnections:
       std::cout << "Least Connections";
       break;
-    case load_balance_strategy::consistent_hash:
+    case LoadBalanceStrategy::ConsistentHash:
       std::cout << "Consistent Hash";
       break;
-    case load_balance_strategy::random:
+    case LoadBalanceStrategy::Random:
       std::cout << "random";
       break;
-    case load_balance_strategy::weighted_round_robin:
+    case LoadBalanceStrategy::WeightedRoundRobin:
       std::cout << "Weighted Round Robin";
       break;
   }
@@ -54,9 +54,9 @@ void print_strand_pool_statistics(const strand_pool &pool) {
   std::cout << "==============================" << std::endl;
 }
 
-/* ------------------------------- strand_stats ------------------------------ */
+/* ------------------------------- StrandStats ------------------------------ */
 
-strand_stats::strand_stats(const strand_stats &other) {
+StrandStats::StrandStats(const StrandStats &other) {
   total_requests.store(other.total_requests.load());
   active_requests.store(other.active_requests.load());
   completed_requests.store(other.completed_requests.load());
@@ -66,7 +66,7 @@ strand_stats::strand_stats(const strand_stats &other) {
   is_healthy.store(other.is_healthy.load());
 }
 
-strand_stats &strand_stats::operator=(const strand_stats &other) {
+StrandStats &StrandStats::operator=(const StrandStats &other) {
   if (this != &other) {
     total_requests.store(other.total_requests.load());
     active_requests.store(other.active_requests.load());
@@ -79,7 +79,7 @@ strand_stats &strand_stats::operator=(const strand_stats &other) {
   return *this;
 }
 
-std::chrono::microseconds strand_stats::average_execution_time() const {
+std::chrono::microseconds StrandStats::average_execution_time() const {
   auto completed = completed_requests.load();
   if (completed == 0) return std::chrono::microseconds{0};
 
@@ -87,7 +87,7 @@ std::chrono::microseconds strand_stats::average_execution_time() const {
   return std::chrono::microseconds{total.count() / completed};
 }
 
-double strand_stats::load_factor() const {
+double StrandStats::load_factor() const {
   auto active = active_requests.load();
   auto completed = completed_requests.load();
   auto total = active + completed;
@@ -96,9 +96,9 @@ double strand_stats::load_factor() const {
   return static_cast<double>(active) / total;
 }
 
-/* --------------------------- strand_pool --------------------------- */
+/* --------------------------- StrandPool --------------------------- */
 
-strand_pool::strand_pool(boost::asio::io_context &io_context, const strand_pool_config &config)
+StrandPool::StrandPool(boost::asio::io_context &io_context, const StrandPoolConfig &config)
     : io_context_(io_context),
       config_(config),
       current_size_(0),
@@ -110,47 +110,47 @@ strand_pool::strand_pool(boost::asio::io_context &io_context, const strand_pool_
   initialize();
 }
 
-strand_pool::~strand_pool() { stop(); }
+StrandPool::~StrandPool() { stop(); }
 
-void strand_pool::start() {
+void StrandPool::start() {
   if (is_running_.exchange(true)) return;
 
   start_metrics_reporting();
   start_health_checking();
 }
 
-void strand_pool::stop() {
+void StrandPool::stop() {
   if (!is_running_.exchange(false)) return;
 
   metrics_timer_.cancel();
   health_check_timer_.cancel();
 }
 
-strand_pool::strand_ptr strand_pool::next_strand() {
+StrandPool::strand_ptr StrandPool::next_strand() {
   switch (config_.strategy) {
-    case load_balance_strategy::round_robin:
+    case LoadBalanceStrategy::RoundRobin:
       return round_robin_strand();
-    case load_balance_strategy::least_connections:
+    case LoadBalanceStrategy::LeastConnections:
       return least_connections_strand();
-    case load_balance_strategy::consistent_hash:
+    case LoadBalanceStrategy::ConsistentHash:
       return consistent_hash_strand(std::hash<std::thread::id>{}(std::this_thread::get_id()));
-    case load_balance_strategy::random:
+    case LoadBalanceStrategy::Random:
       return random_strand();
-    case load_balance_strategy::weighted_round_robin:
+    case LoadBalanceStrategy::WeightedRoundRobin:
       return weightedround_robin_strand();
     default:
       return round_robin_strand();
   }
 }
 
-strand_pool::strand_ptr strand_pool::strand_for_session(const std::string &session_id) {
+StrandPool::strand_ptr StrandPool::strand_for_session(const std::string &session_id) {
   std::size_t hash = std::hash<std::string>{}(session_id);
   return consistent_hash_strand(hash);
 }
 
-strand_pool::strand_ptr strand_pool::strand_by_hash(std::size_t hash) { return consistent_hash_strand(hash); }
+StrandPool::strand_ptr StrandPool::strand_by_hash(std::size_t hash) { return consistent_hash_strand(hash); }
 
-void strand_pool::resize(std::size_t new_size) {
+void StrandPool::resize(std::size_t new_size) {
   if (new_size < config_.min_size || new_size > config_.max_size) {
     throw std::invalid_argument("Invalid strand pool size");
   }
@@ -182,31 +182,31 @@ void strand_pool::resize(std::size_t new_size) {
   update_consistent_hash_ring();
 }
 
-void strand_pool::set_load_balance_strategy(load_balance_strategy strategy) { config_.strategy = strategy; }
+void StrandPool::set_load_balance_strategy(LoadBalanceStrategy strategy) { config_.strategy = strategy; }
 
-void strand_pool::set_metrics_callback(metrics_callback callback) {
+void StrandPool::set_metrics_callback(MetricsCallback callback) {
   std::lock_guard<std::mutex> lock(metrics_mutex_);
   metrics_callback_ = std::move(callback);
 }
 
-void strand_pool::set_health_check_callback(health_check_callback callback) {
+void StrandPool::set_health_check_callback(HealthCheckCallback callback) {
   std::lock_guard<std::mutex> lock(health_check_mutex_);
   health_check_callback_ = std::move(callback);
 }
 
-std::vector<strand_stats> strand_pool::statistics() const {
+std::vector<StrandStats> StrandPool::statistics() const {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
   return strands_stats_;
 }
 
-std::size_t strand_pool::size() const {
+std::size_t StrandPool::size() const {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
   return current_size_;
 }
 
-const strand_pool_config &strand_pool::config() const { return config_; }
+const StrandPoolConfig &StrandPool::config() const { return config_; }
 
-void strand_pool::update_config(const strand_pool_config &new_config) {
+void StrandPool::update_config(const StrandPoolConfig &new_config) {
   config_ = new_config;
 
   if (new_config.initial_size != current_size_) {
@@ -214,11 +214,11 @@ void strand_pool::update_config(const strand_pool_config &new_config) {
   }
 }
 
-void strand_pool::perform_health_check() { perform_health_check_internal(); }
+void StrandPool::perform_health_check() { perform_health_check_internal(); }
 
-void strand_pool::report_metrics() { report_metrics_internal(); }
+void StrandPool::report_metrics() { report_metrics_internal(); }
 
-void strand_pool::initialize() {
+void StrandPool::initialize() {
   std::unique_lock<std::shared_mutex> lock(strands_mutex_);
 
   strands_.reserve(config_.max_size);
@@ -232,20 +232,20 @@ void strand_pool::initialize() {
   update_consistent_hash_ring();
 }
 
-void strand_pool::create_strand(std::size_t index) {
+void StrandPool::create_strand(std::size_t index) {
   auto strand = std::make_shared<boost::asio::strand<executor_type>>(io_context_.get_executor());
   strands_.push_back(strand);
   strands_stats_.emplace_back();
 }
 
-void strand_pool::remove_strand(std::size_t index) {
+void StrandPool::remove_strand(std::size_t index) {
   if (index < strands_.size()) {
     strands_.erase(strands_.begin() + index);
     strands_stats_.erase(strands_stats_.begin() + index);
   }
 }
 
-strand_pool::strand_ptr strand_pool::round_robin_strand() {
+StrandPool::strand_ptr StrandPool::round_robin_strand() {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
   if (strands_.empty()) return nullptr;
 
@@ -254,7 +254,7 @@ strand_pool::strand_ptr strand_pool::round_robin_strand() {
   return strands_[index];
 }
 
-strand_pool::strand_ptr strand_pool::least_connections_strand() {
+StrandPool::strand_ptr StrandPool::least_connections_strand() {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
   if (strands_.empty()) return nullptr;
 
@@ -273,7 +273,7 @@ strand_pool::strand_ptr strand_pool::least_connections_strand() {
   return strands_[best_index];
 }
 
-strand_pool::strand_ptr strand_pool::consistent_hash_strand(std::size_t hash) {
+StrandPool::strand_ptr StrandPool::consistent_hash_strand(std::size_t hash) {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
   if (strands_.empty()) return nullptr;
 
@@ -289,7 +289,7 @@ strand_pool::strand_ptr strand_pool::consistent_hash_strand(std::size_t hash) {
   return strands_[index];
 }
 
-strand_pool::strand_ptr strand_pool::random_strand() {
+StrandPool::strand_ptr StrandPool::random_strand() {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
   if (strands_.empty()) return nullptr;
 
@@ -299,7 +299,7 @@ strand_pool::strand_ptr strand_pool::random_strand() {
   return strands_[index];
 }
 
-strand_pool::strand_ptr strand_pool::weightedround_robin_strand() {
+StrandPool::strand_ptr StrandPool::weightedround_robin_strand() {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
   if (strands_.empty()) return nullptr;
 
@@ -329,7 +329,7 @@ strand_pool::strand_ptr strand_pool::weightedround_robin_strand() {
   return round_robin_strand();
 }
 
-void strand_pool::update_strand_stats(std::size_t index) {
+void StrandPool::update_strand_stats(std::size_t index) {
   if (index < strands_stats_.size()) {
     strands_stats_[index].total_requests.fetch_add(1, std::memory_order_relaxed);
     strands_stats_[index].active_requests.fetch_add(1, std::memory_order_relaxed);
@@ -337,7 +337,7 @@ void strand_pool::update_strand_stats(std::size_t index) {
   }
 }
 
-void strand_pool::update_consistent_hash_ring() {
+void StrandPool::update_consistent_hash_ring() {
   hash_ring_.clear();
   hash_ring_.reserve(current_size_ * 100);
 
@@ -352,7 +352,7 @@ void strand_pool::update_consistent_hash_ring() {
   std::sort(hash_ring_.begin(), hash_ring_.end());
 }
 
-void strand_pool::start_metrics_reporting() {
+void StrandPool::start_metrics_reporting() {
   metrics_timer_.expires_after(config_.metrics_report_interval);
   metrics_timer_.async_wait([this](boost::system::error_code ec) {
     if (!ec && is_running_.load()) {
@@ -362,7 +362,7 @@ void strand_pool::start_metrics_reporting() {
   });
 }
 
-void strand_pool::start_health_checking() {
+void StrandPool::start_health_checking() {
   health_check_timer_.expires_after(config_.health_check_interval);
   health_check_timer_.async_wait([this](boost::system::error_code ec) {
     if (!ec && is_running_.load()) {
@@ -372,7 +372,7 @@ void strand_pool::start_health_checking() {
   });
 }
 
-void strand_pool::report_metrics_internal() {
+void StrandPool::report_metrics_internal() {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
 
   std::lock_guard<std::mutex> metrics_lock(metrics_mutex_);
@@ -389,7 +389,7 @@ void strand_pool::report_metrics_internal() {
   }
 }
 
-void strand_pool::perform_health_check_internal() {
+void StrandPool::perform_health_check_internal() {
   std::shared_lock<std::shared_mutex> lock(strands_mutex_);
 
   std::lock_guard<std::mutex> health_lock(health_check_mutex_);
@@ -401,4 +401,4 @@ void strand_pool::perform_health_check_internal() {
   }
 }
 
-}  // namespace foxhttp
+}  // namespace foxhttp::server

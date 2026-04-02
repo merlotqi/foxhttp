@@ -7,16 +7,16 @@ namespace http = boost::beast::http;
 
 TEST(ResponseTimeMiddleware, AddsHeaderAfterInnerMiddleware) {
   boost::asio::io_context ioc;
-  foxhttp::middleware_chain chain(ioc);
+  foxhttp::middleware::MiddlewareChain chain(ioc);
 
-  chain.use(std::make_shared<foxhttp::response_time_middleware>("X-RT"));
-  chain.use(std::make_shared<foxhttp::functional_middleware>(
+  chain.use(std::make_shared<foxhttp::middleware::ResponseTimeMiddleware>("X-RT"));
+  chain.use(std::make_shared<foxhttp::middleware::FunctionalMiddleware>(
       "noop",
-      [](foxhttp::request_context &, http::response<http::string_body> &, std::function<void()> next) { next(); }));
+      [](foxhttp::server::RequestContext &, http::response<http::string_body> &, std::function<void()> next) { next(); }));
 
   http::request<http::string_body> req;
   req.target("/");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   http::response<http::string_body> res;
   chain.execute(ctx, res);
 

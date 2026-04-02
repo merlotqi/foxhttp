@@ -6,33 +6,33 @@
 #include <string>
 #include <unordered_map>
 
-namespace foxhttp {
+namespace foxhttp::middleware {
 
 /// Serves files under @p document_root for HTTP GET/HEAD requests whose path starts with @p url_prefix.
 /// Path traversal outside @p document_root is rejected with 403. Missing files under the prefix: 404.
-class static_middleware : public middleware {
+class StaticMiddleware : public Middleware {
  public:
-  explicit static_middleware(std::string url_prefix, std::filesystem::path document_root,
+  explicit StaticMiddleware(std::string url_prefix, std::filesystem::path document_root,
                              std::string index_file = "index.html");
 
   std::string name() const override;
-  middleware_priority priority() const override;
+  MiddlewarePriority priority() const override;
 
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override;
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override;
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
                   async_middleware_callback callback) override;
 
   void set_max_file_size(std::size_t bytes);
   std::size_t max_file_size() const { return max_file_size_; }
 
  private:
-  enum class serve_result {
-    not_applicable,
-    served,
-    stop_pipeline
+  enum class ServeResult {
+    NotApplicable,
+    Served,
+    StopPipeline
   };
 
-  serve_result try_serve(request_context &ctx, http::response<http::string_body> &res);
+  ServeResult try_serve(RequestContext &ctx, http::response<http::string_body> &res);
 
   static std::string normalize_prefix(std::string p);
   static bool is_subpath(const std::filesystem::path &root, const std::filesystem::path &candidate);
@@ -45,4 +45,4 @@ class static_middleware : public middleware {
   std::size_t max_file_size_;
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware

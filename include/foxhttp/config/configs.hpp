@@ -6,9 +6,9 @@
 #include <thread>
 #include <vector>
 
-namespace foxhttp {
+namespace foxhttp::config {
 
-struct json_config {
+struct JsonConfig {
   std::size_t max_size = 10 * 1024 * 1024;  // 10MB max JSON size
   std::size_t max_depth = 100;              // Max nesting depth
   bool strict_mode = true;                  // Strict JSON compliance
@@ -20,7 +20,7 @@ struct json_config {
   std::string charset = "UTF-8";            // Default charset
 };
 
-struct multipart_config {
+struct MultipartConfig {
   std::size_t max_field_size = 10 * 1024 * 1024;   // 10MB max field size
   std::size_t max_file_size = 100 * 1024 * 1024;   // 100MB max file size
   std::size_t max_total_size = 500 * 1024 * 1024;  // 500MB max total size
@@ -34,7 +34,7 @@ struct multipart_config {
   std::vector<std::string> allowed_content_types;  // Allowed content types
 };
 
-struct form_config {
+struct FormConfig {
   std::size_t max_field_size = 1024 * 1024;       // 1MB max field size
   std::size_t max_total_size = 10 * 1024 * 1024;  // 10MB max total size
   std::size_t max_fields = 1000;                  // Max number of fields
@@ -44,7 +44,7 @@ struct form_config {
   std::string charset = "UTF-8";                  // Default charset
 };
 
-struct plain_text_config {
+struct PlainTextConfig {
   std::size_t max_size = 10 * 1024 * 1024;         // 10MB max text size
   bool normalize_line_endings = true;              // Convert CRLF to LF
   bool trim_whitespace = false;                    // Trim leading/trailing whitespace
@@ -54,19 +54,19 @@ struct plain_text_config {
   bool strict_mode = false;                        // Strict content type checking
 };
 
-enum class load_balance_strategy {
-  round_robin,
-  least_connections,
-  consistent_hash,
-  random,
-  weighted_round_robin
+enum class LoadBalanceStrategy {
+  RoundRobin,
+  LeastConnections,
+  ConsistentHash,
+  Random,
+  WeightedRoundRobin
 };
 
-struct strand_pool_config {
+struct StrandPoolConfig {
   std::size_t initial_size = std::thread::hardware_concurrency();
   std::size_t min_size = 1;
   std::size_t max_size = 64;
-  load_balance_strategy strategy = load_balance_strategy::round_robin;
+  LoadBalanceStrategy strategy = LoadBalanceStrategy::RoundRobin;
   std::chrono::milliseconds health_check_interval{5000};
   std::chrono::milliseconds metrics_report_interval{10000};
   bool enable_auto_scaling = true;
@@ -74,7 +74,7 @@ struct strand_pool_config {
   double idle_threshold = 0.2;
 };
 
-struct timer_manager_config {
+struct TimerManagerConfig {
   std::size_t bucket_count = 16;
   std::chrono::milliseconds cleanup_interval{60000};
   std::chrono::milliseconds statistics_report_interval{30000};
@@ -82,7 +82,7 @@ struct timer_manager_config {
   bool enable_cleanup = true;
 };
 
-struct session_limits {
+struct SessionLimits {
   // Timeouts to mitigate slowloris/slow body attacks
   std::chrono::milliseconds handshake_timeout{5000};    // TLS handshake timeout
   std::chrono::milliseconds header_read_timeout{3000};  // time to read request line+headers
@@ -98,11 +98,11 @@ struct session_limits {
 
   /// When true, honor HTTP keep-alive (Connection / HTTP version) after each response.
   bool enable_keep_alive{true};
-  /// Close after this many completed responses on one connection; 0 means no limit.
+  /// Close after this many completed responses on one Connection; 0 means no limit.
   std::size_t max_requests_per_connection{1000};
 };
 
-struct websocket_limits {
+struct WebSocketLimits {
   std::size_t max_message_bytes{8 * 1024 * 1024};  // 8MB
   std::size_t max_frame_bytes{2 * 1024 * 1024};    // 2MB
   std::chrono::milliseconds ping_interval{30000};  // 30s
@@ -110,4 +110,4 @@ struct websocket_limits {
   bool enable_compression{false};
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::config

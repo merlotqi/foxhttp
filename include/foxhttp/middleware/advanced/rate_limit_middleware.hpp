@@ -10,26 +10,25 @@
 
 namespace http = boost::beast::http;
 
-namespace foxhttp {
-namespace advanced {
+namespace foxhttp::middleware::advanced {
 
-class rate_limit_middleware : public middleware {
+class RateLimitMiddleware : public Middleware {
  public:
-  using key_extractor = std::function<std::string(request_context &)>;
+  using key_extractor = std::function<std::string(RequestContext &)>;
 
   // Simple sliding window limiter: allow 'max_requests' per 'window'
-  explicit rate_limit_middleware(std::size_t max_requests = 60, std::chrono::seconds window = std::chrono::seconds(60))
+  explicit RateLimitMiddleware(std::size_t max_requests = 60, std::chrono::seconds window = std::chrono::seconds(60))
       : max_requests_(max_requests), window_(window) {}
 
-  rate_limit_middleware &set_key_extractor(key_extractor extractor) {
+  RateLimitMiddleware &set_key_extractor(key_extractor extractor) {
     extractor_ = std::move(extractor);
     return *this;
   }
 
   std::string name() const override { return "advanced_rate_limit_middleware"; }
-  middleware_priority priority() const override { return middleware_priority::high; }
+  MiddlewarePriority priority() const override { return MiddlewarePriority::High; }
 
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override {
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override {
     auto key = make_key(ctx);
     if (is_limited(key)) {
       res.result(http::status::too_many_requests);
@@ -43,7 +42,7 @@ class rate_limit_middleware : public middleware {
   }
 
  private:
-  struct bucket {
+  struct RateLimitBucket {
     std::size_t count = 0;
     std::chrono::steady_clock::time_point start;
   };
@@ -67,7 +66,7 @@ class rate_limit_middleware : public middleware {
     return false;
   }
 
-  std::string make_key(request_context &ctx) {
+  std::string make_key(RequestContext &ctx) {
     if (extractor_) return extractor_(ctx);
     // Default: X-Forwarded-For + path
     auto ip = ctx.header("X-Forwarded-For", "");
@@ -80,8 +79,7 @@ class rate_limit_middleware : public middleware {
   std::chrono::seconds window_;
   key_extractor extractor_;
   std::mutex mutex_;
-  std::unordered_map<std::string, bucket> buckets_;
+  std::unordered_map<std::string, RateLimitBucket> buckets_;
 };
 
-}  // namespace advanced
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware::advanced

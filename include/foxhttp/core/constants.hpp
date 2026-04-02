@@ -3,7 +3,7 @@
 #include <chrono>
 #include <cstddef>
 
-namespace foxhttp::constants {
+namespace foxhttp::core {
 
 /* -------------------------------------------------------------------------- */
 /*                             Default Size Limits                            */
@@ -56,20 +56,20 @@ constexpr auto kDefaultGlobalTimeout = std::chrono::milliseconds(0);
 /*                          Connection Pool Defaults                          */
 /* -------------------------------------------------------------------------- */
 
-/// Default maximum connection pool size
+/// Default maximum Connection pool size
 constexpr std::size_t kDefaultMaxPoolSize = 100;
 
-/// Default connection idle timeout (60 seconds)
+/// Default Connection idle timeout (60 seconds)
 constexpr auto kDefaultConnectionIdleTimeout = std::chrono::seconds(60);
 
-/// Default connection cleanup interval (10 seconds)
+/// Default Connection cleanup interval (10 seconds)
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds(10);
 
 /* -------------------------------------------------------------------------- */
 /*                               Server Defaults                              */
 /* -------------------------------------------------------------------------- */
 
-/// Default maximum requests per connection (0 = unlimited)
+/// Default maximum requests per Connection (0 = unlimited)
 constexpr std::size_t kDefaultMaxRequestsPerConnection = 0;
 
 /// Default io_context pool size (0 = auto-detect based on hardware)
@@ -133,4 +133,4 @@ constexpr unsigned kHttp11Version = 11;
 /// Default temporary directory for multipart uploads
 constexpr const char* kDefaultTempDirectory = "/tmp";
 
-}  // namespace foxhttp::constants
+}  // namespace foxhttp::core

@@ -1,36 +1,53 @@
 #pragma once
 
 #include <atomic>
-#include <boost/asio/awaitable.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <foxhttp/config.hpp>
+#include <foxhttp/middleware/middleware.hpp>
 #include <memory>
+#include <type_traits>
+
+#if FOXHTTP_HAS_COROUTINES
+#include <boost/asio/awaitable.hpp>
+#endif
 
 using tcp = boost::asio::ip::tcp;
 
-namespace foxhttp {
+namespace foxhttp::server {
 
-class middleware;
-class io_context_pool;
-class middleware_chain;
+class IoContextPool;
 
-class server {
+using Middleware = middleware::Middleware;
+using MiddlewareChain = middleware::MiddlewareChain;
+
+class Server {
  public:
-  server(io_context_pool &io_pool, unsigned short port);
+  Server(IoContextPool &io_pool, unsigned short port);
 
-  void use(std::shared_ptr<middleware> mw);
-  std::shared_ptr<middleware_chain> global_chain() const;
+  void use(std::shared_ptr<Middleware> mw);
+
+  template <typename MW, typename = std::enable_if_t<!std::is_same_v<std::remove_cv_t<MW>, Middleware>>>
+  void use(std::shared_ptr<MW> mw) {
+    use(std::static_pointer_cast<Middleware>(std::move(mw)));
+  }
+
+  std::shared_ptr<MiddlewareChain> global_chain() const;
 
   void stop();
 
  private:
   void do_accept();
+#if FOXHTTP_HAS_COROUTINES
   boost::asio::awaitable<void> accept_loop();
+#else
+  void accept_loop();
+#endif
 
-  io_context_pool &io_pool_;
+  IoContextPool &io_pool_;
   boost::asio::io_context *listen_io_;
   tcp::acceptor acceptor_;
-  std::shared_ptr<middleware_chain> global_chain_;
+  std::shared_ptr<MiddlewareChain> global_chain_;
   std::atomic<bool> stopping_{false};
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::server

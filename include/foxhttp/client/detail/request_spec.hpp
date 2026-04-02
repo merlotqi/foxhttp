@@ -13,15 +13,15 @@ namespace foxhttp::client::detail {
 
 namespace http = boost::beast::http;
 
-struct client_base_config {
+struct ClientBaseConfig {
   bool https{false};
   std::string host;
   std::string port;        // decimal string, e.g. "80"
   std::string host_field;  // Host header value (host:port when non-default)
 };
 
-struct request_spec {
-  client_base_config base;
+struct RequestSpec {
+  ClientBaseConfig base;
   http::verb method{http::verb::get};
   std::string target_path;  // path + query for request line
   std::vector<std::pair<std::string, std::string>> headers;

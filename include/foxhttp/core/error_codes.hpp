@@ -2,179 +2,179 @@
 
 #include <string>
 
-namespace foxhttp {
+namespace foxhttp::core {
 
-enum class error_code {
-  success = 0,
+enum class ErrorCode {
+  Success = 0,
 
-  network_timeout = 1000,
-  network_connection_refused = 1001,
-  network_connection_reset = 1002,
-  network_unreachable = 1003,
-  network_dns_resolution_failed = 1004,
+  NetworkTimeout = 1000,
+  NetworkConnectionRefused = 1001,
+  NetworkConnectionReset = 1002,
+  NetworkUnreachable = 1003,
+  NetworkDnsResolutionFailed = 1004,
 
-  parse_invalid_format = 2000,
-  parse_size_exceeded = 2001,
-  parse_encoding_error = 2002,
-  parse_json_invalid = 2003,
-  parse_multipart_invalid = 2004,
+  ParseInvalidFormat = 2000,
+  ParseSizeExceeded = 2001,
+  ParseEncodingError = 2002,
+  ParseJsonInvalid = 2003,
+  ParseMultipartInvalid = 2004,
 
-  middleware_timeout = 3000,
-  middleware_error = 3001,
-  middleware_cancelled = 3002,
-  middleware_chain_exhausted = 3003,
+  MiddlewareTimeout = 3000,
+  MiddlewareError = 3001,
+  MiddlewareCancelled = 3002,
+  MiddlewareChainExhausted = 3003,
 
-  route_not_found = 4000,
-  route_invalid_pattern = 4001,
-  route_parameter_missing = 4002,
+  RouteNotFound = 4000,
+  RouteInvalidPattern = 4001,
+  RouteParameterMissing = 4002,
 
-  server_internal_error = 5000,
-  server_shutdown = 5001,
-  server_accept_failed = 5002,
-  server_session_error = 5003,
+  ServerInternalError = 5000,
+  ServerShutdown = 5001,
+  ServerAcceptFailed = 5002,
+  ServerSessionError = 5003,
 
-  tls_handshake_failed = 6000,
-  tls_certificate_invalid = 6001,
-  tls_certificate_expired = 6002,
+  TlsHandshakeFailed = 6000,
+  TlsCertificateInvalid = 6001,
+  TlsCertificateExpired = 6002,
 
-  websocket_handshake_failed = 7000,
-  websocket_connection_closed = 7001,
-  websocket_message_too_large = 7002,
-  websocket_protocol_error = 7003,
+  WebsocketHandshakeFailed = 7000,
+  WebsocketConnectionClosed = 7001,
+  WebsocketMessageTooLarge = 7002,
+  WebsocketProtocolError = 7003,
 
-  client_request_failed = 8000,
-  client_response_invalid = 8001,
-  client_connection_pool_exhausted = 8002,
+  ClientRequestFailed = 8000,
+  ClientResponseInvalid = 8001,
+  ClientConnectionPoolExhausted = 8002,
 
-  unknown = 9999
+  Unknown = 9999
 };
 
-struct error_info {
-  error_code code;
+struct ErrorInfo {
+  ErrorCode code;
   std::string message;
   std::string details;
 
-  error_info(error_code c, const std::string& msg, const std::string& det = "") : code(c), message(msg), details(det) {}
+  ErrorInfo(ErrorCode c, const std::string& msg, const std::string& det = "") : code(c), message(msg), details(det) {}
 };
 
-class middleware_exception : public std::exception {
+class MiddlewareException : public std::exception {
  public:
-  middleware_exception(const std::string& msg, error_code code) : message_(msg), code_(code) {}
+  MiddlewareException(const std::string& msg, ErrorCode code) : message_(msg), code_(code) {}
 
   const char* what() const noexcept override { return message_.c_str(); }
-  error_code code() const { return code_; }
+  ErrorCode code() const { return code_; }
 
  private:
   std::string message_;
-  error_code code_;
+  ErrorCode code_;
 };
 
-class router_exception : public std::exception {
+class RouterException : public std::exception {
  public:
-  router_exception(const std::string& msg, error_code code) : message_(msg), code_(code) {}
+  RouterException(const std::string& msg, ErrorCode code) : message_(msg), code_(code) {}
 
   const char* what() const noexcept override { return message_.c_str(); }
-  error_code code() const { return code_; }
+  ErrorCode code() const { return code_; }
 
  private:
   std::string message_;
-  error_code code_;
+  ErrorCode code_;
 };
 
-class parser_exception : public std::exception {
+class ParserException : public std::exception {
  public:
-  parser_exception(const std::string& msg, error_code code) : message_(msg), code_(code) {}
+  ParserException(const std::string& msg, ErrorCode code) : message_(msg), code_(code) {}
 
   const char* what() const noexcept override { return message_.c_str(); }
-  error_code code() const { return code_; }
+  ErrorCode code() const { return code_; }
 
  private:
   std::string message_;
-  error_code code_;
+  ErrorCode code_;
 };
 
-class network_exception : public std::exception {
+class NetworkException : public std::exception {
  public:
-  network_exception(const std::string& msg, error_code code) : message_(msg), code_(code) {}
+  NetworkException(const std::string& msg, ErrorCode code) : message_(msg), code_(code) {}
 
   const char* what() const noexcept override { return message_.c_str(); }
-  error_code code() const { return code_; }
+  ErrorCode code() const { return code_; }
 
  private:
   std::string message_;
-  error_code code_;
+  ErrorCode code_;
 };
 
-inline std::string error_code_to_string(error_code code) {
+inline std::string error_code_to_string(ErrorCode code) {
   switch (code) {
-    case error_code::success:
+    case ErrorCode::Success:
       return "Success";
-    case error_code::network_timeout:
+    case ErrorCode::NetworkTimeout:
       return "Network timeout";
-    case error_code::network_connection_refused:
+    case ErrorCode::NetworkConnectionRefused:
       return "Connection refused";
-    case error_code::network_connection_reset:
+    case ErrorCode::NetworkConnectionReset:
       return "Connection reset";
-    case error_code::network_unreachable:
+    case ErrorCode::NetworkUnreachable:
       return "Network unreachable";
-    case error_code::network_dns_resolution_failed:
+    case ErrorCode::NetworkDnsResolutionFailed:
       return "DNS resolution failed";
-    case error_code::parse_invalid_format:
+    case ErrorCode::ParseInvalidFormat:
       return "Invalid format";
-    case error_code::parse_size_exceeded:
+    case ErrorCode::ParseSizeExceeded:
       return "Size exceeded";
-    case error_code::parse_encoding_error:
+    case ErrorCode::ParseEncodingError:
       return "Encoding error";
-    case error_code::parse_json_invalid:
+    case ErrorCode::ParseJsonInvalid:
       return "Invalid JSON";
-    case error_code::parse_multipart_invalid:
+    case ErrorCode::ParseMultipartInvalid:
       return "Invalid multipart";
-    case error_code::middleware_timeout:
+    case ErrorCode::MiddlewareTimeout:
       return "Middleware timeout";
-    case error_code::middleware_error:
+    case ErrorCode::MiddlewareError:
       return "Middleware error";
-    case error_code::middleware_cancelled:
+    case ErrorCode::MiddlewareCancelled:
       return "Middleware cancelled";
-    case error_code::middleware_chain_exhausted:
+    case ErrorCode::MiddlewareChainExhausted:
       return "Middleware chain exhausted";
-    case error_code::route_not_found:
+    case ErrorCode::RouteNotFound:
       return "Route not found";
-    case error_code::route_invalid_pattern:
+    case ErrorCode::RouteInvalidPattern:
       return "Invalid route pattern";
-    case error_code::route_parameter_missing:
+    case ErrorCode::RouteParameterMissing:
       return "Route parameter missing";
-    case error_code::server_internal_error:
+    case ErrorCode::ServerInternalError:
       return "Internal server error";
-    case error_code::server_shutdown:
+    case ErrorCode::ServerShutdown:
       return "Server shutdown";
-    case error_code::server_accept_failed:
+    case ErrorCode::ServerAcceptFailed:
       return "Accept failed";
-    case error_code::server_session_error:
+    case ErrorCode::ServerSessionError:
       return "Session error";
-    case error_code::tls_handshake_failed:
+    case ErrorCode::TlsHandshakeFailed:
       return "TLS handshake failed";
-    case error_code::tls_certificate_invalid:
+    case ErrorCode::TlsCertificateInvalid:
       return "Invalid certificate";
-    case error_code::tls_certificate_expired:
+    case ErrorCode::TlsCertificateExpired:
       return "Certificate expired";
-    case error_code::websocket_handshake_failed:
+    case ErrorCode::WebsocketHandshakeFailed:
       return "WebSocket handshake failed";
-    case error_code::websocket_connection_closed:
-      return "WebSocket connection closed";
-    case error_code::websocket_message_too_large:
+    case ErrorCode::WebsocketConnectionClosed:
+      return "WebSocket Connection closed";
+    case ErrorCode::WebsocketMessageTooLarge:
       return "WebSocket message too large";
-    case error_code::websocket_protocol_error:
+    case ErrorCode::WebsocketProtocolError:
       return "WebSocket protocol error";
-    case error_code::client_request_failed:
+    case ErrorCode::ClientRequestFailed:
       return "Client request failed";
-    case error_code::client_response_invalid:
+    case ErrorCode::ClientResponseInvalid:
       return "Invalid response";
-    case error_code::client_connection_pool_exhausted:
+    case ErrorCode::ClientConnectionPoolExhausted:
       return "Connection pool exhausted";
-    case error_code::unknown:
+    case ErrorCode::Unknown:
     default:
       return "Unknown error";
   }
 }
 
-}  // namespace foxhttp
+}  // namespace foxhttp::core

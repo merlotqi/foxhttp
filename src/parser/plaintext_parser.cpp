@@ -1,14 +1,14 @@
 #include <boost/algorithm/string.hpp>
-#include <foxhttp/parser/details/plain_text_parser_core.hpp>
+#include <foxhttp/parser/detail/plain_text_parser_impl.hpp>
 #include <foxhttp/parser/plaintext_parser.hpp>
 #include <stdexcept>
 
-namespace foxhttp {
+namespace foxhttp::parser {
 
 /* ---------------------------- plain_text_parser --------------------------- */
 
-plain_text_parser::plain_text_parser(const plain_text_config &config)
-    : core_(std::make_unique<details::plain_text_parser_core>()) {
+PlainTextParser::PlainTextParser(const PlainTextConfig &config)
+    : core_(std::make_unique<detail::PlainTextParserImpl>()) {
   core_->config_ = config;
 
   // Set default allowed content types if none specified
@@ -18,13 +18,13 @@ plain_text_parser::plain_text_parser(const plain_text_config &config)
   }
 }
 
-plain_text_parser::~plain_text_parser() = default;
+PlainTextParser::~PlainTextParser() = default;
 
-std::string plain_text_parser::name() const { return "plaintext"; }
+std::string PlainTextParser::name() const { return "plaintext"; }
 
-std::string plain_text_parser::content_type() const { return "text/plain"; }
+std::string PlainTextParser::content_type() const { return "text/plain"; }
 
-bool plain_text_parser::supports(const http::request<http::string_body> &req) const {
+bool PlainTextParser::supports(const http::request<http::string_body> &req) const {
   auto content_type = req[http::field::content_type];
 
   if (core_->config_.strict_mode) {
@@ -35,7 +35,7 @@ bool plain_text_parser::supports(const http::request<http::string_body> &req) co
   }
 }
 
-std::string plain_text_parser::parse(const http::request<http::string_body> &req) const {
+std::string PlainTextParser::parse(const http::request<http::string_body> &req) const {
   // Validate size
   if (req.body().size() > core_->config_.max_size) {
     throw std::runtime_error("Text size exceeds maximum allowed size");
@@ -52,13 +52,13 @@ std::string plain_text_parser::parse(const http::request<http::string_body> &req
   return core_->process_text(req.body());
 }
 
-const plain_text_config &plain_text_parser::config() const { return core_->config_; }
+const PlainTextConfig &PlainTextParser::config() const { return core_->config_; }
 
-void plain_text_parser::set_config(const plain_text_config &config) { core_->config_ = config; }
+void PlainTextParser::set_config(const PlainTextConfig &config) { core_->config_ = config; }
 
-namespace details {
+namespace detail {
 
-std::string plain_text_parser_core::process_text(const std::string &text) const {
+std::string PlainTextParserImpl::process_text(const std::string &text) const {
   std::string result = text;
 
   // Normalize line endings
@@ -79,7 +79,7 @@ std::string plain_text_parser_core::process_text(const std::string &text) const 
   return result;
 }
 
-bool plain_text_parser_core::is_allowed_content_type(const std::string &content_type) const {
+bool PlainTextParserImpl::is_allowed_content_type(const std::string &content_type) const {
   if (config_.allowed_content_types.empty()) {
     return true;
   }
@@ -93,7 +93,7 @@ bool plain_text_parser_core::is_allowed_content_type(const std::string &content_
   return false;
 }
 
-std::string plain_text_parser_core::normalize_line_endings(const std::string &text) const {
+std::string PlainTextParserImpl::normalize_line_endings(const std::string &text) const {
   std::string result = text;
 
   // Convert CRLF to LF
@@ -113,7 +113,7 @@ std::string plain_text_parser_core::normalize_line_endings(const std::string &te
   return result;
 }
 
-std::string plain_text_parser_core::trim_whitespace(const std::string &text) const {
+std::string PlainTextParserImpl::trim_whitespace(const std::string &text) const {
   if (text.empty()) {
     return text;
   }
@@ -138,7 +138,7 @@ std::string plain_text_parser_core::trim_whitespace(const std::string &text) con
   return text.substr(start, end - start + 1);
 }
 
-bool plain_text_parser_core::is_valid_utf8(const std::string &text) const {
+bool PlainTextParserImpl::is_valid_utf8(const std::string &text) const {
   const unsigned char *bytes = reinterpret_cast<const unsigned char *>(text.c_str());
   size_t len = text.length();
 
@@ -174,6 +174,6 @@ bool plain_text_parser_core::is_valid_utf8(const std::string &text) const {
 
   return true;
 }
-}  // namespace details
+}  // namespace detail
 
-}  // namespace foxhttp
+}  // namespace foxhttp::parser

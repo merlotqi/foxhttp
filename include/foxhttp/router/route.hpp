@@ -1,65 +1,66 @@
 #pragma once
 
 #include <boost/beast/http.hpp>
+#include <foxhttp/handler/api_handler.hpp>
+#include <foxhttp/server/request_context.hpp>
 #include <memory>
 #include <regex>
 #include <string>
 #include <vector>
 
-namespace foxhttp {
+namespace foxhttp::router {
 
-class request_context;
-class api_handler;
+using ApiHandler = handler::ApiHandler;
 
-enum class route_type {
-  static_,
-  dynamic
+enum class RouteType {
+  Static,
+  Dynamic
 };
 
-class route {
+class Route {
  public:
-  virtual ~route() = default;
-  virtual api_handler *match(const std::string &path, request_context &ctx) const = 0;
+  virtual ~Route() = default;
+  virtual ApiHandler *match(const std::string &path, server::RequestContext &ctx) const = 0;
   virtual std::string pattern() const = 0;
-  virtual route_type type() const = 0;
+  virtual RouteType type() const = 0;
 };
 
-class static_route : public route {
+class StaticRoute : public Route {
  public:
-  static_route(std::string pattern, std::shared_ptr<api_handler> handler);
-  api_handler *match(const std::string &path, request_context &ctx) const override;
+  StaticRoute(std::string pattern, std::shared_ptr<ApiHandler> handler);
+  ApiHandler *match(const std::string &path, server::RequestContext &ctx) const override;
   std::string pattern() const override;
-  route_type type() const override { return route_type::static_; }
-  std::shared_ptr<api_handler> handler() const;
+  RouteType type() const override { return RouteType::Static; }
+  std::shared_ptr<ApiHandler> handler() const;
 
  private:
   std::string pattern_;
-  std::shared_ptr<api_handler> handler_;
+  std::shared_ptr<ApiHandler> handler_;
 };
 
-class dynamic_route : public route {
+class DynamicRoute : public Route {
  public:
-  dynamic_route(std::string pattern, std::shared_ptr<api_handler> handler, std::regex regex_pattern,
+  DynamicRoute(std::string pattern, std::shared_ptr<ApiHandler> handler, std::regex regex_pattern,
                 std::vector<std::string> param_names);
 
-  api_handler *match(const std::string &path, request_context &ctx) const override;
+  ApiHandler *match(const std::string &path, server::RequestContext &ctx) const override;
   std::string pattern() const override;
-  route_type type() const override { return route_type::dynamic; }
+  RouteType type() const override { return RouteType::Dynamic; }
 
   const std::regex &regex() const;
   const std::vector<std::string> &param_names() const;
-  std::shared_ptr<api_handler> handler() const;
+  std::shared_ptr<ApiHandler> handler() const;
 
  private:
-  void extract_path_params(const std::smatch &matches, request_context &ctx) const;
+  void extract_path_params(const std::smatch &matches, server::RequestContext &ctx) const;
 
   std::string pattern_;
-  std::shared_ptr<api_handler> handler_;
+  std::shared_ptr<ApiHandler> handler_;
   std::regex regex_pattern_;
   std::vector<std::string> param_names_;
 };
 
-class route_builder {
+class RouteBuilder {
  public:
   static std::pair<std::regex, std::vector<std::string>> parse_pattern(const std::string &pattern);
 
@@ -67,4 +68,4 @@ class route_builder {
   static std::string regex_escape(const std::string &str);
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::router

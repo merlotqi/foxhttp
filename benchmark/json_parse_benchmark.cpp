@@ -8,7 +8,7 @@
 namespace http = boost::beast::http;
 
 static void BM_JsonParserSmallPayload(benchmark::State &state) {
-  foxhttp::json_parser parser;
+  foxhttp::parser::JsonParser parser;
   http::request<http::string_body> req;
   req.set(http::field::content_type, "application/json");
   req.body() = R"({"ok":true,"items":[1,2,3],"name":"foxhttp"})";
@@ -22,7 +22,7 @@ static void BM_JsonParserSmallPayload(benchmark::State &state) {
 BENCHMARK(BM_JsonParserSmallPayload);
 
 static void BM_JsonParserSupportsCheck(benchmark::State &state) {
-  foxhttp::json_parser parser;
+  foxhttp::parser::JsonParser parser;
   http::request<http::string_body> req;
   req.set(http::field::content_type, "application/json");
   req.body() = "{}";
@@ -35,7 +35,7 @@ static void BM_JsonParserSupportsCheck(benchmark::State &state) {
 BENCHMARK(BM_JsonParserSupportsCheck);
 
 static void BM_JsonParserSupportsWrongType(benchmark::State &state) {
-  foxhttp::json_parser parser;
+  foxhttp::parser::JsonParser parser;
   http::request<http::string_body> req;
   req.set(http::field::content_type, "text/plain");
   req.body() = "not json";
@@ -57,7 +57,7 @@ static void BM_JsonParserMediumArray(benchmark::State &state) {
   }
   const std::string payload = arr.dump();
 
-  foxhttp::json_parser parser;
+  foxhttp::parser::JsonParser parser;
   http::request<http::string_body> req;
   req.set(http::field::content_type, "application/json");
   req.body() = payload;
@@ -80,7 +80,7 @@ static void BM_JsonParserDeepNested(benchmark::State &state) {
   cur["leaf"] = 42;
   const std::string payload = cur.dump();
 
-  foxhttp::json_parser parser;
+  foxhttp::parser::JsonParser parser;
   http::request<http::string_body> req;
   req.set(http::field::content_type, "application/json");
   req.body() = payload;

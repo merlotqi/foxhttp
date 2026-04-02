@@ -7,13 +7,12 @@
 #include <string>
 #include <thread>
 
-namespace foxhttp {
-namespace details {
+namespace foxhttp::config::detail {
 
-class config_watcher {
+class ConfigWatcher {
  public:
-  explicit config_watcher(std::string path, std::chrono::milliseconds interval = std::chrono::seconds(2));
-  ~config_watcher();
+  explicit ConfigWatcher(std::string path, std::chrono::milliseconds interval = std::chrono::seconds(2));
+  ~ConfigWatcher();
 
   // Signal for reload notifications
   boost::signals2::signal<void()> on_reload;
@@ -33,5 +32,4 @@ class config_watcher {
   std::thread worker_;
 };
 
-}  // namespace details
-}  // namespace foxhttp
+}  // namespace foxhttp::config::detail

@@ -10,13 +10,13 @@ Include either ``<foxhttp/client/http_client.hpp>`` or the umbrella header ``<fo
 Construction
 ------------
 
-* **HTTP:** ``http_client(io_executor, "http://host:port")`` — base URL must use the ``http://`` scheme (default port 80 if omitted).
-* **HTTPS** (when the library is built with TLS, ``FOXHTTP_ENABLE_TLS``): ``http_client(io_executor, "https://host:port", ssl_context)``. Requests that use ``https://`` (absolute URL or HTTPS base) require this constructor so a client TLS context is available.
+* **HTTP:** ``foxhttp::client::HttpClient(io_executor, "http://host:port")`` — base URL must use the ``http://`` scheme (default port 80 if omitted).
+* **HTTPS** (when the library is built with TLS, ``FOXHTTP_ENABLE_TLS``): ``HttpClient(io_executor, "https://host:port", ssl_context)``. Requests that use ``https://`` (absolute URL or HTTPS base) require this constructor so a client TLS context is available.
 
 Fluent requests
 ---------------
 
-Obtain a ``request_builder`` from ``get`` / ``post`` / ``put`` / ``delete_``. You can pass a **path** (joined with the client base URL) or an **absolute** ``http://`` / ``https://`` URL.
+Obtain a ``foxhttp::client::RequestBuilder`` from ``get`` / ``post`` / ``put`` / ``delete_``. You can pass a **path** (joined with the client base URL) or an **absolute** ``http://`` / ``https://`` URL.
 
 Chain modifiers:
 

@@ -1,115 +1,120 @@
 #pragma once
 
 #include <boost/asio.hpp>
+#include <boost/beast/http.hpp>
 #include <chrono>
 #include <foxhttp/server/request_context.hpp>
 #include <functional>
 #include <memory>
 
-namespace foxhttp {
+namespace http = boost::beast::http;
 
-class middleware_chain;
+namespace foxhttp::middleware {
 
-struct middleware_stats {
+using RequestContext = server::RequestContext;
+
+class MiddlewareChain;
+
+struct MiddlewareStats {
   std::atomic<std::size_t> execution_count{0};
   std::atomic<std::chrono::microseconds> total_execution_time{std::chrono::microseconds{0}};
   std::atomic<std::size_t> error_count{0};
   std::atomic<std::size_t> timeout_count{0};
 
-  middleware_stats() = default;
-  middleware_stats(const middleware_stats &other);
-  middleware_stats &operator=(const middleware_stats &other);
+  MiddlewareStats() = default;
+  MiddlewareStats(const MiddlewareStats &other);
+  MiddlewareStats &operator=(const MiddlewareStats &other);
 
   void reset();
 };
 
-enum class middleware_priority : int {
-  lowest = -1000,
-  low = -100,
-  normal = 0,
-  high = 100,
-  highest = 1000
+enum class MiddlewarePriority : int {
+  Lowest = -1000,
+  Low = -100,
+  Normal = 0,
+  High = 100,
+  Highest = 1000
 };
 
-enum class middleware_result {
-  continue_,
-  stop,
-  error,
-  timeout
+enum class MiddlewareResult {
+  Continue,
+  Stop,
+  Error,
+  Timeout
 };
 
-using async_middleware_callback = std::function<void(middleware_result result, const std::string &error_message)>;
-class middleware {
+using async_middleware_callback = std::function<void(MiddlewareResult result, const std::string &error_message)>;
+class Middleware {
  public:
-  virtual ~middleware() = default;
+  virtual ~Middleware() = default;
 
-  virtual void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) = 0;
-  virtual void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
+  virtual void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) = 0;
+  virtual void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
                           async_middleware_callback callback);
 
-  virtual middleware_priority priority() const;
+  virtual MiddlewarePriority priority() const;
   virtual std::string name() const;
-  virtual bool should_execute(request_context &ctx) const;
+  virtual bool should_execute(RequestContext &ctx) const;
   virtual std::chrono::milliseconds timeout() const;
-  virtual middleware_stats &stats();
-  virtual const middleware_stats &stats() const;
+  virtual MiddlewareStats &stats();
+  virtual const MiddlewareStats &stats() const;
 
  protected:
-  middleware_stats stats_;
+  MiddlewareStats stats_;
 };
 
-template <middleware_priority Priority>
-class priority_middleware : public middleware {
+template <MiddlewarePriority Priority>
+class PriorityMiddleware : public Middleware {
  public:
-  middleware_priority priority() const override { return Priority; }
+  MiddlewarePriority priority() const override { return Priority; }
 };
 
-class conditional_middleware : public middleware {
+class ConditionalMiddleware : public Middleware {
  public:
-  using condition_func = std::function<bool(request_context &)>;
+  using condition_func = std::function<bool(RequestContext &)>;
 
-  explicit conditional_middleware(std::shared_ptr<middleware> middleware, condition_func condition);
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override;
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
+  explicit ConditionalMiddleware(std::shared_ptr<Middleware> middleware, condition_func condition);
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override;
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
                   async_middleware_callback callback) override;
 
-  middleware_priority priority() const override;
+  MiddlewarePriority priority() const override;
   std::string name() const override;
-  bool should_execute(request_context &ctx) const override;
+  bool should_execute(RequestContext &ctx) const override;
   std::chrono::milliseconds timeout() const override;
-  middleware_stats &stats() override;
-  const middleware_stats &stats() const override;
+  MiddlewareStats &stats() override;
+  const MiddlewareStats &stats() const override;
 
  private:
-  std::shared_ptr<middleware> mw_;
+  std::shared_ptr<Middleware> mw_;
   condition_func condition_;
 };
 
-class middleware_builder {
+class MiddlewareBuilder {
  public:
-  using sync_func = std::function<void(request_context &, http::response<http::string_body> &, std::function<void()>)>;
-  using async_func = std::function<void(request_context &, http::response<http::string_body> &, std::function<void()>,
+  using sync_func = std::function<void(RequestContext &, http::response<http::string_body> &, std::function<void()>)>;
+  using async_func = std::function<void(RequestContext &, http::response<http::string_body> &, std::function<void()>,
                                         async_middleware_callback)>;
-  using condition_func = std::function<bool(request_context &)>;
+  using condition_func = std::function<bool(RequestContext &)>;
 
-  middleware_builder();
-  ~middleware_builder() = default;
+  MiddlewareBuilder();
+  ~MiddlewareBuilder() = default;
 
-  middleware_builder &set_name(const std::string &name);
-  middleware_builder &set_priority(middleware_priority priority);
-  middleware_builder &set_timeout(std::chrono::milliseconds timeout);
-  middleware_builder &set_sync_func(sync_func func);
-  middleware_builder &set_async_func(async_func func);
-  middleware_builder &set_condition(condition_func condition);
-  std::shared_ptr<middleware> build();
+  MiddlewareBuilder &set_name(const std::string &name);
+  MiddlewareBuilder &set_priority(MiddlewarePriority priority);
+  MiddlewareBuilder &set_timeout(std::chrono::milliseconds timeout);
+  MiddlewareBuilder &set_sync_func(sync_func func);
+  MiddlewareBuilder &set_async_func(async_func func);
+  MiddlewareBuilder &set_condition(condition_func condition);
+  std::shared_ptr<Middleware> build();
 
  private:
   std::string name_;
   sync_func sync_func_;
   async_func async_func_;
   condition_func condition_;
-  middleware_priority priority_;
+  MiddlewarePriority priority_;
   std::chrono::milliseconds timeout_;
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware

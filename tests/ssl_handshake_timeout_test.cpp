@@ -9,20 +9,20 @@
 #include <thread>
 
 TEST(SSLHandshakeTimeout, SSLServerStopMethodExists) {
-  foxhttp::io_context_pool pool(1);
+  foxhttp::server::IoContextPool pool(1);
   boost::asio::ssl::context ssl_ctx(boost::asio::ssl::context::tlsv12);
 
-  foxhttp::ssl_server server(pool, 0, ssl_ctx);
+  foxhttp::server::SslServer server(pool, 0, ssl_ctx);
 
   // Verify stop method can be called without throwing
   EXPECT_NO_THROW(server.stop());
 }
 
 TEST(SSLHandshakeTimeout, SSLServerMultipleStopCallsAreSafe) {
-  foxhttp::io_context_pool pool(1);
+  foxhttp::server::IoContextPool pool(1);
   boost::asio::ssl::context ssl_ctx(boost::asio::ssl::context::tlsv12);
 
-  foxhttp::ssl_server server(pool, 0, ssl_ctx);
+  foxhttp::server::SslServer server(pool, 0, ssl_ctx);
 
   // Multiple stop calls should be safe
   EXPECT_NO_THROW(server.stop());
@@ -31,11 +31,11 @@ TEST(SSLHandshakeTimeout, SSLServerMultipleStopCallsAreSafe) {
 }
 
 TEST(SSLHandshakeTimeout, SSLServerDestructionIsSafe) {
-  foxhttp::io_context_pool pool(1);
+  foxhttp::server::IoContextPool pool(1);
   boost::asio::ssl::context ssl_ctx(boost::asio::ssl::context::tlsv12);
 
   {
-    foxhttp::ssl_server server(pool, 0, ssl_ctx);
+    foxhttp::server::SslServer server(pool, 0, ssl_ctx);
     // Server goes out of scope and should be destroyed safely
   }
 
@@ -44,10 +44,10 @@ TEST(SSLHandshakeTimeout, SSLServerDestructionIsSafe) {
 }
 
 TEST(SSLHandshakeTimeout, SSLServerStopDoesNotThrowWithActiveConnections) {
-  foxhttp::io_context_pool pool(1);
+  foxhttp::server::IoContextPool pool(1);
   boost::asio::ssl::context ssl_ctx(boost::asio::ssl::context::tlsv12);
 
-  foxhttp::ssl_server server(pool, 0, ssl_ctx);
+  foxhttp::server::SslServer server(pool, 0, ssl_ctx);
 
   // Even with potential active connections, stop should not throw
   std::thread runner([&pool] { pool.run_blocking(); });
@@ -70,8 +70,8 @@ TEST(SSLHandshakeTimeout, SSLContextInitialization) {
   // Test that SSL context can be initialized properly
   EXPECT_NO_THROW({
     boost::asio::ssl::context ssl_ctx(boost::asio::ssl::context::tlsv12);
-    foxhttp::io_context_pool pool(1);
-    foxhttp::ssl_server server(pool, 0, ssl_ctx);
+    foxhttp::server::IoContextPool pool(1);
+    foxhttp::server::SslServer server(pool, 0, ssl_ctx);
   });
 }
 

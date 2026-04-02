@@ -5,23 +5,24 @@
 #include <unordered_map>
 #include <vector>
 
-namespace foxhttp {
+namespace foxhttp::parser {
+class FormField;
+}
 
-class form_field;
-using form_data = std::unordered_map<std::string, std::unique_ptr<form_field>>;
+namespace foxhttp::parser::detail {
 
-namespace details {
+using form_data = std::unordered_map<std::string, std::unique_ptr<FormField>>;
 
-class form_field_core {
+class FormFieldImpl {
  public:
   std::string name_;
   std::vector<std::string> values_;
   bool is_array_ = false;
 };
 
-class form_parser_core {
+class FormParserImpl {
  public:
-  form_config config_;
+  config::FormConfig config_;
 
   form_data parse_pairs(const std::string &data) const;
   std::string extract_field_name(const std::string &pair) const;
@@ -32,12 +33,11 @@ class form_parser_core {
   bool validate_field_size(const std::string &name, const std::string &value) const;
   bool validate_total_size(const form_data &data) const;
   bool validate_field_count(const form_data &data) const;
-  bool validate_field(const form_field &field) const;
+  bool validate_field(const FormField &field) const;
   std::vector<std::string> validate_all_fields(const form_data &data) const;
 
   std::string url_decode(const std::string &encoded) const;
   std::string url_encode(const std::string &decoded) const;
 };
 
-}  // namespace details
-}  // namespace foxhttp
+}  // namespace foxhttp::parser::detail

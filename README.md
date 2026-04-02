@@ -59,24 +59,24 @@ The generic option name `BUILD_WITH_BROTLI` can clash with another dependency; i
 
 Include the umbrella header or granular headers under `include/foxhttp/`.
 
-- **`io_context_pool`**: call `run_blocking()` (or `start()`, same behavior) on a worker thread; call `stop()` from elsewhere to shut down.
-- **`server` / `ssl_server`**: register middleware on `global_chain()`, then accept connections as in the examples.
-- **`session_limits`** (`configs.hpp`): timeouts, body/header sizes, **keep-alive** (`enable_keep_alive`, `max_requests_per_connection`).
+- **`foxhttp::server::IoContextPool`**: call `run_blocking()` (or `start()`, same behavior) on a worker thread; call `stop()` from elsewhere to shut down.
+- **`foxhttp::server::Server` / `foxhttp::server::SslServer`**: register middleware on `global_chain()`, then accept connections as in the examples.
+- **`foxhttp::config::SessionLimits`** (in `configs.hpp`): timeouts, body/header sizes, **keep-alive** (`enable_keep_alive`, `max_requests_per_connection`).
 
 ### Lambda / callable route registration
 
-Static and dynamic routes use the same handler signature: `void(foxhttp::request_context &, boost::beast::http::response<boost::beast::http::string_body> &)`. Dynamic path parameters are available on `ctx` after `resolve_route` (e.g. `ctx.path_parameter("id")`).
+Static and dynamic routes use the same handler signature: `void(foxhttp::server::RequestContext &, boost::beast::http::response<boost::beast::http::string_body> &)`. Include [`foxhttp/router/router.hpp`](include/foxhttp/router/router.hpp) (or the umbrella [`foxhttp/foxhttp.hpp`](include/foxhttp/foxhttp.hpp)). Dynamic path parameters are available on `ctx` after `foxhttp::router::Router::resolve_route` (e.g. `ctx.path_parameter("id")`).
 
 ```cpp
-foxhttp::router::register_static_handler("/api/version",
-    [](foxhttp::request_context &ctx, boost::beast::http::response<boost::beast::http::string_body> &res) {
+foxhttp::router::Router::register_static_handler("/api/version",
+    [](foxhttp::server::RequestContext &ctx, boost::beast::http::response<boost::beast::http::string_body> &res) {
       res.result(boost::beast::http::status::ok);
       res.set(boost::beast::http::field::content_type, "application/json");
       res.body() = R"({"version":"0.1.0"})";
     });
 
-foxhttp::router::register_dynamic_handler("/api/users/{id}",
-    [](foxhttp::request_context &ctx, boost::beast::http::response<boost::beast::http::string_body> &res) {
+foxhttp::router::Router::register_dynamic_handler("/api/users/{id}",
+    [](foxhttp::server::RequestContext &ctx, boost::beast::http::response<boost::beast::http::string_body> &res) {
       res.result(boost::beast::http::status::ok);
       res.body() = ctx.path_parameter("id");
     });
