@@ -6,8 +6,8 @@
 namespace foxhttp::router {
 
 /* ------------------------- StaticRoute ------------------------- */
-StaticRoute::StaticRoute(std::string pattern, std::shared_ptr<ApiHandler> handler)
-    : pattern_(std::move(pattern)), handler_(std::move(handler)) {}
+StaticRoute::StaticRoute(std::string pattern, std::shared_ptr<ApiHandler> handler, http::verb method)
+    : pattern_(std::move(pattern)), handler_(std::move(handler)), method_(method) {}
 
 ApiHandler *StaticRoute::match(const std::string &path, server::RequestContext &ctx) const {
   (void)ctx;
@@ -16,15 +16,22 @@ ApiHandler *StaticRoute::match(const std::string &path, server::RequestContext &
 
 std::string StaticRoute::pattern() const { return pattern_; }
 
+http::verb StaticRoute::method() const { return method_; }
+
+bool StaticRoute::matches_method(http::verb method) const {
+  return method_ == http::verb::unknown || method_ == method;
+}
+
 std::shared_ptr<ApiHandler> StaticRoute::handler() const { return handler_; }
 
 /* ------------------------- DynamicRoute ------------------------- */
 DynamicRoute::DynamicRoute(std::string pattern, std::shared_ptr<ApiHandler> handler, std::regex regex_pattern,
-                             std::vector<std::string> param_names)
+                             std::vector<std::string> param_names, http::verb method)
     : pattern_(std::move(pattern)),
       handler_(std::move(handler)),
       regex_pattern_(std::move(regex_pattern)),
-      param_names_(std::move(param_names)) {}
+      param_names_(std::move(param_names)),
+      method_(method) {}
 
 ApiHandler *DynamicRoute::match(const std::string &path, server::RequestContext &ctx) const {
   std::smatch matches;
@@ -36,6 +43,12 @@ ApiHandler *DynamicRoute::match(const std::string &path, server::RequestContext 
 }
 
 std::string DynamicRoute::pattern() const { return pattern_; }
+
+http::verb DynamicRoute::method() const { return method_; }
+
+bool DynamicRoute::matches_method(http::verb method) const {
+  return method_ == http::verb::unknown || method_ == method;
+}
 
 const std::regex &DynamicRoute::regex() const { return regex_pattern_; }
 

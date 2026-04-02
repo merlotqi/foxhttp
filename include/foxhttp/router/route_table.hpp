@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/beast/http.hpp>
 #include <foxhttp/handler/api_handler.hpp>
 #include <foxhttp/server/request_context.hpp>
 #include <memory>
@@ -8,6 +9,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+namespace http = boost::beast::http;
 
 namespace foxhttp::router {
 
@@ -20,6 +23,10 @@ class DynamicRoute;
 class RouteTable {
  public:
   ~RouteTable() = default;
+
+  /// Create a new detached route table (not tracked by named instances)
+  /// Use this when creating your own RouteTable for a Router instance
+  static std::shared_ptr<RouteTable> create_detached();
 
   /// Get the default global route table (singleton)
   static RouteTable &instance();
@@ -37,10 +44,25 @@ class RouteTable {
   /// Get all named route table names
   static std::vector<std::string> get_instance_names();
 
+  /// Register a static route (matches any HTTP method)
   void add_static_route(const std::string &path, std::shared_ptr<ApiHandler> handler);
+
+  /// Register a static route for a specific HTTP method
+  void add_static_route(const std::string &path, http::verb method, std::shared_ptr<ApiHandler> handler);
+
+  /// Register a dynamic route (matches any HTTP method)
   void add_dynamic_route(const std::string &pattern, std::shared_ptr<ApiHandler> handler);
 
+  /// Register a dynamic route for a specific HTTP method
+  void add_dynamic_route(const std::string &pattern, http::verb method, std::shared_ptr<ApiHandler> handler);
+
+  /// Resolve route for the given path and context (backward compatible, matches any method)
   std::shared_ptr<ApiHandler> resolve_route(const std::string &path, server::RequestContext &ctx) const;
+
+  /// Resolve route for the given path, method and context
+  /// Returns pair of handler and list of allowed methods (for 405 response)
+  std::pair<std::shared_ptr<ApiHandler>, std::vector<http::verb>> resolve_route_with_method(
+      const std::string &path, http::verb method, server::RequestContext &ctx) const;
   std::vector<std::shared_ptr<Route>> get_all_routes() const;
 
   std::size_t static_route_count() const;

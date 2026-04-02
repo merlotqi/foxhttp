@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/beast/http.hpp>
 #include <chrono>
 #include <cstddef>
 
@@ -132,5 +133,35 @@ constexpr unsigned kHttp11Version = 11;
 
 /// Default temporary directory for multipart uploads
 constexpr const char* kDefaultTempDirectory = "/tmp";
+
+/* -------------------------------------------------------------------------- */
+/*                        HTTP Method Utility Functions                       */
+/* -------------------------------------------------------------------------- */
+
+/// Convert HTTP verb to uppercase string (e.g., "GET", "POST", "PUT", "DELETE")
+inline const char* verb_to_string(boost::beast::http::verb v) {
+  switch (v) {
+    case boost::beast::http::verb::get:
+      return "GET";
+    case boost::beast::http::verb::post:
+      return "POST";
+    case boost::beast::http::verb::put:
+      return "PUT";
+    case boost::beast::http::verb::delete_:
+      return "DELETE";
+    case boost::beast::http::verb::head:
+      return "HEAD";
+    case boost::beast::http::verb::options:
+      return "OPTIONS";
+    case boost::beast::http::verb::patch:
+      return "PATCH";
+    case boost::beast::http::verb::trace:
+      return "TRACE";
+    case boost::beast::http::verb::connect:
+      return "CONNECT";
+    default:
+      return "UNKNOWN";
+  }
+}
 
 }  // namespace foxhttp::core

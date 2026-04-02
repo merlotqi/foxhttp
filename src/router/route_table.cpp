@@ -13,6 +13,11 @@ namespace foxhttp::router {
 std::mutex RouteTable::instances_mutex;
 std::unordered_map<std::string, std::shared_ptr<RouteTable>> RouteTable::named_instances;
 
+std::shared_ptr<RouteTable> RouteTable::create_detached() {
+  struct MakeSharedEnabler : RouteTable {};
+  return std::shared_ptr<RouteTable>(new MakeSharedEnabler());
+}
+
 RouteTable &RouteTable::instance() {
   static RouteTable inst;
   return inst;
@@ -78,20 +83,29 @@ std::size_t RouteTable::count_segments(const std::string &path) {
 }
 
 void RouteTable::add_static_route(const std::string &path, std::shared_ptr<ApiHandler> handler) {
+  add_static_route(path, http::verb::unknown, std::move(handler));
+}
+
+void RouteTable::add_static_route(const std::string &path, http::verb method, std::shared_ptr<ApiHandler> handler) {
   auto key = normalize_path(path);
   std::unique_lock<std::shared_mutex> lock(mutex_);
 
-  auto route = std::make_shared<StaticRoute>(key, std::move(handler));
+  auto route = std::make_shared<StaticRoute>(key, std::move(handler), method);
   static_routes_[key] = route;
   all_routes_.push_back(route);
 }
 
 void RouteTable::add_dynamic_route(const std::string &pattern, std::shared_ptr<ApiHandler> handler) {
+  add_dynamic_route(pattern, http::verb::unknown, std::move(handler));
+}
+
+void RouteTable::add_dynamic_route(const std::string &pattern, http::verb method,
+                                    std::shared_ptr<ApiHandler> handler) {
   std::unique_lock<std::shared_mutex> lock(mutex_);
 
   try {
     auto [regex_pattern, param_names] = RouteBuilder::parse_pattern(pattern);
-    auto route = std::make_shared<DynamicRoute>(pattern, std::move(handler), regex_pattern, param_names);
+    auto route = std::make_shared<DynamicRoute>(pattern, std::move(handler), regex_pattern, param_names, method);
 
     dynamic_routes_.push_back(route);
     all_routes_.push_back(route);
@@ -118,28 +132,60 @@ void RouteTable::add_dynamic_route(const std::string &pattern, std::shared_ptr<A
 
 std::shared_ptr<ApiHandler> RouteTable::resolve_route(const std::string &path,
                                                        server::RequestContext &ctx) const {
+  auto result = resolve_route_with_method(path, http::verb::unknown, ctx);
+  return result.first;
+}
+
+std::pair<std::shared_ptr<ApiHandler>, std::vector<http::verb>> RouteTable::resolve_route_with_method(
+    const std::string &path, http::verb method, server::RequestContext &ctx) const {
   auto key = normalize_path(path);
 
   // allow concurrent readers
   std::shared_lock<std::shared_mutex> lock(mutex_);
 
-  // 1) exact static match
+  // Collect allowed methods for 405 response
+  std::vector<http::verb> allowed_methods;
+
+  // 1) Check static routes
   auto static_it = static_routes_.find(key);
   if (static_it != static_routes_.end()) {
-    // return shared_ptr to ensure lifetime
-    return static_it->second->handler();
-  }
-
-  // 2) try dynamic routes (in specificity order)
-  for (const auto &route : dynamic_routes_) {
-    // DynamicRoute::match will set path parameters into ctx when matched
-    if (route->match(key, ctx)) {
-      return route->handler();
+    auto &route = static_it->second;
+    if (route->matches_method(method)) {
+      return {route->handler(), {}};
+    }
+    // Path matches but method doesn't - collect allowed methods
+    auto m = route->method();
+    if (m != http::verb::unknown) {
+      allowed_methods.push_back(m);
+    }
+  } else {
+    // 2) Check dynamic routes for path match
+    for (const auto &route : dynamic_routes_) {
+      // Try matching path first (without setting params)
+      std::smatch matches;
+      if (std::regex_match(key, matches, route->regex())) {
+        if (route->matches_method(method)) {
+          // Method matches, extract params and return handler
+          route->extract_path_params(matches, ctx);
+          return {route->handler(), {}};
+        }
+        // Path matches but method doesn't - collect allowed methods
+        auto m = route->method();
+        if (m != http::verb::unknown) {
+          allowed_methods.push_back(m);
+        }
+        break;  // Only check first matching dynamic route
+      }
     }
   }
 
-  // not found
-  return nullptr;
+  // If no handler found but path matched, return 405 info
+  if (!allowed_methods.empty()) {
+    return {nullptr, allowed_methods};
+  }
+
+  // Not found at all
+  return {nullptr, {}};
 }
 
 std::vector<std::shared_ptr<Route>> RouteTable::get_all_routes() const {

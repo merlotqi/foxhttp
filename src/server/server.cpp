@@ -28,6 +28,10 @@ void Server::use(std::shared_ptr<Middleware> mw) { global_chain_->use(std::move(
 
 std::shared_ptr<MiddlewareChain> Server::global_chain() const { return global_chain_; }
 
+void Server::bind_router(std::shared_ptr<Router> router) { router_ = std::move(router); }
+
+std::shared_ptr<Router> Server::bound_router() const { return router_; }
+
 void Server::stop() {
   stopping_.store(true, std::memory_order_release);
   try {
