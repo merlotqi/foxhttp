@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
@@ -16,7 +17,23 @@ class dynamic_route;
 
 class route_table {
  public:
+  ~route_table() = default;
+
+  /// Get the default global route table (singleton)
   static route_table &instance();
+
+  /// Get or create a named route table (for multi-server scenarios)
+  /// @param name Unique name for the route table
+  /// @return Reference to the named route table
+  static route_table &instance(const std::string &name);
+
+  /// Remove a named route table
+  /// @param name Name of the route table to remove
+  /// @return true if removed, false if not found
+  static bool remove_instance(const std::string &name);
+
+  /// Get all named route table names
+  static std::vector<std::string> get_instance_names();
 
   void add_static_route(const std::string &path, std::shared_ptr<api_handler> handler);
   void add_dynamic_route(const std::string &pattern, std::shared_ptr<api_handler> handler);
@@ -30,7 +47,6 @@ class route_table {
 
  private:
   route_table() = default;
-  ~route_table() = default;
   route_table(const route_table &) = delete;
   route_table &operator=(const route_table &) = delete;
 
@@ -51,6 +67,11 @@ class route_table {
 
   // all routes (for introspection)
   std::vector<std::shared_ptr<route>> all_routes_;
+
+  // static mutex for protecting named instances map
+  static std::mutex instances_mutex_;
+  // named route tables for multi-server scenarios
+  static std::unordered_map<std::string, std::shared_ptr<route_table>> named_instances_;
 };
 
 }  // namespace foxhttp

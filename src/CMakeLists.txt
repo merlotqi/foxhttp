@@ -1,9 +1,26 @@
 file(GLOB_RECURSE _sources ${CMAKE_CURRENT_LIST_DIR}/*.cpp CONFIGURE_DEPEND)
 file(GLOB_RECURSE _headers ${FOXHTTP_SOURCE_DIR}/include/*.hpp)
 
-add_library(foxhttplib STATIC ${_sources} ${_headers})
-add_library(foxhttp::foxhttplib ALIAS foxhttplib)
+if(NOT FOXHTTP_ENABLE_TLS)
+    list(REMOVE_ITEM _sources
+        "${CMAKE_CURRENT_LIST_DIR}/server/ssl_server.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/server/ssl_session.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/server/wss_session.cpp"
+    )
+endif()
 
+if(FOXHTTP_BUILD_SHARED)
+    add_library(foxhttplib SHARED ${_sources} ${_headers})
+else()
+    add_library(foxhttplib STATIC ${_sources} ${_headers})
+endif()
+
+add_library(foxhttp::foxhttplib ALIAS foxhttplib)
+if(WIN32 AND FOXHTTP_BUILD_SHARED)
+    set_target_properties(foxhttplib PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
+target_compile_features(foxhttplib PUBLIC cxx_std_20)
 
 # Install headers
 install(DIRECTORY ${FOXHTTP_SOURCE_DIR}/include/foxhttp

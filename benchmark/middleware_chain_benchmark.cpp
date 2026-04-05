@@ -1,9 +1,8 @@
 #include <benchmark/benchmark.h>
+
 #include <boost/asio.hpp>
 #include <boost/beast/http.hpp>
-#include <foxhttp/middleware/basic/functional_middleware.hpp>
-#include <foxhttp/middleware/middleware_chain.hpp>
-#include <foxhttp/server/request_context.hpp>
+#include <foxhttp/foxhttp.hpp>
 #include <memory>
 #include <string>
 
@@ -37,9 +36,7 @@ static void BM_MiddlewareChainPassThroughDepth(benchmark::State &state) {
     const std::string name = "noop_" + std::to_string(i);
     chain.use(std::make_shared<foxhttp::functional_middleware>(
         name,
-        [](foxhttp::request_context &, http::response<http::string_body> &, std::function<void()> next) {
-          next();
-        }));
+        [](foxhttp::request_context &, http::response<http::string_body> &, std::function<void()> next) { next(); }));
   }
 
   http::request<http::string_body> req;

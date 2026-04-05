@@ -5,12 +5,11 @@
 //      curl -s http://127.0.0.1:8081/api/items/foo/bar
 
 #include <foxhttp/foxhttp.hpp>
-
-#include "detail/router_dispatch_middleware.hpp"
-
 #include <iostream>
 #include <sstream>
 #include <thread>
+
+#include "detail/router_dispatch_middleware.hpp"
 
 namespace http = boost::beast::http;
 
@@ -41,15 +40,14 @@ int main() {
           res.body() = std::string(R"({"user_id":")") + ctx.path_parameter("id") + "\"}";
         });
 
-    foxhttp::router::register_dynamic_handler(
-        "/api/items/{category}/{id}", [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
-          res.result(http::status::ok);
-          res.set(http::field::content_type, "application/json");
-          std::ostringstream os;
-          os << R"({"category":")" << ctx.path_parameter("category") << R"(","id":")" << ctx.path_parameter("id")
-             << "\"}";
-          res.body() = os.str();
-        });
+    foxhttp::router::register_dynamic_handler("/api/items/{category}/{id}", [](foxhttp::request_context &ctx,
+                                                                               http::response<http::string_body> &res) {
+      res.result(http::status::ok);
+      res.set(http::field::content_type, "application/json");
+      std::ostringstream os;
+      os << R"({"category":")" << ctx.path_parameter("category") << R"(","id":")" << ctx.path_parameter("id") << "\"}";
+      res.body() = os.str();
+    });
 
     std::cerr << "Listening on http://127.0.0.1:" << port << "/ (Ctrl+C to stop)\n";
 

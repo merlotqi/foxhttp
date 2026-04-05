@@ -1,8 +1,7 @@
-#include <boost/beast/http.hpp>
-#include <foxhttp/router/router.hpp>
-#include <foxhttp/router/route_table.hpp>
-#include <foxhttp/server/request_context.hpp>
 #include <gtest/gtest.h>
+
+#include <boost/beast/http.hpp>
+#include <foxhttp/foxhttp.hpp>
 
 namespace http = boost::beast::http;
 
@@ -13,12 +12,12 @@ class RouterTest : public ::testing::Test {
 
 TEST_F(RouterTest, StaticHandlerResolvesAndRuns) {
   bool hit = false;
-  foxhttp::router::register_static_handler(
-      "/ping", [&](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
-        (void)ctx;
-        (void)res;
-        hit = true;
-      });
+  foxhttp::router::register_static_handler("/ping",
+                                           [&](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+                                             (void)ctx;
+                                             (void)res;
+                                             hit = true;
+                                           });
 
   http::request<http::string_body> req;
   req.method(http::verb::get);
@@ -32,11 +31,11 @@ TEST_F(RouterTest, StaticHandlerResolvesAndRuns) {
 }
 
 TEST_F(RouterTest, DynamicHandlerSetsPathParameters) {
-  foxhttp::router::register_dynamic_handler(
-      "/users/{id}", [&](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
-        (void)res;
-        EXPECT_EQ(ctx.path_parameter("id"), "42");
-      });
+  foxhttp::router::register_dynamic_handler("/users/{id}",
+                                            [&](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+                                              (void)res;
+                                              EXPECT_EQ(ctx.path_parameter("id"), "42");
+                                            });
 
   http::request<http::string_body> req;
   req.target("/users/42");
@@ -56,16 +55,17 @@ TEST_F(RouterTest, UnknownRouteReturnsNull) {
 }
 
 TEST_F(RouterTest, InvalidDynamicPatternThrows) {
-  EXPECT_THROW(foxhttp::router::register_dynamic_handler("/bad/{unclosed",
-                                                         [](foxhttp::request_context &, http::response<http::string_body> &) {}),
+  EXPECT_THROW(foxhttp::router::register_dynamic_handler(
+                   "/bad/{unclosed", [](foxhttp::request_context &, http::response<http::string_body> &) {}),
                std::runtime_error);
 }
 
 TEST_F(RouterTest, StaticPreferredOverDynamicWhenExact) {
-  foxhttp::router::register_static_handler(
-      "/api/v1", [](foxhttp::request_context &, http::response<http::string_body> &) {});
+  foxhttp::router::register_static_handler("/api/v1",
+                                           [](foxhttp::request_context &, http::response<http::string_body> &) {});
   foxhttp::router::register_dynamic_handler(
-      "/api/{seg}", [](foxhttp::request_context &, http::response<http::string_body> &) { FAIL() << "dynamic matched"; });
+      "/api/{seg}",
+      [](foxhttp::request_context &, http::response<http::string_body> &) { FAIL() << "dynamic matched"; });
 
   http::request<http::string_body> req;
   req.target("/api/v1");
@@ -77,13 +77,12 @@ TEST_F(RouterTest, StaticPreferredOverDynamicWhenExact) {
 TEST_F(RouterTest, MoreSpecificDynamicRouteWins) {
   std::string captured;
   foxhttp::router::register_dynamic_handler(
-      "/api/{seg}/{rest}", [&](foxhttp::request_context &, http::response<http::string_body> &) {
-        captured = "two_param";
-      });
-  foxhttp::router::register_dynamic_handler(
-      "/api/v1/{x}", [&](foxhttp::request_context &ctx, http::response<http::string_body> &) {
-        captured = "v1:" + ctx.path_parameter("x");
-      });
+      "/api/{seg}/{rest}",
+      [&](foxhttp::request_context &, http::response<http::string_body> &) { captured = "two_param"; });
+  foxhttp::router::register_dynamic_handler("/api/v1/{x}",
+                                            [&](foxhttp::request_context &ctx, http::response<http::string_body> &) {
+                                              captured = "v1:" + ctx.path_parameter("x");
+                                            });
 
   http::request<http::string_body> req;
   req.target("/api/v1/foo");

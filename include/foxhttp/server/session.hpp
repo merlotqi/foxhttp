@@ -1,10 +1,10 @@
 #pragma once
 
-#include <boost/asio.hpp>
+#include <atomic>
+#include <boost/asio/awaitable.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/http.hpp>
-#include <boost/bind/bind.hpp>
 #include <foxhttp/server/session_base.hpp>
 #include <memory>
 
@@ -15,16 +15,21 @@ using tcp = boost::asio::ip::tcp;
 namespace foxhttp {
 
 class middleware_chain;
+
 class session : public session_base, public std::enable_shared_from_this<session> {
  public:
   explicit session(tcp::socket socket, std::shared_ptr<middleware_chain> global_chain);
   void start();
 
  private:
-  void read_request();
-  void handle_read(boost::beast::error_code ec, size_t bytes_transferred);
-  void process_request();
-  void write_response();
+  boost::asio::awaitable<void> run();
+
+  enum class read_abort_reason {
+    none,
+    header_timeout,
+    body_timeout
+  };
+  std::atomic<read_abort_reason> read_abort_{read_abort_reason::none};
 
   void on_timeout_idle() override;
   void on_timeout_header() override;

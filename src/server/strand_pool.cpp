@@ -4,16 +4,6 @@
 
 namespace foxhttp {
 
-std::string format_duration(std::chrono::microseconds duration) {
-  if (duration.count() < 1000) {
-    return std::to_string(duration.count()) + "μs";
-  } else if (duration.count() < 1000000) {
-    return std::to_string(duration.count() / 1000) + "ms";
-  } else {
-    return std::to_string(duration.count() / 1000000) + "s";
-  }
-}
-
 void print_strand_pool_statistics(const strand_pool &pool) {
   auto stats = pool.statistics();
   std::cout << "=== Strand Pool Statistics ===" << std::endl;
@@ -38,6 +28,16 @@ void print_strand_pool_statistics(const strand_pool &pool) {
       break;
   }
   std::cout << std::endl;
+
+  auto format_duration = [](std::chrono::microseconds duration) -> std::string {
+    if (duration.count() < 1000) {
+      return std::to_string(duration.count()) + "μs";
+    } else if (duration.count() < 1000000) {
+      return std::to_string(duration.count() / 1000) + "ms";
+    } else {
+      return std::to_string(duration.count() / 1000000) + "s";
+    }
+  };
 
   std::cout << "Strand Details:" << std::endl;
   for (std::size_t i = 0; i < stats.size(); ++i) {

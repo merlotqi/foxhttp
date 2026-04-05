@@ -16,10 +16,13 @@ Executables are created under your build directory (e.g. `build/examples/01_hell
 | `03_middleware_chain` | 8082 | CORS (runs first via `first_cors_middleware`), logger, `response_time_middleware`, dispatch |
 | `04_static_files` | 8083 | `static_middleware` for `/static/` + API route; WWW root is `examples/www` (via `FOXHTTP_EXAMPLE_WWW_DIR`) |
 | `05_json_body` | 8084 | `body_parser_middleware`, POST JSON echo via `parsed_body<nlohmann::json>()` |
+| `07_graceful_shutdown` | 8086 | `server::stop()` for graceful shutdown, signal handling, slow request completion |
+| `08_error_handling` | 8087 | `error_callback` mechanism, exception logging, error statistics |
+| `09_client_timeout` | — | `http_client` timeout configuration: client-wide, per-request, connection vs request timeouts |
 
 ## Router dispatch
 
-HTTP sessions run the global middleware chain with `execute_async`. The last middleware should resolve `router::` handlers and fill the response. Shared helper: `examples/detail/router_dispatch_middleware.hpp` (namespace `foxhttp::examples`). It uses **`middleware_priority::highest`** so it runs **after** other middleware once the chain sorts by priority (ascending numeric order).
+HTTP sessions run the global middleware chain with `execute_async` (invoked from an internal **coroutine**; your middleware API is unchanged). The last middleware should resolve `router::` handlers and fill the response. Shared helper: `examples/detail/router_dispatch_middleware.hpp` (namespace `foxhttp::examples`). It uses **`middleware_priority::highest`** so it runs **after** other middleware once the chain sorts by priority (ascending numeric order).
 
 ## Middleware order
 

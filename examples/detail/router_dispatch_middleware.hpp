@@ -1,7 +1,6 @@
 #pragma once
 
-#include <foxhttp/middleware/middleware.hpp>
-#include <foxhttp/router/router.hpp>
+#include <foxhttp/foxhttp.hpp>
 #include <functional>
 #include <string>
 

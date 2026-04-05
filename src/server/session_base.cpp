@@ -54,4 +54,12 @@ void session_base::on_timeout_header() {}
 
 void session_base::on_timeout_body() {}
 
+void session_base::set_error_callback(error_callback cb) { error_cb_ = std::move(cb); }
+
+void session_base::notify_error(const std::exception_ptr &eptr) {
+  if (error_cb_) {
+    error_cb_(eptr);
+  }
+}
+
 }  // namespace foxhttp

@@ -4,12 +4,11 @@
 // Try: curl -i http://127.0.0.1:8082/api/hello
 
 #include <foxhttp/foxhttp.hpp>
+#include <iostream>
+#include <thread>
 
 #include "detail/first_cors_middleware.hpp"
 #include "detail/router_dispatch_middleware.hpp"
-
-#include <iostream>
-#include <thread>
 
 namespace http = boost::beast::http;
 
@@ -39,13 +38,13 @@ int main() {
           res.body() = "Example 03 — see X-Response-Time and server logs.\nGET /api/hello\n";
         });
 
-    foxhttp::router::register_static_handler(
-        "/api/hello", [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
-          (void)ctx;
-          res.result(http::status::ok);
-          res.set(http::field::content_type, "application/json");
-          res.body() = R"({"message":"hello"})";
-        });
+    foxhttp::router::register_static_handler("/api/hello",
+                                             [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+                                               (void)ctx;
+                                               res.result(http::status::ok);
+                                               res.set(http::field::content_type, "application/json");
+                                               res.body() = R"({"message":"hello"})";
+                                             });
 
     std::cerr << "Listening on http://127.0.0.1:" << port << "/ (Ctrl+C to stop)\n";
 

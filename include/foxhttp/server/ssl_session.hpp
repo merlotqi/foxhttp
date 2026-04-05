@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+#include <boost/asio/awaitable.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/http.hpp>
@@ -17,11 +19,17 @@ class ssl_session : public session_base, public std::enable_shared_from_this<ssl
   void start();
 
  private:
-  void handshake();
-  void read_request();
-  void handle_read(boost::beast::error_code ec, std::size_t bytes_transferred);
-  void process_request();
-  void write_response();
+  boost::asio::awaitable<void> run();
+  void arm_handshake_timer();
+  void cancel_handshake_timer();
+
+  enum class read_abort_reason {
+    none,
+    header_timeout,
+    body_timeout,
+    handshake_timeout
+  };
+  std::atomic<read_abort_reason> read_abort_{read_abort_reason::none};
 
   void on_timeout_idle() override;
   void on_timeout_header() override;
@@ -34,6 +42,7 @@ class ssl_session : public session_base, public std::enable_shared_from_this<ssl
   boost::beast::http::response<boost::beast::http::string_body> res_;
   std::shared_ptr<middleware_chain> global_chain_;
   std::size_t requests_served_{0};
+  boost::asio::steady_timer handshake_timer_;
 };
 
 }  // namespace foxhttp

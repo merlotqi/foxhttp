@@ -1,7 +1,7 @@
-#include <boost/beast/http.hpp>
-#include <foxhttp/middleware/basic/cors_middleware.hpp>
-#include <foxhttp/server/request_context.hpp>
 #include <gtest/gtest.h>
+
+#include <boost/beast/http.hpp>
+#include <foxhttp/foxhttp.hpp>
 
 namespace http = boost::beast::http;
 

@@ -4,6 +4,9 @@ set(FOXHTTP_EXAMPLES
     03_middleware_chain
     04_static_files
     05_json_body
+    07_graceful_shutdown
+    08_error_handling
+    09_client_timeout
 )
 
 foreach(name ${FOXHTTP_EXAMPLES})

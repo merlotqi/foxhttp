@@ -4,12 +4,11 @@
 // Try: curl -s -X POST http://127.0.0.1:8084/api/echo -H "Content-Type: application/json" -d '{"a":1}'
 
 #include <foxhttp/foxhttp.hpp>
-
-#include "detail/router_dispatch_middleware.hpp"
-
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <thread>
+
+#include "detail/router_dispatch_middleware.hpp"
 
 namespace http = boost::beast::http;
 
@@ -32,8 +31,7 @@ int main() {
           (void)ctx;
           res.result(http::status::ok);
           res.set(http::field::content_type, "text/plain");
-          res.body() =
-              "Example 05 — POST JSON to /api/echo with Content-Type: application/json\n";
+          res.body() = "Example 05 — POST JSON to /api/echo with Content-Type: application/json\n";
         });
 
     foxhttp::router::register_static_handler(

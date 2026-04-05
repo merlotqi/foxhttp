@@ -3,7 +3,7 @@
 Unit tests
 ==========
 
-The ``tests/`` directory contains **GoogleTest** executables, one per ``*.cpp`` file, discovered by CMake's ``gtest_discover_tests``.
+The ``tests/`` directory contains **GoogleTest** executables, one per ``*.cpp`` file, discovered by CMake's ``gtest_discover_tests``. The project is built as **C++20** (library and tests).
 
 Enable
 ------
@@ -42,6 +42,8 @@ Microbenchmark areas (see table in ``benchmark/README.md``):
 * **JSON**: small document, medium array size, deeply nested object, ``supports()`` for JSON vs wrong ``Content-Type``.
 * **Middleware**: empty pipeline vs many synchronous pass-through layers.
 * **Form / plaintext**: URL-encoded field count, plaintext body size, ``supports()`` checks.
+* **Coroutine bridge**: ``tests/await_middleware_async_test.cpp`` — ``detail::await_middleware_chain_async`` with sync middleware, async ``asio::post`` completion, and empty chain.
+* **Coroutine throughput** (benchmark): ``benchmark/coroutine_throughput_benchmark`` — middleware-await microbench and loopback session RPS (see ``benchmark/README.md``).
 
 Adding tests
 ------------

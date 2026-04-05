@@ -21,7 +21,7 @@ foreach(BENCH_SOURCE ${FOXHTTP_BENCHMARK_SOURCES})
   get_filename_component(BENCH_NAME ${BENCH_SOURCE} NAME_WE)
   add_executable(${BENCH_NAME} ${BENCH_SOURCE})
   target_link_libraries(${BENCH_NAME} PRIVATE benchmark::benchmark_main foxhttp::foxhttplib)
-  target_compile_features(${BENCH_NAME} PRIVATE cxx_std_17)
+  target_compile_features(${BENCH_NAME} PRIVATE cxx_std_20)
 
   add_test(
     NAME ${BENCH_NAME}

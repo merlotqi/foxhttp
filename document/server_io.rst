@@ -21,6 +21,8 @@ server and ssl_server
 
 Both expose middleware registration via ``global_chain()`` (or equivalent) so you attach shared middleware before accepting connections.
 
+Accept and per-connection HTTP/TLS/WebSocket I/O use **Boost.Asio coroutines** (``co_spawn``, ``co_await`` with ``use_awaitable``). See :ref:`coroutines`.
+
 signal_set
 ----------
 

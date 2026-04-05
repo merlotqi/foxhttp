@@ -9,9 +9,40 @@
 
 namespace foxhttp {
 
+// Static members initialization
+std::mutex route_table::instances_mutex_;
+std::unordered_map<std::string, std::shared_ptr<route_table>> route_table::named_instances_;
+
 route_table &route_table::instance() {
   static route_table inst;
   return inst;
+}
+
+route_table &route_table::instance(const std::string &name) {
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+  auto it = named_instances_.find(name);
+  if (it != named_instances_.end()) {
+    return *it->second;
+  }
+  // Create new named instance
+  auto new_instance = std::shared_ptr<route_table>(new route_table());
+  named_instances_[name] = new_instance;
+  return *new_instance;
+}
+
+bool route_table::remove_instance(const std::string &name) {
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+  return named_instances_.erase(name) > 0;
+}
+
+std::vector<std::string> route_table::get_instance_names() {
+  std::lock_guard<std::mutex> lock(instances_mutex_);
+  std::vector<std::string> names;
+  names.reserve(named_instances_.size());
+  for (const auto &[name, _] : named_instances_) {
+    names.push_back(name);
+  }
+  return names;
 }
 
 static std::string strip_trailing_slash(const std::string &s) {

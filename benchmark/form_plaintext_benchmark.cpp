@@ -1,7 +1,7 @@
 #include <benchmark/benchmark.h>
+
 #include <boost/beast/http.hpp>
-#include <foxhttp/parser/form_parser.hpp>
-#include <foxhttp/parser/plaintext_parser.hpp>
+#include <foxhttp/foxhttp.hpp>
 #include <sstream>
 #include <string>
 
