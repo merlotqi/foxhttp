@@ -9,7 +9,7 @@
 #include <shared_mutex>
 #include <string>
 
-namespace foxhttp {
+namespace foxhttp::config {
 
 static std::optional<nlohmann::json> load_json_static(const std::string &path) {
   std::ifstream ifs(path);
@@ -48,13 +48,13 @@ static std::optional<nlohmann::json> load_yaml_static(const std::string &path) {
   }
 }
 
-config_manager &config_manager::instance() {
-  static config_manager inst;
+ConfigManager &ConfigManager::instance() {
+  static ConfigManager inst;
   return inst;
 }
 
 // Initialize with a file path and optionally start internal watcher
-bool config_manager::initialize(const std::string &path, bool enable_watch, std::chrono::milliseconds interval) {
+bool ConfigManager::initialize(const std::string &path, bool enable_watch, std::chrono::milliseconds interval) {
   config_path_ = path;
   bool ok = load_file(config_path_);
   if (enable_watch) {
@@ -63,12 +63,12 @@ bool config_manager::initialize(const std::string &path, bool enable_watch, std:
   return ok;
 }
 
-void config_manager::register_loader(const std::string &extension, loader_fn loader) {
+void ConfigManager::register_loader(const std::string &extension, loader_fn loader) {
   std::lock_guard<std::mutex> lk(loader_mutex_);
   loaders_[extension] = std::move(loader);
 }
 
-bool config_manager::load_file(const std::string &path) {
+bool ConfigManager::load_file(const std::string &path) {
   std::filesystem::path p(path);
   auto ext = p.extension().string();
   loader_fn loader;
@@ -118,66 +118,66 @@ bool config_manager::load_file(const std::string &path) {
 }
 
 // Reload using remembered path (safe no-op if unset)
-bool config_manager::reload() {
+bool ConfigManager::reload() {
   if (config_path_.empty()) return false;
   return load_file(config_path_);
 }
 
 // Accessors for known sections
-json_config config_manager::get_json_config() const {
+JsonConfig ConfigManager::get_json_config() const {
   std::shared_lock<std::shared_mutex> lk(mutex_);
   return json_from_doc();
 }
-multipart_config config_manager::get_multipart_config() const {
+MultipartConfig ConfigManager::get_multipart_config() const {
   std::shared_lock<std::shared_mutex> lk(mutex_);
   return multipart_from_doc();
 }
-form_config config_manager::get_form_config() const {
+FormConfig ConfigManager::get_form_config() const {
   std::shared_lock<std::shared_mutex> lk(mutex_);
   return form_from_doc();
 }
-plain_text_config config_manager::get_plain_text_config() const {
+PlainTextConfig ConfigManager::get_plain_text_config() const {
   std::shared_lock<std::shared_mutex> lk(mutex_);
   return plain_from_doc();
 }
 
-const nlohmann::json &config_manager::document() const { return document_; }
+const nlohmann::json &ConfigManager::document() const { return document_; }
 
-std::shared_ptr<const config_manager::snapshot> config_manager::get_snapshot() const {
+std::shared_ptr<const ConfigManager::ConfigSnapshot> ConfigManager::get_snapshot() const {
   std::shared_lock<std::shared_mutex> lk(mutex_);
   return snapshot_;
 }
 
-void config_manager::subscribe(const std::string &path, diff_callback cb) {
+void ConfigManager::subscribe(const std::string &path, diff_callback cb) {
   std::lock_guard<std::mutex> lk(sub_mutex_);
   subscribers_[path].push_back(std::move(cb));
 }
 
-void config_manager::set_logger(log_fn logger) {
+void ConfigManager::set_logger(log_fn logger) {
   std::lock_guard<std::mutex> lk(log_mutex_);
   logger_ = std::move(logger);
 }
 
-void config_manager::set_validator(validate_fn v) {
+void ConfigManager::set_validator(validate_fn v) {
   std::lock_guard<std::mutex> lk(validator_mutex_);
   validator_ = std::move(v);
 }
 
-void config_manager::start_watching(std::chrono::milliseconds interval) {
+void ConfigManager::start_watching(std::chrono::milliseconds interval) {
   if (config_path_.empty()) return;
   if (!watcher_) {
-    watcher_ = std::make_unique<details::config_watcher>(config_path_, interval);
+    watcher_ = std::make_unique<detail::ConfigWatcher>(config_path_, interval);
     watcher_->on_reload.connect([this] { /* document_ already merged in load_file */ });
   }
   watcher_->start();
 }
 
-void config_manager::stop_watching() {
+void ConfigManager::stop_watching() {
   if (watcher_) watcher_->stop();
 }
 
-json_config config_manager::json_from_doc() const {
-  json_config cfg;
+JsonConfig ConfigManager::json_from_doc() const {
+  JsonConfig cfg;
   auto j = document_.value("parsers", nlohmann::json{}).value("json", nlohmann::json{});
   if (!j.is_object()) return cfg;
   cfg.max_size = j.value("maxBodySize", cfg.max_size);
@@ -192,8 +192,8 @@ json_config config_manager::json_from_doc() const {
   return cfg;
 }
 
-multipart_config config_manager::multipart_from_doc() const {
-  multipart_config cfg;
+MultipartConfig ConfigManager::multipart_from_doc() const {
+  MultipartConfig cfg;
   auto m = document_.value("parsers", nlohmann::json{}).value("multipart", nlohmann::json{});
   if (!m.is_object()) return cfg;
   cfg.max_field_size = m.value("maxFieldSize", cfg.max_field_size);
@@ -210,8 +210,8 @@ multipart_config config_manager::multipart_from_doc() const {
   return cfg;
 }
 
-form_config config_manager::form_from_doc() const {
-  form_config cfg;
+FormConfig ConfigManager::form_from_doc() const {
+  FormConfig cfg;
   auto f = document_.value("parsers", nlohmann::json{}).value("form", nlohmann::json{});
   if (!f.is_object()) return cfg;
   cfg.max_field_size = f.value("maxFieldSize", cfg.max_field_size);
@@ -224,8 +224,8 @@ form_config config_manager::form_from_doc() const {
   return cfg;
 }
 
-plain_text_config config_manager::plain_from_doc() const {
-  plain_text_config cfg;
+PlainTextConfig ConfigManager::plain_from_doc() const {
+  PlainTextConfig cfg;
   auto p = document_.value("parsers", nlohmann::json{}).value("plain", nlohmann::json{});
   if (!p.is_object()) return cfg;
   cfg.max_size = p.value("maxBodySize", cfg.max_size);
@@ -239,9 +239,9 @@ plain_text_config config_manager::plain_from_doc() const {
   return cfg;
 }
 
-strand_pool_config config_manager::strand_pool_from_doc() const {
-  strand_pool_config cfg;
-  auto s = document_.value("core", nlohmann::json{}).value("strand_pool", nlohmann::json{});
+StrandPoolConfig ConfigManager::strand_pool_from_doc() const {
+  StrandPoolConfig cfg;
+  auto s = document_.value("core", nlohmann::json{}).value("StrandPool", nlohmann::json{});
   if (!s.is_object()) return cfg;
   cfg.initial_size = s.value("initialSize", (int)cfg.initial_size);
   cfg.min_size = s.value("minSize", (int)cfg.min_size);
@@ -256,9 +256,9 @@ strand_pool_config config_manager::strand_pool_from_doc() const {
   return cfg;
 }
 
-timer_manager_config config_manager::timer_from_doc() const {
-  timer_manager_config cfg;
-  auto t = document_.value("core", nlohmann::json{}).value("timer_manager", nlohmann::json{});
+TimerManagerConfig ConfigManager::timer_from_doc() const {
+  TimerManagerConfig cfg;
+  auto t = document_.value("core", nlohmann::json{}).value("TimerManager", nlohmann::json{});
   if (!t.is_object()) return cfg;
   cfg.bucket_count = t.value("bucketCount", (int)cfg.bucket_count);
   cfg.cleanup_interval = std::chrono::milliseconds{t.value("cleanupIntervalMs", (int)cfg.cleanup_interval.count())};
@@ -269,8 +269,8 @@ timer_manager_config config_manager::timer_from_doc() const {
   return cfg;
 }
 
-void config_manager::rebuild_snapshot_unlocked() {
-  auto snap = std::make_shared<snapshot>();
+void ConfigManager::rebuild_snapshot_unlocked() {
+  auto snap = std::make_shared<ConfigSnapshot>();
   // Increment version number for change detection
   static uint64_t version_counter = 0;
   snap->version = ++version_counter;
@@ -300,7 +300,7 @@ static const nlohmann::json *walk_dot_path(const nlohmann::json &node, const std
   return current;
 }
 
-void config_manager::deep_merge(nlohmann::json &dst, const nlohmann::json &src) {
+void ConfigManager::deep_merge(nlohmann::json &dst, const nlohmann::json &src) {
   if (!src.is_object() || !dst.is_object()) {
     dst = src;
     return;
@@ -316,13 +316,13 @@ void config_manager::deep_merge(nlohmann::json &dst, const nlohmann::json &src) 
   }
 }
 
-nlohmann::json config_manager::json_pointer_at(const nlohmann::json &doc, const std::string &path) {
+nlohmann::json ConfigManager::json_pointer_at(const nlohmann::json &doc, const std::string &path) {
   auto ptr = walk_dot_path(doc, path);
   if (!ptr) return nlohmann::json();
   return *ptr;
 }
 
-void config_manager::notify_subscribers_unlocked(const nlohmann::json &new_doc, const nlohmann::json &old_doc) {
+void ConfigManager::notify_subscribers_unlocked(const nlohmann::json &new_doc, const nlohmann::json &old_doc) {
   std::map<std::string, std::vector<diff_callback>> subs_copy;
   {
     std::lock_guard<std::mutex> lk(sub_mutex_);
@@ -341,9 +341,9 @@ void config_manager::notify_subscribers_unlocked(const nlohmann::json &new_doc, 
   }
 }
 
-void config_manager::log(const std::string &msg) const {
+void ConfigManager::log(const std::string &msg) const {
   std::lock_guard<std::mutex> lk(log_mutex_);
   if (logger_) logger_(msg);
 }
 
-}  // namespace foxhttp
+}  // namespace foxhttp::config

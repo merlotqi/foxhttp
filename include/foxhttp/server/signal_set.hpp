@@ -8,14 +8,14 @@
 #include <unordered_map>
 #include <vector>
 
-namespace foxhttp {
+namespace foxhttp::server {
 
-class signal_set : public std::enable_shared_from_this<signal_set> {
+class SignalSet : public std::enable_shared_from_this<SignalSet> {
  public:
   using signal_handler = std::function<void(int, const std::string &)>;
   using error_handler = std::function<void(const std::error_code &, const std::string &context)>;
 
-  signal_set(boost::asio::io_context &io_context);
+  SignalSet(boost::asio::io_context &io_context);
   void register_handler(int signal_number, signal_handler handler);
   void set_error_handler(error_handler handler);
 
@@ -36,4 +36,4 @@ class signal_set : public std::enable_shared_from_this<signal_set> {
   std::atomic<bool> stopped_;
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::server

@@ -3,7 +3,7 @@
 #include <fstream>
 #include <sstream>
 
-namespace foxhttp {
+namespace foxhttp::middleware {
 
 namespace {
 
@@ -42,12 +42,12 @@ std::unordered_map<std::string, std::string> make_mime_map() {
 
 }  // namespace
 
-const std::unordered_map<std::string, std::string> &static_middleware::mime_map() {
+const std::unordered_map<std::string, std::string> &StaticMiddleware::mime_map() {
   static const auto m = make_mime_map();
   return m;
 }
 
-std::string static_middleware::normalize_prefix(std::string p) {
+std::string StaticMiddleware::normalize_prefix(std::string p) {
   if (p.empty()) {
     p = "/";
   }
@@ -60,7 +60,7 @@ std::string static_middleware::normalize_prefix(std::string p) {
   return p;
 }
 
-bool static_middleware::is_subpath(const std::filesystem::path &root, const std::filesystem::path &candidate) {
+bool StaticMiddleware::is_subpath(const std::filesystem::path &root, const std::filesystem::path &candidate) {
   std::error_code ec;
   auto r = std::filesystem::weakly_canonical(root, ec);
   if (ec) {
@@ -80,7 +80,7 @@ bool static_middleware::is_subpath(const std::filesystem::path &root, const std:
   return true;
 }
 
-std::string static_middleware::mime_for_path(const std::filesystem::path &file) {
+std::string StaticMiddleware::mime_for_path(const std::filesystem::path &file) {
   auto ext = file.extension().string();
   if (ext.size() > 1 && ext.front() == '.') {
     ext.erase(ext.begin());
@@ -94,7 +94,7 @@ std::string static_middleware::mime_for_path(const std::filesystem::path &file) 
   return "application/octet-stream";
 }
 
-static_middleware::static_middleware(std::string url_prefix, std::filesystem::path document_root,
+StaticMiddleware::StaticMiddleware(std::string url_prefix, std::filesystem::path document_root,
                                      std::string index_file)
     : prefix_(normalize_prefix(std::move(url_prefix))),
       doc_root_(std::move(document_root)),
@@ -107,22 +107,22 @@ static_middleware::static_middleware(std::string url_prefix, std::filesystem::pa
   }
 }
 
-std::string static_middleware::name() const { return "StaticMiddleware"; }
+std::string StaticMiddleware::name() const { return "StaticMiddleware"; }
 
-middleware_priority static_middleware::priority() const { return middleware_priority::normal; }
+MiddlewarePriority StaticMiddleware::priority() const { return MiddlewarePriority::Normal; }
 
-void static_middleware::set_max_file_size(std::size_t bytes) { max_file_size_ = bytes; }
+void StaticMiddleware::set_max_file_size(std::size_t bytes) { max_file_size_ = bytes; }
 
-static_middleware::serve_result static_middleware::try_serve(request_context &ctx,
+StaticMiddleware::ServeResult StaticMiddleware::try_serve(RequestContext &ctx,
                                                              http::response<http::string_body> &res) {
   const auto verb = ctx.method();
   if (verb != http::verb::get && verb != http::verb::head) {
-    return serve_result::not_applicable;
+    return ServeResult::NotApplicable;
   }
 
   const std::string &path = ctx.path();
   if (path.size() < prefix_.size() || path.compare(0, prefix_.size(), prefix_) != 0) {
-    return serve_result::not_applicable;
+    return ServeResult::NotApplicable;
   }
 
   std::string rel = path.substr(prefix_.size());
@@ -144,7 +144,7 @@ static_middleware::serve_result static_middleware::try_serve(request_context &ct
     res.result(http::status::forbidden);
     res.set(http::field::content_type, "text/plain; charset=utf-8");
     res.body() = "Forbidden";
-    return serve_result::stop_pipeline;
+    return ServeResult::StopPipeline;
   }
 
   auto st = std::filesystem::status(mapped, ec);
@@ -152,7 +152,7 @@ static_middleware::serve_result static_middleware::try_serve(request_context &ct
     res.result(http::status::not_found);
     res.set(http::field::content_type, "text/plain; charset=utf-8");
     res.body() = "Not Found";
-    return serve_result::stop_pipeline;
+    return ServeResult::StopPipeline;
   }
 
   if (std::filesystem::is_directory(st)) {
@@ -162,7 +162,7 @@ static_middleware::serve_result static_middleware::try_serve(request_context &ct
       res.result(http::status::forbidden);
       res.set(http::field::content_type, "text/plain; charset=utf-8");
       res.body() = "Forbidden";
-      return serve_result::stop_pipeline;
+      return ServeResult::StopPipeline;
     }
     st = std::filesystem::status(mapped, ec);
   }
@@ -171,7 +171,7 @@ static_middleware::serve_result static_middleware::try_serve(request_context &ct
     res.result(http::status::not_found);
     res.set(http::field::content_type, "text/plain; charset=utf-8");
     res.body() = "Not Found";
-    return serve_result::stop_pipeline;
+    return ServeResult::StopPipeline;
   }
 
   const auto fsize = std::filesystem::file_size(mapped, ec);
@@ -179,14 +179,14 @@ static_middleware::serve_result static_middleware::try_serve(request_context &ct
     res.result(http::status::internal_server_error);
     res.set(http::field::content_type, "text/plain; charset=utf-8");
     res.body() = "Internal Server Error";
-    return serve_result::stop_pipeline;
+    return ServeResult::StopPipeline;
   }
 
   if (fsize > max_file_size_) {
     res.result(http::status::payload_too_large);
     res.set(http::field::content_type, "text/plain; charset=utf-8");
     res.body() = "Payload Too Large";
-    return serve_result::stop_pipeline;
+    return ServeResult::StopPipeline;
   }
 
   const std::string mime = mime_for_path(mapped);
@@ -197,7 +197,7 @@ static_middleware::serve_result static_middleware::try_serve(request_context &ct
   if (verb == http::verb::head) {
     res.content_length(static_cast<std::size_t>(fsize));
     res.body().clear();
-    return serve_result::served;
+    return ServeResult::Served;
   }
 
   std::ifstream in(mapped, std::ios::binary);
@@ -205,34 +205,34 @@ static_middleware::serve_result static_middleware::try_serve(request_context &ct
     res.result(http::status::internal_server_error);
     res.set(http::field::content_type, "text/plain; charset=utf-8");
     res.body() = "Failed to read file";
-    return serve_result::stop_pipeline;
+    return ServeResult::StopPipeline;
   }
   std::ostringstream ss;
   ss << in.rdbuf();
   res.body() = ss.str();
-  return serve_result::served;
+  return ServeResult::Served;
 }
 
-void static_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+void StaticMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
                                    std::function<void()> next) {
   const auto r = try_serve(ctx, res);
-  if (r == serve_result::not_applicable) {
+  if (r == ServeResult::NotApplicable) {
     next();
     return;
   }
   res.prepare_payload();
 }
 
-void static_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+void StaticMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
                                    std::function<void()> next, async_middleware_callback callback) {
   const auto r = try_serve(ctx, res);
-  if (r == serve_result::not_applicable) {
+  if (r == ServeResult::NotApplicable) {
     next();
-    callback(middleware_result::continue_, "");
+    callback(MiddlewareResult::Continue, "");
     return;
   }
   res.prepare_payload();
-  callback(middleware_result::stop, "");
+  callback(MiddlewareResult::Stop, "");
 }
 
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware

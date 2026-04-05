@@ -11,22 +11,22 @@ Executables are created under your build directory (e.g. `build/examples/01_hell
 
 | Example | Port | What it demonstrates |
 |--------|------|----------------------|
-| `01_hello_server` | 8080 | `io_context_pool`, `server`, `signal_set`, `router::register_static_handler`, terminal **router dispatch** middleware |
-| `02_routing` | 8081 | Static + dynamic routes, `path_parameter` |
-| `03_middleware_chain` | 8082 | CORS (runs first via `first_cors_middleware`), logger, `response_time_middleware`, dispatch |
-| `04_static_files` | 8083 | `static_middleware` for `/static/` + API route; WWW root is `examples/www` (via `FOXHTTP_EXAMPLE_WWW_DIR`) |
-| `05_json_body` | 8084 | `body_parser_middleware`, POST JSON echo via `parsed_body<nlohmann::json>()` |
-| `07_graceful_shutdown` | 8086 | `server::stop()` for graceful shutdown, signal handling, slow request completion |
-| `08_error_handling` | 8087 | `error_callback` mechanism, exception logging, error statistics |
-| `09_client_timeout` | — | `http_client` timeout configuration: client-wide, per-request, connection vs request timeouts |
+| `01_hello_server` | 8080 | `foxhttp::server::IoContextPool`, `foxhttp::server::Server`, `foxhttp::server::SignalSet`, `foxhttp::router::Router::register_static_handler`, terminal **router dispatch** middleware |
+| `02_routing` | 8081 | Static + dynamic routes, path parameters on `foxhttp::server::RequestContext` |
+| `03_middleware_chain` | 8082 | CORS (runs first via `first_cors_middleware`), `foxhttp::middleware::factories::create_simple_logger`, `foxhttp::middleware::ResponseTimeMiddleware`, dispatch |
+| `04_static_files` | 8083 | `foxhttp::middleware::StaticMiddleware` for `/static/` + API route; WWW root is `examples/www` (via `FOXHTTP_EXAMPLE_WWW_DIR`) |
+| `05_json_body` | 8084 | `foxhttp::middleware::BodyParserMiddleware`, POST JSON echo via `parsed_body<nlohmann::json>()` |
+| `07_graceful_shutdown` | 8086 | `foxhttp::server::Server::stop()` for graceful shutdown, signal handling, slow request completion |
+| `08_error_handling` | 8087 | Session error callback mechanism, exception logging, error statistics |
+| `09_client_timeout` | — | `foxhttp::client::HttpClient` timeout configuration: client-wide, per-request, connection vs request timeouts |
 
 ## Router dispatch
 
-HTTP sessions run the global middleware chain with `execute_async` (invoked from an internal **coroutine**; your middleware API is unchanged). The last middleware should resolve `router::` handlers and fill the response. Shared helper: `examples/detail/router_dispatch_middleware.hpp` (namespace `foxhttp::examples`). It uses **`middleware_priority::highest`** so it runs **after** other middleware once the chain sorts by priority (ascending numeric order).
+HTTP sessions run the global middleware chain with `execute_async` (invoked from an internal **coroutine**; your middleware API is unchanged). The last middleware should resolve `foxhttp::router::Router` handlers and fill the response. Shared helper: `examples/detail/router_dispatch_middleware.hpp` (namespace `foxhttp::examples`). It uses **`foxhttp::middleware::MiddlewarePriority::Highest`** so it runs **after** other middleware once the chain sorts by priority (ascending numeric order).
 
 ## Middleware order
 
-`middleware_chain` **sorts** middleware by `priority()` unless you rely on equal priorities. Lower numeric values run first. Stock **CORS** uses `high`; **response_time** uses `low`. Example 03 uses **`first_cors_middleware`** (`lowest`) so CORS headers are applied before logger and response-time measurement.
+`foxhttp::middleware::MiddlewareChain` **sorts** middleware by `priority()` unless you rely on equal priorities. Lower numeric values run first. Stock **CORS** uses `High`; **response_time** uses `Low`. Example 03 uses **`first_cors_middleware`** (`Lowest`) so CORS headers are applied before logger and response-time measurement.
 
 ## Try with curl
 

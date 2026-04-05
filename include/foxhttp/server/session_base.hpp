@@ -8,20 +8,26 @@
 #include <functional>
 #include <memory>
 
-namespace foxhttp {
+namespace foxhttp::middleware {
+class MiddlewareChain;
+}
 
-class middleware_chain;
+namespace foxhttp::server {
 
-class session_base {
+using SessionLimits = config::SessionLimits;
+
+using MiddlewareChain = middleware::MiddlewareChain;
+
+class SessionBase {
  public:
   using error_callback = std::function<void(const std::exception_ptr &)>;
 
-  explicit session_base(const boost::asio::any_io_executor &executor, std::shared_ptr<middleware_chain> chain,
-                        const session_limits &limits = {});
-  virtual ~session_base() = default;
+  explicit SessionBase(const boost::asio::any_io_executor &executor, std::shared_ptr<MiddlewareChain> chain,
+                        const SessionLimits &limits = {});
+  virtual ~SessionBase() = default;
 
-  void set_limits(const session_limits &limits);
-  const session_limits &limits() const;
+  void set_limits(const SessionLimits &limits);
+  const SessionLimits &limits() const;
 
   void set_error_callback(error_callback cb);
 
@@ -46,8 +52,8 @@ class session_base {
 
  protected:
   boost::asio::any_io_executor executor_;
-  std::shared_ptr<middleware_chain> chain_;
-  session_limits limits_;
+  std::shared_ptr<MiddlewareChain> chain_;
+  SessionLimits limits_;
   error_callback error_cb_;
 
   // timers
@@ -56,4 +62,4 @@ class session_base {
   boost::asio::steady_timer body_timer_;
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::server

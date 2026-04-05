@@ -12,8 +12,8 @@ namespace asio = boost::asio;
 
 namespace {
 
-asio::awaitable<void> run_await_chain(asio::io_context &ioc, std::shared_ptr<foxhttp::middleware_chain> chain,
-                                      foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+asio::awaitable<void> run_await_chain(asio::io_context &ioc, std::shared_ptr<foxhttp::middleware::MiddlewareChain> chain,
+                                      foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
   co_await foxhttp::detail::await_middleware_chain_async(ioc.get_executor(), chain, ctx, res);
 }
 
@@ -21,9 +21,9 @@ asio::awaitable<void> run_await_chain(asio::io_context &ioc, std::shared_ptr<fox
 
 TEST(AwaitMiddlewareAsync, SyncMiddlewareCompletes) {
   asio::io_context ioc;
-  auto chain = std::make_shared<foxhttp::middleware_chain>(ioc);
-  chain->use(std::make_shared<foxhttp::functional_middleware>(
-      "sync", [](foxhttp::request_context &, http::response<http::string_body> &res, std::function<void()> next) {
+  auto chain = std::make_shared<foxhttp::middleware::MiddlewareChain>(ioc);
+  chain->use(std::make_shared<foxhttp::middleware::FunctionalMiddleware>(
+      "sync", [](foxhttp::server::RequestContext &, http::response<http::string_body> &res, std::function<void()> next) {
         res.result(http::status::ok);
         res.set(http::field::content_type, "text/plain");
         res.body() = "hello";
@@ -36,7 +36,7 @@ TEST(AwaitMiddlewareAsync, SyncMiddlewareCompletes) {
   req.version(11);
 
   http::response<http::string_body> res{http::status::internal_server_error, 11};
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
 
   bool finished = false;
   asio::co_spawn(
@@ -55,16 +55,16 @@ TEST(AwaitMiddlewareAsync, SyncMiddlewareCompletes) {
 
 TEST(AwaitMiddlewareAsync, AsyncMiddlewareCompletesViaPost) {
   asio::io_context ioc;
-  auto chain = std::make_shared<foxhttp::middleware_chain>(ioc);
-  chain->use(std::make_shared<foxhttp::functional_middleware>(
+  auto chain = std::make_shared<foxhttp::middleware::MiddlewareChain>(ioc);
+  chain->use(std::make_shared<foxhttp::middleware::FunctionalMiddleware>(
       "async",
-      [](foxhttp::request_context &, http::response<http::string_body> &, std::function<void()> next) { next(); },
-      [&ioc](foxhttp::request_context &, http::response<http::string_body> &res, std::function<void()>,
-             foxhttp::async_middleware_callback cb) {
+      [](foxhttp::server::RequestContext &, http::response<http::string_body> &, std::function<void()> next) { next(); },
+      [&ioc](foxhttp::server::RequestContext &, http::response<http::string_body> &res, std::function<void()>,
+             foxhttp::middleware::async_middleware_callback cb) {
         asio::post(ioc.get_executor(), [&res, cb]() {
           res.result(http::status::accepted);
           res.body() = "async";
-          cb(foxhttp::middleware_result::continue_, "");
+          cb(foxhttp::middleware::MiddlewareResult::Continue, "");
         });
       }));
 
@@ -74,7 +74,7 @@ TEST(AwaitMiddlewareAsync, AsyncMiddlewareCompletesViaPost) {
   req.version(11);
 
   http::response<http::string_body> res{http::status::internal_server_error, 11};
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
 
   bool finished = false;
   asio::co_spawn(
@@ -93,7 +93,7 @@ TEST(AwaitMiddlewareAsync, AsyncMiddlewareCompletesViaPost) {
 
 TEST(AwaitMiddlewareAsync, EmptyChainCompletes) {
   asio::io_context ioc;
-  auto chain = std::make_shared<foxhttp::middleware_chain>(ioc);
+  auto chain = std::make_shared<foxhttp::middleware::MiddlewareChain>(ioc);
 
   http::request<http::string_body> req;
   req.method(http::verb::get);
@@ -101,7 +101,7 @@ TEST(AwaitMiddlewareAsync, EmptyChainCompletes) {
   req.version(11);
 
   http::response<http::string_body> res{http::status::ok, 11};
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
 
   bool finished = false;
   asio::co_spawn(

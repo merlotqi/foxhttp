@@ -10,12 +10,12 @@
 #include <unordered_map>
 #include <vector>
 
-namespace foxhttp {
+namespace foxhttp::middleware {
 
 namespace detail {
 
 // Per-request execution state (shared by async continuations); middleware list is snapshotted separately.
-struct pipeline_execution_state {
+struct PipelineExecutionState {
   std::mutex mu;
   std::size_t current_index = 0;
   std::atomic<bool> timed_out{false};
@@ -28,20 +28,20 @@ struct pipeline_execution_state {
 
 }  // namespace detail
 
-class middleware_chain {
+class MiddlewareChain {
  public:
   using error_handler =
-      std::function<void(request_context &, http::response<http::string_body> &, const std::exception &)>;
-  using timeout_handler = std::function<void(request_context &, http::response<http::string_body> &)>;
-  using completion_callback = std::function<void(middleware_result result, const std::string &error_message)>;
+      std::function<void(RequestContext &, http::response<http::string_body> &, const std::exception &)>;
+  using timeout_handler = std::function<void(RequestContext &, http::response<http::string_body> &)>;
+  using completion_callback = std::function<void(MiddlewareResult result, const std::string &error_message)>;
 
-  explicit middleware_chain(boost::asio::io_context &io_context);
-  middleware_chain() = default;
+  explicit MiddlewareChain(boost::asio::io_context &io_context);
+  MiddlewareChain() = default;
 
-  void use(std::shared_ptr<middleware> mw);
-  void use(std::initializer_list<std::shared_ptr<middleware>> mws);
-  void insert(std::size_t index, std::shared_ptr<middleware> mw);
-  void insert_by_priority(std::shared_ptr<middleware> mw);
+  void use(std::shared_ptr<Middleware> mw);
+  void use(std::initializer_list<std::shared_ptr<Middleware>> mws);
+  void insert(std::size_t index, std::shared_ptr<Middleware> mw);
+  void insert_by_priority(std::shared_ptr<Middleware> mw);
   void remove(const std::string &middleware_name);
   void clear();
 
@@ -51,8 +51,8 @@ class middleware_chain {
   void set_io_context(boost::asio::io_context &io_context);
   void enable_statistics(bool enable = true);
 
-  void execute(request_context &ctx, http::response<http::string_body> &res);
-  void execute_async(request_context &ctx, http::response<http::string_body> &res,
+  void execute(RequestContext &ctx, http::response<http::string_body> &res);
+  void execute_async(RequestContext &ctx, http::response<http::string_body> &res,
                      completion_callback callback = nullptr);
 
   void cancel();
@@ -64,59 +64,59 @@ class middleware_chain {
   bool is_running() const;
   std::vector<std::string> get_middleware_names() const;
 
-  std::unordered_map<std::string, middleware_stats> get_statistics() const;
+  std::unordered_map<std::string, MiddlewareStats> get_statistics() const;
   void reset_statistics();
   void print_statistics() const;
 
  private:
-  struct middleware_info {
-    std::shared_ptr<middleware> mw_;
+  struct MiddlewareInfo {
+    std::shared_ptr<Middleware> mw_;
   };
 
-  void register_run(std::shared_ptr<detail::pipeline_execution_state> state);
-  void unregister_run(detail::pipeline_execution_state *raw);
+  void register_run(std::shared_ptr<detail::PipelineExecutionState> state);
+  void unregister_run(detail::PipelineExecutionState *raw);
 
-  bool try_finish_run(const std::shared_ptr<detail::pipeline_execution_state> &state);
-  void complete_async_run(const std::shared_ptr<detail::pipeline_execution_state> &state, completion_callback callback,
-                          middleware_result result, const std::string &message);
+  bool try_finish_run(const std::shared_ptr<detail::PipelineExecutionState> &state);
+  void complete_async_run(const std::shared_ptr<detail::PipelineExecutionState> &state, completion_callback callback,
+                          MiddlewareResult result, const std::string &message);
 
-  void execute_next_sync(const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
-                         const std::shared_ptr<detail::pipeline_execution_state> &state, request_context &ctx,
+  void execute_next_sync(const std::shared_ptr<std::vector<std::shared_ptr<Middleware>>> &pipeline,
+                         const std::shared_ptr<detail::PipelineExecutionState> &state, RequestContext &ctx,
                          http::response<http::string_body> &res, const error_handler &eh, const timeout_handler &th,
                          std::chrono::milliseconds global_timeout, bool statistics_enabled);
 
-  void execute_next_async_step(const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
-                               const std::shared_ptr<detail::pipeline_execution_state> &state, request_context &ctx,
+  void execute_next_async_step(const std::shared_ptr<std::vector<std::shared_ptr<Middleware>>> &pipeline,
+                               const std::shared_ptr<detail::PipelineExecutionState> &state, RequestContext &ctx,
                                http::response<http::string_body> &res, completion_callback callback,
                                const error_handler &eh, const timeout_handler &th,
                                std::chrono::milliseconds global_timeout, bool statistics_enabled);
 
-  void handle_error_run(request_context &ctx, http::response<http::string_body> &res, const std::exception &e,
-                        const std::shared_ptr<detail::pipeline_execution_state> &state, completion_callback callback,
+  void handle_error_run(RequestContext &ctx, http::response<http::string_body> &res, const std::exception &e,
+                        const std::shared_ptr<detail::PipelineExecutionState> &state, completion_callback callback,
                         const error_handler &eh);
 
-  void handle_timeout_run(request_context &ctx, http::response<http::string_body> &res,
-                          const std::shared_ptr<detail::pipeline_execution_state> &state, completion_callback callback,
+  void handle_timeout_run(RequestContext &ctx, http::response<http::string_body> &res,
+                          const std::shared_ptr<detail::PipelineExecutionState> &state, completion_callback callback,
                           const timeout_handler &th);
 
-  void handle_middleware_result_run(request_context &ctx, http::response<http::string_body> &res,
-                                    middleware_result result, const std::string &error_message,
-                                    const std::shared_ptr<std::vector<std::shared_ptr<middleware>>> &pipeline,
-                                    const std::shared_ptr<detail::pipeline_execution_state> &state,
+  void handle_middleware_result_run(RequestContext &ctx, http::response<http::string_body> &res,
+                                    MiddlewareResult result, const std::string &error_message,
+                                    const std::shared_ptr<std::vector<std::shared_ptr<Middleware>>> &pipeline,
+                                    const std::shared_ptr<detail::PipelineExecutionState> &state,
                                     completion_callback callback, const error_handler &eh, const timeout_handler &th,
                                     std::chrono::milliseconds global_timeout, bool statistics_enabled);
 
   void sort_middlewares_by_priority();
-  void setup_middleware_timeout(std::shared_ptr<middleware> mw, request_context &ctx,
+  void setup_middleware_timeout(std::shared_ptr<Middleware> mw, RequestContext &ctx,
                                 http::response<http::string_body> &res, completion_callback callback,
-                                const std::shared_ptr<detail::pipeline_execution_state> &state,
+                                const std::shared_ptr<detail::PipelineExecutionState> &state,
                                 const timeout_handler &th, bool statistics_enabled);
 
  private:
   mutable std::mutex config_mutex_;
-  std::vector<middleware_info> mws_;
+  std::vector<MiddlewareInfo> mws_;
   mutable std::mutex runs_mutex_;
-  std::vector<std::shared_ptr<detail::pipeline_execution_state>> active_runs_;
+  std::vector<std::shared_ptr<detail::PipelineExecutionState>> active_runs_;
 
   bool statistics_enabled_ = true;
   bool auto_sort_by_priority_ = true;
@@ -131,4 +131,4 @@ class middleware_chain {
   boost::asio::io_context *io_context_ = nullptr;
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware

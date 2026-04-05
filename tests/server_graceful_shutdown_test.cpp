@@ -6,16 +6,16 @@
 #include <thread>
 
 TEST(ServerGracefulShutdown, StopMethodExists) {
-  foxhttp::io_context_pool pool(1);
-  foxhttp::server server(pool, 0);
+  foxhttp::server::IoContextPool pool(1);
+  foxhttp::server::Server server(pool, 0);
 
   // Verify stop method can be called without throwing
   EXPECT_NO_THROW(server.stop());
 }
 
 TEST(ServerGracefulShutdown, StopSetsStoppingFlag) {
-  foxhttp::io_context_pool pool(1);
-  foxhttp::server server(pool, 0);
+  foxhttp::server::IoContextPool pool(1);
+  foxhttp::server::Server server(pool, 0);
 
   // Stop should set the internal stopping flag
   server.stop();
@@ -25,8 +25,8 @@ TEST(ServerGracefulShutdown, StopSetsStoppingFlag) {
 }
 
 TEST(ServerGracefulShutdown, MultipleStopCallsAreSafe) {
-  foxhttp::io_context_pool pool(1);
-  foxhttp::server server(pool, 0);
+  foxhttp::server::IoContextPool pool(1);
+  foxhttp::server::Server server(pool, 0);
 
   // Multiple stop calls should be safe
   EXPECT_NO_THROW(server.stop());
@@ -35,8 +35,8 @@ TEST(ServerGracefulShutdown, MultipleStopCallsAreSafe) {
 }
 
 TEST(ServerGracefulShutdown, StopDoesNotThrowWithActiveConnections) {
-  foxhttp::io_context_pool pool(1);
-  foxhttp::server server(pool, 0);
+  foxhttp::server::IoContextPool pool(1);
+  foxhttp::server::Server server(pool, 0);
 
   // Even with potential active connections, stop should not throw
   std::thread runner([&pool] { pool.run_blocking(); });
@@ -56,10 +56,10 @@ TEST(ServerGracefulShutdown, StopDoesNotThrowWithActiveConnections) {
 }
 
 TEST(ServerGracefulShutdown, ServerDestructionIsSafe) {
-  foxhttp::io_context_pool pool(1);
+  foxhttp::server::IoContextPool pool(1);
 
   {
-    foxhttp::server server(pool, 0);
+    foxhttp::server::Server server(pool, 0);
     // Server goes out of scope and should be destroyed safely
   }
 

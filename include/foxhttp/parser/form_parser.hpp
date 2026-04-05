@@ -7,22 +7,22 @@
 #include <unordered_map>
 #include <vector>
 
-namespace foxhttp {
+namespace foxhttp::parser {
 
-class form_field;
-class form_parser;
+class FormField;
+class FormParser;
 
-using form_config = ::foxhttp::form_config;
+using FormConfig = config::FormConfig;
 
-namespace details {
-class form_parser_core;
-class form_field_core;
-}  // namespace details
+namespace detail {
+class FormParserImpl;
+class FormFieldImpl;
+}  // namespace detail
 
-class form_field {
+class FormField {
  public:
-  form_field();
-  ~form_field();
+  FormField();
+  ~FormField();
 
   const std::string &name() const;
   bool is_array() const;
@@ -36,34 +36,34 @@ class form_field {
   std::string validation_error() const;
 
  private:
-  friend class form_parser;
+  friend class FormParser;
 
   void set_name(const std::string &name);
   void add_value(const std::string &value);
   void set_single_value(const std::string &value);
 
  private:
-  friend class details::form_parser_core;
-  std::unique_ptr<details::form_field_core> core_;
+  friend class detail::FormParserImpl;
+  std::unique_ptr<detail::FormFieldImpl> core_;
 };
-using form_data = std::unordered_map<std::string, std::unique_ptr<form_field>>;
+using FormData = std::unordered_map<std::string, std::unique_ptr<FormField>>;
 
-class form_parser : public parser<form_data> {
+class FormParser : public Parser<FormData> {
  public:
-  explicit form_parser(const form_config &config = form_config{});
-  ~form_parser();
+  explicit FormParser(const FormConfig &config = FormConfig{});
+  ~FormParser();
 
   std::string name() const override;
   std::string content_type() const override;
   bool supports(const http::request<http::string_body> &req) const override;
-  form_data parse(const http::request<http::string_body> &req) const override;
+  FormData parse(const http::request<http::string_body> &req) const override;
 
-  const form_config &config() const;
-  void set_config(const form_config &config);
+  const FormConfig &config() const;
+  void set_config(const FormConfig &config);
 
  private:
-  std::unique_ptr<details::form_parser_core> core_;
+  std::unique_ptr<detail::FormParserImpl> core_;
 };
-REGISTER_PARSER(form_data, form_parser);
+REGISTER_PARSER(FormData, FormParser);
 
-}  // namespace foxhttp
+}  // namespace foxhttp::parser

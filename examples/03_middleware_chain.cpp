@@ -16,30 +16,30 @@ int main() {
   const unsigned short port = 8082;
 
   try {
-    foxhttp::io_context_pool pool(1);
-    auto sigs = std::make_shared<foxhttp::signal_set>(pool.get_io_context());
+    foxhttp::server::IoContextPool pool(1);
+    auto sigs = std::make_shared<foxhttp::server::SignalSet>(pool.get_io_context());
     sigs->register_handler(SIGINT, [&pool](int, const std::string &) { pool.stop(); });
     sigs->start();
 
-    foxhttp::server server(pool, port);
+    foxhttp::server::Server server(pool, port);
 
-    // middleware_chain sorts by priority (lower value runs first). Use first_cors_middleware so CORS
+    // MiddlewareChain sorts by priority (lower value runs first). Use first_cors_middleware so CORS
     // runs before logger (high) and response_time (low); router_dispatch is "highest" and runs last.
     server.use(std::make_shared<foxhttp::examples::first_cors_middleware>("*", "GET, POST, OPTIONS", "Content-Type"));
-    server.use(foxhttp::middleware_factories::create_simple_logger("example03"));
-    server.use(std::make_shared<foxhttp::response_time_middleware>("X-Response-Time"));
+    server.use(foxhttp::middleware::factories::create_simple_logger("example03"));
+    server.use(std::make_shared<foxhttp::middleware::ResponseTimeMiddleware>("X-Response-Time"));
     server.use(std::make_shared<foxhttp::examples::router_dispatch_middleware>());
 
-    foxhttp::router::register_static_handler(
-        "/", [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler(
+        "/", [](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
           (void)ctx;
           res.result(http::status::ok);
           res.set(http::field::content_type, "text/plain");
           res.body() = "Example 03 — see X-Response-Time and server logs.\nGET /api/hello\n";
         });
 
-    foxhttp::router::register_static_handler("/api/hello",
-                                             [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler("/api/hello",
+                                             [](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
                                                (void)ctx;
                                                res.result(http::status::ok);
                                                res.set(http::field::content_type, "application/json");

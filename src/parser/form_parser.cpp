@@ -1,78 +1,78 @@
 #include <boost/algorithm/string.hpp>
 #include <cctype>
-#include <foxhttp/parser/details/form_parser_core.hpp>
+#include <foxhttp/parser/detail/form_parser_impl.hpp>
 #include <foxhttp/parser/form_parser.hpp>
 #include <sstream>
 #include <stdexcept>
 
-namespace foxhttp {
+namespace foxhttp::parser {
 
-/* ------------------------------- form_field ------------------------------- */
+/* ------------------------------- FormField ------------------------------- */
 
-form_field::form_field() : core_(std::make_unique<details::form_field_core>()) {}
+FormField::FormField() : core_(std::make_unique<detail::FormFieldImpl>()) {}
 
-form_field::~form_field() = default;
+FormField::~FormField() = default;
 
-const std::string &form_field::name() const { return core_->name_; }
+const std::string &FormField::name() const { return core_->name_; }
 
-bool form_field::is_array() const { return core_->is_array_; }
+bool FormField::is_array() const { return core_->is_array_; }
 
-std::size_t form_field::size() const { return core_->values_.size(); }
+std::size_t FormField::size() const { return core_->values_.size(); }
 
-const std::string &form_field::value() const {
+const std::string &FormField::value() const {
   static const std::string empty;
   return core_->values_.empty() ? empty : core_->values_[0];
 }
 
-const std::vector<std::string> &form_field::values() const { return core_->values_; }
+const std::vector<std::string> &FormField::values() const { return core_->values_; }
 
-std::string form_field::value_at(std::size_t index) const {
+std::string FormField::value_at(std::size_t index) const {
   if (index >= core_->values_.size()) {
     return "";
   }
   return core_->values_[index];
 }
 
-bool form_field::is_valid() const { return !core_->name_.empty() && validation_error().empty(); }
+bool FormField::is_valid() const { return !core_->name_.empty() && validation_error().empty(); }
 
-std::string form_field::validation_error() const {
+std::string FormField::validation_error() const {
   if (core_->name_.empty()) {
     return "Field name is empty";
   }
   return "";
 }
 
-void form_field::set_name(const std::string &name) { core_->name_ = name; }
+void FormField::set_name(const std::string &name) { core_->name_ = name; }
 
-void form_field::add_value(const std::string &value) {
+void FormField::add_value(const std::string &value) {
   core_->values_.push_back(value);
   core_->is_array_ = true;
 }
 
-void form_field::set_single_value(const std::string &value) {
+void FormField::set_single_value(const std::string &value) {
   core_->values_.clear();
   core_->values_.push_back(value);
   core_->is_array_ = false;
 }
 
-/* ------------------------------- form_parser ------------------------------ */
+/* ------------------------------- FormParser ------------------------------ */
 
-form_parser::form_parser(const form_config &config) : core_(std::make_unique<details::form_parser_core>()) {
+FormParser::FormParser(const FormConfig &config) : core_(std::make_unique<detail::FormParserImpl>()) {
   core_->config_ = config;
 }
 
-form_parser::~form_parser() = default;
+FormParser::~FormParser() = default;
 
-std::string form_parser::name() const { return "form"; }
+std::string FormParser::name() const { return "form"; }
 
-std::string form_parser::content_type() const { return "application/x-www-form-urlencoded"; }
+std::string FormParser::content_type() const { return "application/x-www-form-urlencoded"; }
 
-bool form_parser::supports(const http::request<http::string_body> &req) const {
+bool FormParser::supports(const http::request<http::string_body> &req) const {
   auto content_type = req[http::field::content_type];
   return content_type.starts_with("application/x-www-form-urlencoded");
 }
 
-form_data form_parser::parse(const http::request<http::string_body> &req) const {
+FormData FormParser::parse(const http::request<http::string_body> &req) const {
   // Validate total size
   if (req.body().size() > core_->config_.max_total_size) {
     throw std::runtime_error("Request body exceeds maximum total size");
@@ -81,17 +81,15 @@ form_data form_parser::parse(const http::request<http::string_body> &req) const 
   return core_->parse_pairs(req.body());
 }
 
-// parse_string moved to private implementation
+const FormConfig &FormParser::config() const { return core_->config_; }
 
-const form_config &form_parser::config() const { return core_->config_; }
+void FormParser::set_config(const FormConfig &config) { core_->config_ = config; }
 
-void form_parser::set_config(const form_config &config) { core_->config_ = config; }
+/* ------------------------ FormParserImpl ----------------------- */
 
-/* ------------------------ form_parser_core ----------------------- */
+namespace detail {
 
-namespace details {
-
-form_data form_parser_core::parse_pairs(const std::string &data) const {
+form_data FormParserImpl::parse_pairs(const std::string &data) const {
   form_data result;
   std::istringstream ss(data);
   std::string pair;
@@ -121,7 +119,7 @@ form_data form_parser_core::parse_pairs(const std::string &data) const {
       it->second->add_value(value);
     } else {
       // Create new field
-      auto field = std::make_unique<form_field>();
+      auto field = std::make_unique<FormField>();
       field->set_name(normalized_name);
       if (is_array) {
         field->add_value(value);
@@ -135,35 +133,35 @@ form_data form_parser_core::parse_pairs(const std::string &data) const {
   return result;
 }
 
-std::string form_parser_core::extract_field_name(const std::string &pair) const {
+std::string FormParserImpl::extract_field_name(const std::string &pair) const {
   size_t pos = pair.find('=');
   return pos != std::string::npos ? pair.substr(0, pos) : pair;
 }
 
-std::string form_parser_core::extract_field_value(const std::string &pair) const {
+std::string FormParserImpl::extract_field_value(const std::string &pair) const {
   size_t pos = pair.find('=');
   return pos != std::string::npos ? pair.substr(pos + 1) : "";
 }
 
-bool form_parser_core::is_array_field(const std::string &name) const {
+bool FormParserImpl::is_array_field(const std::string &name) const {
   if (!config_.support_arrays) {
     return false;
   }
   return boost::ends_with(name, "[]");
 }
 
-std::string form_parser_core::normalize_field_name(const std::string &name) const {
+std::string FormParserImpl::normalize_field_name(const std::string &name) const {
   if (is_array_field(name)) {
     return name.substr(0, name.length() - 2);
   }
   return name;
 }
 
-bool form_parser_core::validate_field_size(const std::string &name, const std::string &value) const {
+bool FormParserImpl::validate_field_size(const std::string &name, const std::string &value) const {
   return name.size() <= config_.max_field_size && value.size() <= config_.max_field_size;
 }
 
-bool form_parser_core::validate_total_size(const form_data &data) const {
+bool FormParserImpl::validate_total_size(const form_data &data) const {
   std::size_t total_size = 0;
   for (const auto &[name, field] : data) {
     total_size += name.size();
@@ -174,9 +172,9 @@ bool form_parser_core::validate_total_size(const form_data &data) const {
   return total_size <= config_.max_total_size;
 }
 
-bool form_parser_core::validate_field_count(const form_data &data) const { return data.size() <= config_.max_fields; }
+bool FormParserImpl::validate_field_count(const form_data &data) const { return data.size() <= config_.max_fields; }
 
-bool form_parser_core::validate_field(const form_field &field) const {
+bool FormParserImpl::validate_field(const FormField &field) const {
   if (!field.is_valid()) {
     return false;
   }
@@ -191,7 +189,7 @@ bool form_parser_core::validate_field(const form_field &field) const {
   return true;
 }
 
-std::vector<std::string> form_parser_core::validate_all_fields(const form_data &data) const {
+std::vector<std::string> FormParserImpl::validate_all_fields(const form_data &data) const {
   std::vector<std::string> errors;
 
   // Check field count
@@ -214,7 +212,7 @@ std::vector<std::string> form_parser_core::validate_all_fields(const form_data &
   return errors;
 }
 
-std::string form_parser_core::url_decode(const std::string &encoded) const {
+std::string FormParserImpl::url_decode(const std::string &encoded) const {
   std::string decoded;
   decoded.reserve(encoded.size());
 
@@ -238,7 +236,7 @@ std::string form_parser_core::url_decode(const std::string &encoded) const {
   return decoded;
 }
 
-std::string form_parser_core::url_encode(const std::string &decoded) const {
+std::string FormParserImpl::url_encode(const std::string &decoded) const {
   std::string encoded;
   encoded.reserve(decoded.size() * 3);
 
@@ -254,6 +252,6 @@ std::string form_parser_core::url_encode(const std::string &decoded) const {
 
   return encoded;
 }
-}  // namespace details
 
-}  // namespace foxhttp
+}  // namespace detail
+}  // namespace foxhttp::parser

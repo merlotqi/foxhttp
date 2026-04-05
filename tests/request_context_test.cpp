@@ -9,7 +9,7 @@ namespace http = boost::beast::http;
 TEST(RequestContext, PathStripsQuery) {
   http::request<http::string_body> req;
   req.target("/foo/bar?x=1");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   EXPECT_EQ(ctx.path(), "/foo/bar");
   EXPECT_EQ(ctx.query(), "x=1");
 }
@@ -17,7 +17,7 @@ TEST(RequestContext, PathStripsQuery) {
 TEST(RequestContext, QueryParametersMultiValue) {
   http::request<http::string_body> req;
   req.target("/p?a=1&b=2&b=3");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   const auto &qp = ctx.query_parameters();
   ASSERT_EQ(qp.count("a"), 1u);
   EXPECT_EQ(qp.at("a").front(), "1");
@@ -30,7 +30,7 @@ TEST(RequestContext, QueryParametersMultiValue) {
 TEST(RequestContext, PathParametersRoundTrip) {
   http::request<http::string_body> req;
   req.target("/");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   std::unordered_map<std::string, std::string> params{{"id", "7"}};
   ctx.set_path_parameters(params);
   EXPECT_TRUE(ctx.contains_path_parameter("id"));
@@ -40,7 +40,7 @@ TEST(RequestContext, PathParametersRoundTrip) {
 TEST(RequestContext, ContextBagGetSet) {
   http::request<http::string_body> req;
   req.target("/");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   ctx.set<std::string>("k", "v");
   EXPECT_TRUE(ctx.has("k"));
   EXPECT_EQ(ctx.get<std::string>("k", ""), "v");

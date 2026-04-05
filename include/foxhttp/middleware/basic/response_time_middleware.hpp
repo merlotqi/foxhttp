@@ -4,15 +4,15 @@
 #include <foxhttp/middleware/middleware.hpp>
 #include <foxhttp/server/request_context.hpp>
 
-namespace foxhttp {
+namespace foxhttp::middleware {
 
-class response_time_middleware : public priority_middleware<middleware_priority::low> {
+class ResponseTimeMiddleware : public PriorityMiddleware<MiddlewarePriority::Low> {
  public:
-  explicit response_time_middleware(const std::string &header_name = "X-Response-Time") : header_name_(header_name) {}
+  explicit ResponseTimeMiddleware(const std::string &header_name = "X-Response-Time") : header_name_(header_name) {}
 
   std::string name() const override { return "ResponseTimeMiddleware"; }
 
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override {
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override {
     auto start = std::chrono::steady_clock::now();
 
     next();
@@ -22,7 +22,7 @@ class response_time_middleware : public priority_middleware<middleware_priority:
     res.set(header_name_, std::to_string(duration.count()) + "ms");
   }
 
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
                   async_middleware_callback callback) override {
     auto start = std::chrono::steady_clock::now();
 
@@ -30,7 +30,7 @@ class response_time_middleware : public priority_middleware<middleware_priority:
     ctx.set("response_time_start", start);
 
     next();
-    callback(middleware_result::continue_, "");
+    callback(MiddlewareResult::Continue, "");
 
     // Note: In async mode, we can't easily measure total time here
     // The response time would need to be calculated in the completion callback
@@ -40,4 +40,4 @@ class response_time_middleware : public priority_middleware<middleware_priority:
   std::string header_name_;
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware

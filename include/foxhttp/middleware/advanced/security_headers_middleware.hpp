@@ -7,40 +7,39 @@
 
 namespace http = boost::beast::http;
 
-namespace foxhttp {
-namespace advanced {
+namespace foxhttp::middleware::advanced {
 
-class security_headers_middleware : public middleware {
+class SecurityHeadersMiddleware : public Middleware {
  public:
-  security_headers_middleware &hsts(const std::string &value = "max-age=63072000; includeSubDomains; preload") {
+  SecurityHeadersMiddleware &hsts(const std::string &value = "max-age=63072000; includeSubDomains; preload") {
     hsts_ = value;
     return *this;
   }
-  security_headers_middleware &csp(const std::string &value) {
+  SecurityHeadersMiddleware &csp(const std::string &value) {
     csp_ = value;
     return *this;
   }
-  security_headers_middleware &frame_options(const std::string &value = "SAMEORIGIN") {
+  SecurityHeadersMiddleware &frame_options(const std::string &value = "SAMEORIGIN") {
     xfo_ = value;
     return *this;
   }
-  security_headers_middleware &content_type_options() {
+  SecurityHeadersMiddleware &content_type_options() {
     xcto_ = "nosniff";
     return *this;
   }
-  security_headers_middleware &referrer_policy(const std::string &value = "no-referrer") {
+  SecurityHeadersMiddleware &referrer_policy(const std::string &value = "no-referrer") {
     referrer_ = value;
     return *this;
   }
-  security_headers_middleware &xss_protection(const std::string &value = "0") {
+  SecurityHeadersMiddleware &xss_protection(const std::string &value = "0") {
     xss_ = value;
     return *this;
   }
 
-  std::string name() const override { return "security_headers_middleware"; }
-  middleware_priority priority() const override { return middleware_priority::high; }
+  std::string name() const override { return "SecurityHeadersMiddleware"; }
+  MiddlewarePriority priority() const override { return MiddlewarePriority::High; }
 
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override {
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override {
     next();
     if (!hsts_.empty()) res.set("Strict-Transport-Security", hsts_);
     if (!csp_.empty()) res.set("Content-Security-Policy", csp_);
@@ -59,5 +58,4 @@ class security_headers_middleware : public middleware {
   std::string xss_ = "0";
 };
 
-}  // namespace advanced
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware::advanced

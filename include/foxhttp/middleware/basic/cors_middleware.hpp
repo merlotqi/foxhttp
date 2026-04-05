@@ -3,18 +3,18 @@
 #include <foxhttp/middleware/middleware.hpp>
 #include <string>
 
-namespace foxhttp {
+namespace foxhttp::middleware {
 
-class cors_middleware : public priority_middleware<middleware_priority::high> {
+class CorsMiddleware : public PriorityMiddleware<MiddlewarePriority::High> {
  public:
-  explicit cors_middleware(const std::string &origin = "*",
+  explicit CorsMiddleware(const std::string &origin = "*",
                            const std::string &methods = "GET, POST, PUT, DELETE, OPTIONS",
                            const std::string &headers = "Content-Type, Authorization", bool allow_credentials = false,
                            long max_age = 86400);
   std::string name() const override;
 
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override;
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override;
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
                   async_middleware_callback callback) override;
 
  private:
@@ -25,4 +25,4 @@ class cors_middleware : public priority_middleware<middleware_priority::high> {
   long max_age_;
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware

@@ -6,7 +6,7 @@
 using namespace foxhttp::client;
 
 TEST(ClientOptionsTest, DefaultValues) {
-  client_options opts;
+  ClientOptions opts;
   EXPECT_EQ(opts.connection_timeout.count(), 30000);
   EXPECT_EQ(opts.request_timeout.count(), 30000);
   EXPECT_EQ(opts.handshake_timeout.count(), 30000);
@@ -16,7 +16,7 @@ TEST(ClientOptionsTest, DefaultValues) {
 }
 
 TEST(ClientOptionsTest, FluentSetters) {
-  client_options opts;
+  ClientOptions opts;
   opts.set_connection_timeout(std::chrono::milliseconds(5000))
       .set_request_timeout(std::chrono::milliseconds(10000))
       .set_handshake_timeout(std::chrono::milliseconds(15000))
@@ -34,14 +34,14 @@ TEST(ClientOptionsTest, FluentSetters) {
 }
 
 TEST(RequestTimeoutOptionsTest, DefaultValues) {
-  request_timeout_options opts;
+  RequestTimeoutOptions opts;
   EXPECT_EQ(opts.connection_timeout.count(), 0);
   EXPECT_EQ(opts.request_timeout.count(), 0);
   EXPECT_EQ(opts.handshake_timeout.count(), 0);
 }
 
 TEST(RequestTimeoutOptionsTest, FluentSetters) {
-  request_timeout_options opts;
+  RequestTimeoutOptions opts;
   opts.set_connection_timeout(std::chrono::milliseconds(2000))
       .set_request_timeout(std::chrono::milliseconds(3000))
       .set_handshake_timeout(std::chrono::milliseconds(4000));
@@ -53,9 +53,9 @@ TEST(RequestTimeoutOptionsTest, FluentSetters) {
 
 TEST(HttpClientTest, SetOptions) {
   boost::asio::io_context ioc;
-  http_client client(ioc.get_executor(), "http://localhost:8080");
+  HttpClient client(ioc.get_executor(), "http://localhost:8080");
 
-  client_options opts;
+  ClientOptions opts;
   opts.set_connection_timeout(std::chrono::milliseconds(5000)).set_request_timeout(std::chrono::milliseconds(10000));
 
   client.set_options(opts);
@@ -66,7 +66,7 @@ TEST(HttpClientTest, SetOptions) {
 
 TEST(RequestBuilderTest, TimeoutMethods) {
   boost::asio::io_context ioc;
-  http_client client(ioc.get_executor(), "http://localhost:8080");
+  HttpClient client(ioc.get_executor(), "http://localhost:8080");
 
   auto builder = client.get("/test")
                      .connection_timeout(std::chrono::milliseconds(1000))
@@ -78,9 +78,9 @@ TEST(RequestBuilderTest, TimeoutMethods) {
 
 TEST(RequestBuilderTest, TimeoutWithOptions) {
   boost::asio::io_context ioc;
-  http_client client(ioc.get_executor(), "http://localhost:8080");
+  HttpClient client(ioc.get_executor(), "http://localhost:8080");
 
-  request_timeout_options timeout_opts;
+  RequestTimeoutOptions timeout_opts;
   timeout_opts.set_connection_timeout(std::chrono::milliseconds(1500))
       .set_request_timeout(std::chrono::milliseconds(2500));
 

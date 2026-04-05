@@ -1,26 +1,31 @@
 #include <spdlog/spdlog.h>
 
+#include <foxhttp/config.hpp>
+#include <foxhttp/server/ws_session.hpp>
+
+#if FOXHTTP_HAS_COROUTINES
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/redirect_error.hpp>
 #include <boost/asio/use_awaitable.hpp>
-#include <foxhttp/server/ws_session.hpp>
+#endif
 
 namespace beast = boost::beast;
 namespace websocket = beast::websocket;
 namespace http = beast::http;
 namespace asio = boost::asio;
 
-namespace foxhttp {
+namespace foxhttp::server {
 
-ws_session::ws_session(websocket_t ws, const websocket_limits &wsl, const session_limits &sl)
-    : session_base(ws.get_executor(), nullptr, sl), ws_(std::move(ws)), wsl_(wsl) {
+WsSession::WsSession(websocket_t ws, const WebSocketLimits &wsl, const SessionLimits &sl)
+    : SessionBase(ws.get_executor(), nullptr, sl), ws_(std::move(ws)), wsl_(wsl) {
   ws_.read_message_max(wsl_.max_message_bytes);
 }
 
-void ws_session::start_accept(http::request<http::string_body> req) {
+void WsSession::start_accept(http::request<http::string_body> req) {
   arm_idle_timer();
   ws_.set_option(websocket::stream_base::timeout::suggested(beast::role_type::server));
+#if FOXHTTP_HAS_COROUTINES
   asio::co_spawn(
       ws_.get_executor(),
       [self = shared_from_this(), req = std::move(req)]() mutable -> asio::awaitable<void> {
@@ -30,9 +35,17 @@ void ws_session::start_accept(http::request<http::string_body> req) {
         co_await self->echo_loop();
       },
       asio::detached);
+#else
+  auto self = shared_from_this();
+  ws_.async_accept(std::move(req), [self](beast::error_code ec) {
+    if (ec) return;
+    self->echo_loop();
+  });
+#endif
 }
 
-asio::awaitable<void> ws_session::echo_loop() {
+#if FOXHTTP_HAS_COROUTINES
+asio::awaitable<void> WsSession::echo_loop() {
   while (true) {
     boost::system::error_code ec;
     co_await ws_.async_read(buffer_, asio::redirect_error(asio::use_awaitable, ec));
@@ -43,8 +56,23 @@ asio::awaitable<void> ws_session::echo_loop() {
     buffer_.consume(buffer_.size());
   }
 }
+#else
+void WsSession::echo_loop() {
+  auto self = shared_from_this();
+  ws_.async_read(buffer_, [this, self](beast::error_code ec, std::size_t /*bytes*/) {
+    if (ec) return;
+    ws_.text(ws_.got_text());
+    ws_.async_write(buffer_.data(), [this, self](beast::error_code ec, std::size_t /*bytes*/) {
+      if (ec) return;
+      buffer_.consume(buffer_.size());
+      // Continue echoing
+      echo_loop();
+    });
+  });
+}
+#endif
 
-void ws_session::on_timeout_idle() {
+void WsSession::on_timeout_idle() {
   try {
     ws_.next_layer().socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
   } catch (const boost::system::system_error &e) {
@@ -52,4 +80,4 @@ void ws_session::on_timeout_idle() {
   }
 }
 
-}  // namespace foxhttp
+}  // namespace foxhttp::server

@@ -1,4 +1,4 @@
-// Example: minimal HTTP server — io_context_pool, server, router, terminal dispatch middleware.
+// Example: minimal HTTP server — IoContextPool, server, router, terminal dispatch middleware.
 //
 // Build: cmake -S . -B build -DFOXHTTP_BUILD_EXAMPLES=ON && cmake --build build
 // Run:   ./build/examples/01_hello_server
@@ -17,9 +17,9 @@ int main() {
   const unsigned short port = 8080;
 
   try {
-    foxhttp::io_context_pool pool(1);
+    foxhttp::server::IoContextPool pool(1);
 
-    auto sigs = std::make_shared<foxhttp::signal_set>(pool.get_io_context());
+    auto sigs = std::make_shared<foxhttp::server::SignalSet>(pool.get_io_context());
     sigs->register_handler(SIGINT, [&pool](int, const std::string &) {
       std::cerr << "\nStopping...\n";
       pool.stop();
@@ -29,11 +29,11 @@ int main() {
 #endif
     sigs->start();
 
-    foxhttp::server server(pool, port);
+    foxhttp::server::Server server(pool, port);
     server.use(std::make_shared<foxhttp::examples::router_dispatch_middleware>());
 
-    foxhttp::router::register_static_handler("/",
-                                             [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler("/",
+                                             [](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
                                                (void)ctx;
                                                res.result(http::status::ok);
                                                res.set(http::field::content_type, "text/plain");
@@ -42,16 +42,16 @@ int main() {
                                                    "Try: GET /health  GET /api/version\n";
                                              });
 
-    foxhttp::router::register_static_handler("/health",
-                                             [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler("/health",
+                                             [](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
                                                (void)ctx;
                                                res.result(http::status::ok);
                                                res.set(http::field::content_type, "application/json");
                                                res.body() = R"({"status":"ok"})";
                                              });
 
-    foxhttp::router::register_static_handler("/api/version",
-                                             [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler("/api/version",
+                                             [](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
                                                (void)ctx;
                                                res.result(http::status::ok);
                                                res.set(http::field::content_type, "application/json");

@@ -48,7 +48,7 @@ int main() {
   const std::string base = "http://127.0.0.1:" + std::to_string(port);
 
   asio::io_context ioc;
-  foxhttp::client::http_client client(ioc.get_executor(), base);
+  foxhttp::client::HttpClient client(ioc.get_executor(), base);
 
   // --- Promise-style chain (callbacks run on the client's executor) ---
   client.post("/demo")
@@ -64,12 +64,12 @@ int main() {
   ioc.restart();
   ioc.run();
 
-  // Start server again for the coroutine leg (one accept per connection).
+  // Start server again for the coroutine leg (one accept per Connection).
   std::promise<unsigned short> p2;
   auto f2 = p2.get_future();
   std::thread srv2(one_shot_server, std::move(p2));
   const unsigned short port2 = f2.get();
-  foxhttp::client::http_client client2(ioc.get_executor(),
+  foxhttp::client::HttpClient client2(ioc.get_executor(),
                                        "http://127.0.0.1:" + std::to_string(port2));
 
   asio::co_spawn(

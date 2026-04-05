@@ -1,14 +1,14 @@
 #include <foxhttp/middleware/basic/cors_middleware.hpp>
 
-namespace foxhttp {
+namespace foxhttp::middleware {
 
-cors_middleware::cors_middleware(const std::string &origin, const std::string &methods, const std::string &headers,
+CorsMiddleware::CorsMiddleware(const std::string &origin, const std::string &methods, const std::string &headers,
                                  bool allow_credentials, long max_age)
     : origin_(origin), methods_(methods), headers_(headers), allow_credentials_(allow_credentials), max_age_(max_age) {}
 
-std::string cors_middleware::name() const { return "CorsMiddleware"; }
+std::string CorsMiddleware::name() const { return "CorsMiddleware"; }
 
-void cors_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+void CorsMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
                                  std::function<void()> next) {
   // Set CORS headers
   if (origin_ == "*") {
@@ -35,7 +35,7 @@ void cors_middleware::operator()(request_context &ctx, http::response<http::stri
   next();
 }
 
-void cors_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+void CorsMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
                                  std::function<void()> next, async_middleware_callback callback) {
   // Set CORS headers
   if (origin_ == "*") {
@@ -54,12 +54,12 @@ void cors_middleware::operator()(request_context &ctx, http::response<http::stri
   // Handle preflight requests
   if (ctx.method() == http::verb::options) {
     res.result(http::status::ok);
-    callback(middleware_result::stop, "");
+    callback(MiddlewareResult::Stop, "");
     return;
   }
 
   next();
-  callback(middleware_result::continue_, "");
+  callback(MiddlewareResult::Continue, "");
 }
 
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware

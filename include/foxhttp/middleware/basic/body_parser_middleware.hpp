@@ -4,9 +4,9 @@
 #include <functional>
 #include <string>
 
-namespace foxhttp {
+namespace foxhttp::middleware {
 
-/// Keys used with @c request_context::set / @c get when the parsed value is move-only (cannot use @c set_parsed_body).
+/// Keys used with @c RequestContext::set / @c get when the parsed value is move-only (cannot use @c set_parsed_body).
 namespace body_parser_context_keys {
 inline constexpr const char *form = "foxhttp.body.form";
 inline constexpr const char *multipart = "foxhttp.body.multipart";
@@ -15,15 +15,15 @@ inline constexpr const char *multipart = "foxhttp.body.multipart";
 /// Parses the request body using registered parsers (JSON, form, multipart, plain text). JSON and plain text are
 /// stored via @c set_parsed_body; form and multipart are stored as @c std::shared_ptr under
 /// @c body_parser_context_keys::form / @c body_parser_context_keys::multipart. Unknown Content-Types are skipped.
-class body_parser_middleware : public middleware {
+class BodyParserMiddleware : public Middleware {
  public:
-  explicit body_parser_middleware(std::string name = "BodyParserMiddleware", bool bad_request_on_parse_error = true);
+  explicit BodyParserMiddleware(std::string name = "BodyParserMiddleware", bool bad_request_on_parse_error = true);
 
   std::string name() const override;
-  middleware_priority priority() const override;
+  MiddlewarePriority priority() const override;
 
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override;
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next,
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override;
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next,
                   async_middleware_callback callback) override;
 
   void set_bad_request_on_parse_error(bool v) { bad_request_on_error_ = v; }
@@ -31,10 +31,10 @@ class body_parser_middleware : public middleware {
 
  private:
   /// @return true if pipeline should stop (error response set), false to call next()
-  bool handle_body(request_context &ctx, http::response<http::string_body> &res);
+  bool handle_body(RequestContext &ctx, http::response<http::string_body> &res);
 
   std::string name_;
   bool bad_request_on_error_;
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware

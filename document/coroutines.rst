@@ -8,15 +8,15 @@ FoxHttp uses **C++20 coroutines** with **Boost.Asio** ``boost::asio::awaitable``
 What runs as a coroutine
 ------------------------
 
-* **Accept loop**: ``server`` and ``ssl_server`` spawn a long-lived coroutine that ``co_await``\ s ``async_accept``.
-* **HTTP sessions**: ``session`` / ``ssl_session`` run a per-connection coroutine: ``co_await`` ``http::async_read``, then the middleware pipeline, then ``co_await`` ``http::async_write``, with keep-alive looping as before.
-* **TLS**: ``ssl_session`` performs the server handshake with ``co_await`` ``async_handshake`` before the HTTP loop.
-* **WebSocket**: ``ws_session`` / ``wss_session`` use ``co_await`` for ``async_accept`` on the WebSocket stream and for the read/write echo loop.
+* **Accept loop**: ``foxhttp::server::Server`` and ``foxhttp::server::SslServer`` spawn a long-lived coroutine that ``co_await``\ s ``async_accept``.
+* **HTTP sessions**: ``foxhttp::server::Session`` / ``foxhttp::server::SslSession`` run a per-connection coroutine: ``co_await`` ``http::async_read``, then the middleware pipeline, then ``co_await`` ``http::async_write``, with keep-alive looping as before.
+* **TLS**: ``SslSession`` performs the server handshake with ``co_await`` ``async_handshake`` before the HTTP loop.
+* **WebSocket**: ``foxhttp::server::WsSession`` / ``foxhttp::server::WssSession`` use ``co_await`` for ``async_accept`` on the WebSocket stream and for the read/write echo loop.
 
 Middleware API (unchanged)
 --------------------------
 
-Application middleware still implements the existing synchronous ``next()`` / asynchronous ``async_middleware_callback`` interface. The session coroutine **bridges** to ``middleware_chain::execute_async`` via ``foxhttp::detail::await_middleware_chain_async`` (see ``include/foxhttp/detail/await_middleware_async.hpp``): the completion handler is always submitted with ``asio::post`` so synchronous pipeline completion still resumes the coroutine safely.
+Application middleware still implements the existing synchronous ``next()`` / asynchronous ``foxhttp::middleware::async_middleware_callback`` interface. The session coroutine **bridges** to ``foxhttp::middleware::MiddlewareChain::execute_async`` via ``foxhttp::detail::await_middleware_chain_async`` (see ``include/foxhttp/detail/await_middleware_async.hpp``): the completion handler is always submitted with ``asio::post`` so synchronous pipeline completion still resumes the coroutine safely.
 
 Timeouts
 --------

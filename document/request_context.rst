@@ -3,7 +3,7 @@
 Request context
 ===============
 
-``request_context`` wraps the incoming ``boost::beast::http::request<boost::beast::http::string_body>`` and adds FoxHttp-specific state.
+``foxhttp::server::RequestContext`` wraps the incoming ``boost::beast::http::request<boost::beast::http::string_body>`` and adds FoxHttp-specific state.
 
 HTTP surface
 ------------

@@ -1,16 +1,16 @@
 #pragma once
 
 #include <boost/beast/http.hpp>
+#include <foxhttp/server/request_context.hpp>
 
 namespace http = boost::beast::http;
 
-namespace foxhttp {
+namespace foxhttp::handler {
 
-class request_context;
-class api_handler {
+class ApiHandler {
  public:
-  virtual ~api_handler() = default;
-  virtual void handle_request(request_context &ctx, http::response<http::string_body> &res) = 0;
+  virtual ~ApiHandler() = default;
+  virtual void handle_request(server::RequestContext &ctx, http::response<http::string_body> &res) = 0;
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::handler

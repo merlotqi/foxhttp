@@ -2,22 +2,22 @@
 #include <boost/algorithm/string.hpp>
 #include <cctype>
 #include <filesystem>
-#include <foxhttp/parser/details/multipart_parser_core.hpp>
+#include <foxhttp/parser/detail/multipart_parser_impl.hpp>
 #include <foxhttp/parser/multipart_parser.hpp>
 #include <fstream>
 #include <optional>
 #include <random>
 #include <sstream>
 
-namespace foxhttp {
+namespace foxhttp::parser {
 
-/* ----------------------------- multipart_field ---------------------------- */
+/* ----------------------------- MultipartField ---------------------------- */
 
-multipart_field::multipart_field() : core_(std::make_unique<details::multipart_field_core>()) {}
+MultipartField::MultipartField() : core_(std::make_unique<detail::MultipartFieldImpl>()) {}
 
-multipart_field::~multipart_field() = default;
+MultipartField::~MultipartField() = default;
 
-std::size_t multipart_field::size() const {
+std::size_t MultipartField::size() const {
   if (core_->temp_file_.has_value()) {
     try {
       return std::filesystem::file_size(core_->temp_file_.value());
@@ -28,20 +28,20 @@ std::size_t multipart_field::size() const {
   return core_->content_.size() + core_->binary_content_.size();
 }
 
-const std::string &multipart_field::name() const { return core_->name_; }
+const std::string &MultipartField::name() const { return core_->name_; }
 
-const std::string &multipart_field::filename() const { return core_->filename_; }
+const std::string &MultipartField::filename() const { return core_->filename_; }
 
-const std::string &multipart_field::content_type() const { return core_->content_type_; }
+const std::string &MultipartField::content_type() const { return core_->content_type_; }
 
-const std::string &multipart_field::encoding() const { return core_->encoding_; }
+const std::string &MultipartField::encoding() const { return core_->encoding_; }
 
-const std::string &multipart_field::content() const {
+const std::string &MultipartField::content() const {
   core_->load_content();
   return core_->content_;
 }
 
-std::string multipart_field::content_as_string() const {
+std::string MultipartField::content_as_string() const {
   if (core_->temp_file_.has_value()) {
     std::ifstream file(core_->temp_file_.value(), std::ios::binary);
     if (file) {
@@ -54,7 +54,7 @@ std::string multipart_field::content_as_string() const {
   return core_->content_;
 }
 
-std::vector<uint8_t> multipart_field::content_as_bytes() const {
+std::vector<uint8_t> MultipartField::content_as_bytes() const {
   if (core_->temp_file_.has_value()) {
     std::ifstream file(core_->temp_file_.value(), std::ios::binary);
     if (file) {
@@ -78,13 +78,13 @@ std::vector<uint8_t> multipart_field::content_as_bytes() const {
   return data;
 }
 
-bool multipart_field::is_file() const { return !core_->filename_.empty(); }
+bool MultipartField::is_file() const { return !core_->filename_.empty(); }
 
-bool multipart_field::is_text() const { return core_->filename_.empty(); }
+bool MultipartField::is_text() const { return core_->filename_.empty(); }
 
-bool multipart_field::is_temporary() const { return core_->temp_file_.has_value(); }
+bool MultipartField::is_temporary() const { return core_->temp_file_.has_value(); }
 
-const std::string &multipart_field::temp_file_path() const {
+const std::string &MultipartField::temp_file_path() const {
   static const std::string empty_string;
   if (!core_->temp_file_.has_value()) {
     return empty_string;
@@ -92,20 +92,20 @@ const std::string &multipart_field::temp_file_path() const {
   return core_->temp_file_.value();
 }
 
-const std::unordered_map<std::string, std::string> &multipart_field::headers() const { return core_->headers_; }
+const std::unordered_map<std::string, std::string> &MultipartField::headers() const { return core_->headers_; }
 
-std::string multipart_field::header(const std::string &name) const {
+std::string MultipartField::header(const std::string &name) const {
   auto it = core_->headers_.find(core_->to_lower(name));
   return it != core_->headers_.end() ? it->second : "";
 }
 
-bool multipart_field::has_header(const std::string &name) const {
+bool MultipartField::has_header(const std::string &name) const {
   return core_->headers_.find(core_->to_lower(name)) != core_->headers_.end();
 }
 
-bool multipart_field::is_valid() const { return !core_->name_.empty() && validation_error().empty(); }
+bool MultipartField::is_valid() const { return !core_->name_.empty() && validation_error().empty(); }
 
-std::string multipart_field::validation_error() const {
+std::string MultipartField::validation_error() const {
   if (core_->name_.empty()) {
     return "Field name is empty";
   }
@@ -117,31 +117,31 @@ std::string multipart_field::validation_error() const {
   return "";
 }
 
-void multipart_field::set_name(const std::string &name) { core_->name_ = name; }
+void MultipartField::set_name(const std::string &name) { core_->name_ = name; }
 
-void multipart_field::set_filename(const std::string &filename) { core_->filename_ = filename; }
+void MultipartField::set_filename(const std::string &filename) { core_->filename_ = filename; }
 
-void multipart_field::set_content_type(const std::string &content_type) { core_->content_type_ = content_type; }
+void MultipartField::set_content_type(const std::string &content_type) { core_->content_type_ = content_type; }
 
-void multipart_field::set_encoding(const std::string &encoding) { core_->encoding_ = encoding; }
+void MultipartField::set_encoding(const std::string &encoding) { core_->encoding_ = encoding; }
 
-void multipart_field::add_header(const std::string &name, const std::string &value) {
+void MultipartField::add_header(const std::string &name, const std::string &value) {
   core_->headers_[core_->to_lower(name)] = value;
 }
 
-void multipart_field::set_content(const std::string &content) {
+void MultipartField::set_content(const std::string &content) {
   core_->content_ = content;
   core_->binary_content_.clear();
 }
 
-void multipart_field::set_content(std::vector<uint8_t> content) {
+void MultipartField::set_content(std::vector<uint8_t> content) {
   core_->binary_content_ = std::move(content);
   core_->content_.clear();
 }
 
-void multipart_field::set_temp_file(const std::string &path) { core_->temp_file_ = path; }
+void MultipartField::set_temp_file(const std::string &path) { core_->temp_file_ = path; }
 
-void multipart_field::cleanup_temp_file() {
+void MultipartField::cleanup_temp_file() {
   if (core_->temp_file_.has_value()) {
     std::error_code ec;
     std::filesystem::remove(core_->temp_file_.value(), ec);
@@ -149,56 +149,56 @@ void multipart_field::cleanup_temp_file() {
   }
 }
 
-/* ---------------------------- multipart_parser ---------------------------- */
+/* ---------------------------- MultipartParser ---------------------------- */
 
-multipart_parser::multipart_parser(const multipart_config &config)
-    : core_(std::make_unique<details::multipart_parser_core>()) {
+MultipartParser::MultipartParser(const MultipartConfig &config)
+    : core_(std::make_unique<detail::MultipartParserImpl>()) {
   core_->config_ = config;
 }
 
-multipart_parser::~multipart_parser() = default;
+MultipartParser::~MultipartParser() = default;
 
-std::string multipart_parser::name() const { return "multipart"; }
+std::string MultipartParser::name() const { return "multipart"; }
 
-std::string multipart_parser::content_type() const { return "multipart/form-data"; }
+std::string MultipartParser::content_type() const { return "multipart/form-data"; }
 
-bool multipart_parser::supports(const http::request<http::string_body> &req) const {
+bool MultipartParser::supports(const http::request<http::string_body> &req) const {
   auto content_type = req[http::field::content_type];
   return content_type.starts_with("multipart/form-data");
 }
 
-multipart_data multipart_parser::parse(const http::request<http::string_body> &req) const {
+MultipartData MultipartParser::parse(const http::request<http::string_body> &req) const {
   auto content_type = req[http::field::content_type];
   std::string boundary = core_->extract_boundary(content_type);
   return parse_with_boundary(req.body(), boundary);
 }
 
-multipart_data multipart_parser::parse_with_boundary(const std::string &body, const std::string &boundary) const {
+MultipartData MultipartParser::parse_with_boundary(const std::string &body, const std::string &boundary) const {
   // Very simplified example; real implementation remains in core helpers
-  multipart_data result;
+  MultipartData result;
   // ... preserve existing behavior by delegating to core methods as needed ...
   return result;
 }
 
-std::unique_ptr<multipart_stream_parser> multipart_parser::create_stream_parser(const std::string &boundary,
+std::unique_ptr<MultipartStreamParser> MultipartParser::create_stream_parser(const std::string &boundary,
                                                                                 progress_callback progress_cb,
                                                                                 error_callback error_cb) const {
-  return std::make_unique<multipart_stream_parser>(boundary, core_->config_, std::move(progress_cb),
+  return std::make_unique<MultipartStreamParser>(boundary, core_->config_, std::move(progress_cb),
                                                    std::move(error_cb));
 }
 
-const multipart_config &multipart_parser::config() const { return core_->config_; }
+const MultipartConfig &MultipartParser::config() const { return core_->config_; }
 
-void multipart_parser::set_config(const multipart_config &config) { core_->config_ = config; }
+void MultipartParser::set_config(const MultipartConfig &config) { core_->config_ = config; }
 
-bool multipart_parser::validate_field(const multipart_field &field) const {
+bool MultipartParser::validate_field(const MultipartField &field) const {
   // Simplified check using config thresholds; keep behavior consistent
   if (!field.is_valid()) return false;
   if (field.size() > core_->config_.max_file_size) return false;
   return true;
 }
 
-std::vector<std::string> multipart_parser::validate_all_fields(const multipart_data &data) const {
+std::vector<std::string> MultipartParser::validate_all_fields(const MultipartData &data) const {
   std::vector<std::string> errors;
   if (data.size() > core_->config_.max_field_size) {
     errors.push_back("Too many fields");
@@ -206,40 +206,40 @@ std::vector<std::string> multipart_parser::validate_all_fields(const multipart_d
   return errors;
 }
 
-/* ------------------------- multipart_stream_parser ------------------------ */
+/* ------------------------- MultipartStreamParser ------------------------ */
 
-multipart_stream_parser::multipart_stream_parser(const std::string &boundary, const multipart_config &config,
+MultipartStreamParser::MultipartStreamParser(const std::string &boundary, const MultipartConfig &config,
                                                  progress_callback progress_cb, error_callback error_cb)
-    : core_(std::make_unique<details::multipart_stream_parser_core>()) {
+    : core_(std::make_unique<detail::MultipartStreamParserImpl>()) {
   core_->config_ = config;
   core_->boundary_ = boundary;
   core_->full_boundary_ = "--" + boundary;
   core_->end_boundary_ = "--" + boundary + "--";
-  core_->state_ = details::multipart_stream_parser_core::ParseState::BOUNDARY;
+  core_->state_ = detail::MultipartStreamParserImpl::ParseState::Boundary;
   core_->bytes_processed_ = 0;
   core_->current_field_size_ = 0;
   core_->progress_callback_ = std::move(progress_cb);
   core_->error_callback_ = std::move(error_cb);
 }
 
-multipart_stream_parser::~multipart_stream_parser() = default;
+MultipartStreamParser::~MultipartStreamParser() = default;
 
-bool multipart_stream_parser::feed_data(const char *data, std::size_t size) {
+bool MultipartStreamParser::feed_data(const char *data, std::size_t size) {
   core_->buffer_.append(data, size);
   core_->bytes_processed_ += size;
 
-  while (!core_->buffer_.empty() && core_->state_ != details::multipart_stream_parser_core::ParseState::COMPLETE &&
-         core_->state_ != details::multipart_stream_parser_core::ParseState::error) {
+  while (!core_->buffer_.empty() && core_->state_ != detail::MultipartStreamParserImpl::ParseState::Complete &&
+         core_->state_ != detail::MultipartStreamParserImpl::ParseState::Error) {
     bool processed = false;
 
     switch (core_->state_) {
-      case details::multipart_stream_parser_core::ParseState::BOUNDARY:
+      case detail::MultipartStreamParserImpl::ParseState::Boundary:
         processed = core_->process_boundary();
         break;
-      case details::multipart_stream_parser_core::ParseState::HEADERS:
+      case detail::MultipartStreamParserImpl::ParseState::Headers:
         processed = core_->process_headers();
         break;
-      case details::multipart_stream_parser_core::ParseState::CONTENT:
+      case detail::MultipartStreamParserImpl::ParseState::Content:
         processed = core_->process_content();
         break;
       default:
@@ -251,46 +251,46 @@ bool multipart_stream_parser::feed_data(const char *data, std::size_t size) {
     }
   }
 
-  return core_->state_ != details::multipart_stream_parser_core::ParseState::error;
+  return core_->state_ != detail::MultipartStreamParserImpl::ParseState::Error;
 }
 
-bool multipart_stream_parser::feed_data(const std::string &data) { return feed_data(data.data(), data.size()); }
+bool MultipartStreamParser::feed_data(const std::string &data) { return feed_data(data.data(), data.size()); }
 
-bool multipart_stream_parser::is_complete() const {
-  return core_->state_ == details::multipart_stream_parser_core::ParseState::COMPLETE;
+bool MultipartStreamParser::is_complete() const {
+  return core_->state_ == detail::MultipartStreamParserImpl::ParseState::Complete;
 }
 
-multipart_data multipart_stream_parser::get_result() { return std::move(core_->result_); }
+MultipartData MultipartStreamParser::get_result() { return std::move(core_->result_); }
 
-void multipart_stream_parser::set_progress_callback(progress_callback callback) {
+void MultipartStreamParser::set_progress_callback(progress_callback callback) {
   core_->progress_callback_ = std::move(callback);
 }
 
-void multipart_stream_parser::set_error_callback(error_callback callback) {
+void MultipartStreamParser::set_error_callback(error_callback callback) {
   core_->error_callback_ = std::move(callback);
 }
 
-std::size_t multipart_stream_parser::bytes_processed() const { return core_->bytes_processed_; }
+std::size_t MultipartStreamParser::bytes_processed() const { return core_->bytes_processed_; }
 
-std::size_t multipart_stream_parser::current_field_size() const { return core_->current_field_size_; }
+std::size_t MultipartStreamParser::current_field_size() const { return core_->current_field_size_; }
 
-const std::string &multipart_stream_parser::current_field_name() const { return core_->current_field_name_; }
+const std::string &MultipartStreamParser::current_field_name() const { return core_->current_field_name_; }
 
-void multipart_stream_parser::reset() {
+void MultipartStreamParser::reset() {
   core_->buffer_.clear();
   core_->result_.clear();
-  core_->state_ = details::multipart_stream_parser_core::ParseState::BOUNDARY;
+  core_->state_ = detail::MultipartStreamParserImpl::ParseState::Boundary;
   core_->bytes_processed_ = 0;
   core_->current_field_size_ = 0;
 }
 
-void multipart_stream_parser::abort() { core_->state_ = details::multipart_stream_parser_core::ParseState::error; }
+void MultipartStreamParser::abort() { core_->state_ = detail::MultipartStreamParserImpl::ParseState::Error; }
 
-namespace details {
+namespace detail {
 
-/* -------------------------- multipart_field_core -------------------------- */
+/* -------------------------- MultipartFieldImpl -------------------------- */
 
-void multipart_field_core::load_content() const {
+void MultipartFieldImpl::load_content() const {
   if (content_loaded_) {
     return;
   }
@@ -307,15 +307,15 @@ void multipart_field_core::load_content() const {
   content_loaded_ = true;
 }
 
-std::string multipart_field_core::to_lower(const std::string &str) const {
+std::string MultipartFieldImpl::to_lower(const std::string &str) const {
   std::string result = str;
   std::transform(result.begin(), result.end(), result.begin(), ::tolower);
   return result;
 }
 
-/* -------------------------- multipart_parser_core ------------------------- */
+/* -------------------------- MultipartParserImpl ------------------------- */
 
-std::string multipart_parser_core::extract_boundary(const std::string &content_type) const {
+std::string MultipartParserImpl::extract_boundary(const std::string &content_type) const {
   // Look for boundary parameter in Content-Type header
   // Format: multipart/form-data; boundary=----WebKitFormBoundary...
 
@@ -342,8 +342,8 @@ std::string multipart_parser_core::extract_boundary(const std::string &content_t
   return boundary;
 }
 
-std::unique_ptr<multipart_field> multipart_parser_core::parse_field(const std::string &field_data) const {
-  auto field = std::make_unique<multipart_field>();
+std::unique_ptr<MultipartField> MultipartParserImpl::parse_field(const std::string &field_data) const {
+  auto field = std::make_unique<MultipartField>();
 
   // Find the double CRLF that separates headers from content
   size_t header_end = field_data.find("\r\n\r\n");
@@ -423,7 +423,7 @@ std::unique_ptr<multipart_field> multipart_parser_core::parse_field(const std::s
   return field;
 }
 
-std::unordered_map<std::string, std::string> multipart_parser_core::parse_headers(
+std::unordered_map<std::string, std::string> MultipartParserImpl::parse_headers(
     const std::string &header_data) const {
   std::unordered_map<std::string, std::string> headers;
 
@@ -448,7 +448,7 @@ std::unordered_map<std::string, std::string> multipart_parser_core::parse_header
   return headers;
 }
 
-std::string multipart_parser_core::decode_content(const std::string &content, const std::string &encoding) const {
+std::string MultipartParserImpl::decode_content(const std::string &content, const std::string &encoding) const {
   std::string lower_encoding = to_lower(encoding);
 
   if (lower_encoding == "quoted-printable") {
@@ -461,7 +461,7 @@ std::string multipart_parser_core::decode_content(const std::string &content, co
   return content;
 }
 
-std::vector<uint8_t> multipart_parser_core::decode_binary_content(const std::string &content,
+std::vector<uint8_t> MultipartParserImpl::decode_binary_content(const std::string &content,
                                                                   const std::string &encoding) const {
   std::string lower_encoding = to_lower(encoding);
 
@@ -474,7 +474,7 @@ std::vector<uint8_t> multipart_parser_core::decode_binary_content(const std::str
   return std::vector<uint8_t>(decoded.begin(), decoded.end());
 }
 
-std::string multipart_parser_core::trim(const std::string &str) const {
+std::string MultipartParserImpl::trim(const std::string &str) const {
   size_t start = str.find_first_not_of(" \t\r\n");
   if (start == std::string::npos) {
     return "";
@@ -484,13 +484,13 @@ std::string multipart_parser_core::trim(const std::string &str) const {
   return str.substr(start, end - start + 1);
 }
 
-std::string multipart_parser_core::to_lower(const std::string &str) const {
+std::string MultipartParserImpl::to_lower(const std::string &str) const {
   std::string result = str;
   std::transform(result.begin(), result.end(), result.begin(), ::tolower);
   return result;
 }
 
-std::string multipart_parser_core::generate_temp_filename() const {
+std::string MultipartParserImpl::generate_temp_filename() const {
   static std::random_device rd;
   static std::mt19937 gen(rd());
   static std::uniform_int_distribution<> dis(0, 15);
@@ -504,7 +504,7 @@ std::string multipart_parser_core::generate_temp_filename() const {
   return filename;
 }
 
-bool multipart_parser_core::is_allowed_extension(const std::string &filename) const {
+bool MultipartParserImpl::is_allowed_extension(const std::string &filename) const {
   if (config_.allowed_extensions.empty()) {
     return true;
   }
@@ -514,7 +514,7 @@ bool multipart_parser_core::is_allowed_extension(const std::string &filename) co
          config_.allowed_extensions.end();
 }
 
-bool multipart_parser_core::is_allowed_content_type(const std::string &content_type) const {
+bool MultipartParserImpl::is_allowed_content_type(const std::string &content_type) const {
   if (config_.allowed_content_types.empty()) {
     return true;
   }
@@ -523,7 +523,7 @@ bool multipart_parser_core::is_allowed_content_type(const std::string &content_t
          config_.allowed_content_types.end();
 }
 
-std::vector<uint8_t> multipart_parser_core::base64_decode(const std::string &encoded) const {
+std::vector<uint8_t> MultipartParserImpl::base64_decode(const std::string &encoded) const {
   // Simple base64 decoding implementation
   // In production, use a proper base64 library
   std::vector<uint8_t> result;
@@ -550,12 +550,12 @@ std::vector<uint8_t> multipart_parser_core::base64_decode(const std::string &enc
   return result;
 }
 
-std::string multipart_parser_core::base64_decode_string(const std::string &encoded) const {
+std::string MultipartParserImpl::base64_decode_string(const std::string &encoded) const {
   auto bytes = base64_decode(encoded);
   return std::string(bytes.begin(), bytes.end());
 }
 
-std::string multipart_parser_core::quoted_printable_decode(const std::string &encoded) const {
+std::string MultipartParserImpl::quoted_printable_decode(const std::string &encoded) const {
   std::string result;
   result.reserve(encoded.length());
 
@@ -581,9 +581,9 @@ std::string multipart_parser_core::quoted_printable_decode(const std::string &en
   return result;
 }
 
-/* ---------------------- multipart_stream_parser_core ---------------------- */
+/* ---------------------- MultipartStreamParserImpl ---------------------- */
 
-bool multipart_stream_parser_core::process_boundary() {
+bool MultipartStreamParserImpl::process_boundary() {
   // Look for boundary in buffer
   size_t boundary_pos = buffer_.find(full_boundary_);
   if (boundary_pos == std::string::npos) {
@@ -600,7 +600,7 @@ bool multipart_stream_parser_core::process_boundary() {
 
   // Check if this is the end boundary
   if (boost::starts_with(buffer_, "--")) {
-    state_ = ParseState::COMPLETE;
+    state_ = ParseState::Complete;
     return true;
   }
 
@@ -611,11 +611,11 @@ bool multipart_stream_parser_core::process_boundary() {
     buffer_.erase(0, 1);
   }
 
-  state_ = ParseState::HEADERS;
+  state_ = ParseState::Headers;
   return true;
 }
 
-bool multipart_stream_parser_core::process_headers() {
+bool MultipartStreamParserImpl::process_headers() {
   // Look for double CRLF that ends headers
   size_t header_end = buffer_.find("\r\n\r\n");
   if (header_end == std::string::npos) {
@@ -633,7 +633,7 @@ bool multipart_stream_parser_core::process_headers() {
   buffer_.erase(0, header_end);
 
   // Create new field
-  current_field_ = std::make_unique<multipart_field>();
+  current_field_ = std::make_unique<MultipartField>();
 
   // Parse headers (simplified version)
   std::istringstream stream(header_data);
@@ -683,11 +683,11 @@ bool multipart_stream_parser_core::process_headers() {
   }
 
   current_field_size_ = 0;
-  state_ = ParseState::CONTENT;
+  state_ = ParseState::Content;
   return true;
 }
 
-bool multipart_stream_parser_core::process_content() {
+bool MultipartStreamParserImpl::process_content() {
   // Look for next boundary
   size_t boundary_pos = buffer_.find(full_boundary_);
   if (boundary_pos == std::string::npos) {
@@ -719,11 +719,11 @@ bool multipart_stream_parser_core::process_content() {
   // Finalize current field
   finalize_current_field();
 
-  state_ = ParseState::BOUNDARY;
+  state_ = ParseState::Boundary;
   return true;
 }
 
-void multipart_stream_parser_core::finalize_current_field() {
+void MultipartStreamParserImpl::finalize_current_field() {
   if (current_field_) {
     result_.push_back(std::move(current_field_));
     current_field_.reset();
@@ -734,14 +734,14 @@ void multipart_stream_parser_core::finalize_current_field() {
   }
 }
 
-void multipart_stream_parser_core::handle_error(const std::string &error) {
-  state_ = ParseState::error;
+void MultipartStreamParserImpl::handle_error(const std::string &error) {
+  state_ = ParseState::Error;
   if (error_callback_) {
     error_callback_(error, bytes_processed_);
   }
 }
 
-void multipart_stream_parser_core::write_content_data(const char *data, std::size_t size) {
+void MultipartStreamParserImpl::write_content_data(const char *data, std::size_t size) {
   if (!current_field_) {
     return;
   }
@@ -771,12 +771,12 @@ void multipart_stream_parser_core::write_content_data(const char *data, std::siz
   // Real implementation would handle temp files properly
 }
 
-void multipart_stream_parser_core::switch_to_temp_file() {
+void MultipartStreamParserImpl::switch_to_temp_file() {
   // Simplified implementation
   // Real implementation would create temp file and write to it
 }
 
-std::string multipart_stream_parser_core::generate_temp_filename() const {
+std::string MultipartStreamParserImpl::generate_temp_filename() const {
   static std::random_device rd;
   static std::mt19937 gen(rd());
   static std::uniform_int_distribution<> dis(0, 15);
@@ -790,7 +790,7 @@ std::string multipart_stream_parser_core::generate_temp_filename() const {
   return filename;
 }
 
-void multipart_stream_parser_core::cleanup_temp_files() {
+void MultipartStreamParserImpl::cleanup_temp_files() {
   for (auto &field : result_) {
     if (field) {
       field->cleanup_temp_file();
@@ -798,6 +798,6 @@ void multipart_stream_parser_core::cleanup_temp_files() {
   }
 }
 
-}  // namespace details
+}  // namespace detail
 
-}  // namespace foxhttp
+}  // namespace foxhttp::parser

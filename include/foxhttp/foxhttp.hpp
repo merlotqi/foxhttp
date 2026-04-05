@@ -1,5 +1,7 @@
 #pragma once
 
+#include <foxhttp/config.hpp>
+
 // Core
 #include <foxhttp/core/constants.hpp>
 #include <foxhttp/core/error_codes.hpp>

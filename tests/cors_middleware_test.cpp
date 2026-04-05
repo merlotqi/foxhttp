@@ -6,12 +6,12 @@
 namespace http = boost::beast::http;
 
 TEST(CorsMiddleware, OptionsPreflightDoesNotCallNext) {
-  foxhttp::cors_middleware mw("https://example.com", "GET, POST", "Content-Type", false, 3600);
+  foxhttp::middleware::CorsMiddleware mw("https://example.com", "GET, POST", "Content-Type", false, 3600);
 
   http::request<http::string_body> req;
   req.method(http::verb::options);
   req.target("/");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   http::response<http::string_body> res;
 
   bool next_called = false;
@@ -24,13 +24,13 @@ TEST(CorsMiddleware, OptionsPreflightDoesNotCallNext) {
 }
 
 TEST(CorsMiddleware, GetPassesThroughAndSetsHeaders) {
-  foxhttp::cors_middleware mw("*", "GET", "X-Custom", false, 60);
+  foxhttp::middleware::CorsMiddleware mw("*", "GET", "X-Custom", false, 60);
 
   http::request<http::string_body> req;
   req.method(http::verb::get);
   req.target("/");
   req.set("Origin", "https://app.example");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   http::response<http::string_body> res;
 
   bool next_called = false;

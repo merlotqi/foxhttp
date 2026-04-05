@@ -7,17 +7,17 @@
 #include <memory>
 #include <stdexcept>
 
-class MockSessionBase : public foxhttp::session_base {
+class MockSessionBase : public foxhttp::server::SessionBase {
  public:
-  MockSessionBase(boost::asio::io_context& ioc, std::shared_ptr<foxhttp::middleware_chain> chain)
-      : session_base(ioc.get_executor(), chain) {}
+  MockSessionBase(boost::asio::io_context& ioc, std::shared_ptr<foxhttp::middleware::MiddlewareChain> chain)
+      : SessionBase(ioc.get_executor(), chain) {}
 
   void trigger_error(const std::exception_ptr& eptr) { notify_error(eptr); }
 };
 
 TEST(CoroutineException, ErrorCallbackCanBeSet) {
   boost::asio::io_context ioc;
-  auto chain = std::make_shared<foxhttp::middleware_chain>(ioc);
+  auto chain = std::make_shared<foxhttp::middleware::MiddlewareChain>(ioc);
   MockSessionBase session(ioc, chain);
 
   std::atomic<bool> callback_called{false};
@@ -39,7 +39,7 @@ TEST(CoroutineException, ErrorCallbackCanBeSet) {
 
 TEST(CoroutineException, ErrorCallbackReceivesCorrectException) {
   boost::asio::io_context ioc;
-  auto chain = std::make_shared<foxhttp::middleware_chain>(ioc);
+  auto chain = std::make_shared<foxhttp::middleware::MiddlewareChain>(ioc);
   MockSessionBase session(ioc, chain);
 
   std::string exception_message;
@@ -66,7 +66,7 @@ TEST(CoroutineException, ErrorCallbackReceivesCorrectException) {
 
 TEST(CoroutineException, ErrorCallbackNotCalledWhenNotSet) {
   boost::asio::io_context ioc;
-  auto chain = std::make_shared<foxhttp::middleware_chain>(ioc);
+  auto chain = std::make_shared<foxhttp::middleware::MiddlewareChain>(ioc);
   MockSessionBase session(ioc, chain);
 
   // Don't set error callback
@@ -84,7 +84,7 @@ TEST(CoroutineException, ErrorCallbackNotCalledWhenNotSet) {
 
 TEST(CoroutineException, ErrorCallbackCanBeReplaced) {
   boost::asio::io_context ioc;
-  auto chain = std::make_shared<foxhttp::middleware_chain>(ioc);
+  auto chain = std::make_shared<foxhttp::middleware::MiddlewareChain>(ioc);
   MockSessionBase session(ioc, chain);
 
   std::atomic<int> callback1_count{0};
@@ -119,7 +119,7 @@ TEST(CoroutineException, ErrorCallbackCanBeReplaced) {
 
 TEST(CoroutineException, ErrorCallbackCanHandleNullExceptionPtr) {
   boost::asio::io_context ioc;
-  auto chain = std::make_shared<foxhttp::middleware_chain>(ioc);
+  auto chain = std::make_shared<foxhttp::middleware::MiddlewareChain>(ioc);
   MockSessionBase session(ioc, chain);
 
   std::atomic<bool> callback_called{false};

@@ -11,17 +11,17 @@
 #include <brotli/encode.h>
 #endif
 
-namespace foxhttp {
-compression_middleware::compression_middleware(size_t threshold, bool enable_gzip, bool enable_deflate, bool enable_br)
+namespace foxhttp::middleware::advanced {
+CompressionMiddleware::CompressionMiddleware(size_t threshold, bool enable_gzip, bool enable_deflate, bool enable_br)
     : threshold_(threshold) {
-  if (enable_gzip) supported_types_.push_back(compression_type::gzip);
-  if (enable_deflate) supported_types_.push_back(compression_type::deflate);
-  if (enable_br) supported_types_.push_back(compression_type::br);
+  if (enable_gzip) supported_types_.push_back(CompressionType::gzip);
+  if (enable_deflate) supported_types_.push_back(CompressionType::deflate);
+  if (enable_br) supported_types_.push_back(CompressionType::br);
 }
 
-std::string compression_middleware::name() const { return "CompressionMiddleware"; }
+std::string CompressionMiddleware::name() const { return "CompressionMiddleware"; }
 
-void compression_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+void CompressionMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
                                         std::function<void()> next) {
   next();
 
@@ -30,7 +30,7 @@ void compression_middleware::operator()(request_context &ctx, http::response<htt
   }
 }
 
-void compression_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+void CompressionMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
                                         std::function<void()> next, async_middleware_callback callback) {
   next();
 
@@ -38,10 +38,10 @@ void compression_middleware::operator()(request_context &ctx, http::response<htt
     compress_response(ctx, res);
   }
 
-  callback(middleware_result::continue_, "");
+  callback(MiddlewareResult::Continue, "");
 }
 
-bool compression_middleware::should_compress(const request_context &ctx, const http::response<http::string_body> &res) {
+bool CompressionMiddleware::should_compress(const RequestContext &ctx, const http::response<http::string_body> &res) {
   // Don't compress if already compressed
   if (res.find("Content-Encoding") != res.end()) {
     return false;
@@ -67,9 +67,9 @@ bool compression_middleware::should_compress(const request_context &ctx, const h
   return false;
 }
 
-void compression_middleware::compress_response(const request_context &ctx, http::response<http::string_body> &res) {
+void CompressionMiddleware::compress_response(const RequestContext &ctx, http::response<http::string_body> &res) {
   auto accept_encoding = ctx.header("Accept-Encoding");
-  compression_type best_type = compression_type::none;
+  CompressionType best_type = CompressionType::none;
   int best_priority = -1;
 
   // Find the best supported compression type that the client accepts
@@ -96,16 +96,16 @@ void compression_middleware::compress_response(const request_context &ctx, http:
     }
   }
 
-  if (best_type != compression_type::none) {
+  if (best_type != CompressionType::none) {
     std::string compressed;
     switch (best_type) {
-      case compression_type::gzip:
+      case CompressionType::gzip:
         compressed = compress_gzip(res.body());
         break;
-      case compression_type::deflate:
+      case CompressionType::deflate:
         compressed = compress_deflate(res.body());
         break;
-      case compression_type::br:
+      case CompressionType::br:
         compressed = compress_brotli(res.body());
         break;
       default:
@@ -119,20 +119,20 @@ void compression_middleware::compress_response(const request_context &ctx, http:
   }
 }
 
-std::string compression_middleware::get_encoding_name(compression_type type) {
+std::string CompressionMiddleware::get_encoding_name(CompressionType type) {
   switch (type) {
-    case compression_type::gzip:
+    case CompressionType::gzip:
       return "gzip";
-    case compression_type::deflate:
+    case CompressionType::deflate:
       return "deflate";
-    case compression_type::br:
+    case CompressionType::br:
       return "br";
     default:
       return "";
   }
 }
 
-std::string compression_middleware::compress_gzip(const std::string &input) {
+std::string CompressionMiddleware::compress_gzip(const std::string &input) {
   namespace bio = boost::iostreams;
   std::stringstream compressed;
   std::stringstream origin(input);
@@ -145,7 +145,7 @@ std::string compression_middleware::compress_gzip(const std::string &input) {
   return compressed.str();
 }
 
-std::string compression_middleware::compress_deflate(const std::string &input) {
+std::string CompressionMiddleware::compress_deflate(const std::string &input) {
   namespace bio = boost::iostreams;
   std::stringstream compressed;
   std::stringstream origin(input);
@@ -167,7 +167,7 @@ std::string compression_middleware::compress_deflate(const std::string &input) {
   return compressed.str();
 }
 
-std::string compression_middleware::compress_brotli(const std::string &input) {
+std::string CompressionMiddleware::compress_brotli(const std::string &input) {
 #ifdef USING_BROTLI
   // Allocate output buffer (typically 1.5x input size for worst case)
   std::vector<uint8_t> output(BrotliEncoderMaxCompressedSize(input.size()));
@@ -196,4 +196,4 @@ std::string compression_middleware::compress_brotli(const std::string &input) {
 #endif
 }
 
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware::advanced

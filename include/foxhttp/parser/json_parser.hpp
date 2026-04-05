@@ -7,13 +7,11 @@
 #include <string>
 #include <vector>
 
-namespace foxhttp {
+namespace foxhttp::parser {
 
-class json_parser;
+class JsonParser;
 
-using json_config = ::foxhttp::json_config;
-
-struct json_validation_result {
+struct JsonValidationResult {
   bool is_valid = true;
   std::vector<std::string> errors;
   std::vector<std::string> warnings;
@@ -26,27 +24,27 @@ struct json_validation_result {
   void add_warning(const std::string &warning) { warnings.push_back(warning); }
 };
 
-namespace details {
-class json_parser_core;
+namespace detail {
+class JsonParserImpl;
 }
 
-class json_parser : public parser<nlohmann::json> {
+class JsonParser : public Parser<nlohmann::json> {
  public:
-  explicit json_parser(const json_config &config = json_config{});
-  ~json_parser();
+  explicit JsonParser(const config::JsonConfig &config = config::JsonConfig{});
+  ~JsonParser();
 
   std::string name() const override;
   std::string content_type() const override;
   bool supports(const http::request<http::string_body> &req) const override;
   nlohmann::json parse(const http::request<http::string_body> &req) const override;
 
-  const json_config &config() const;
-  void set_config(const json_config &config);
+  const config::JsonConfig &config() const;
+  void set_config(const config::JsonConfig &config);
 
  private:
-  friend class details::json_parser_core;
-  std::unique_ptr<details::json_parser_core> core_;
+  friend class detail::JsonParserImpl;
+  std::unique_ptr<detail::JsonParserImpl> core_;
 };
-REGISTER_PARSER(nlohmann::json, json_parser);
+REGISTER_PARSER(nlohmann::json, JsonParser);
 
-}  // namespace foxhttp
+}  // namespace foxhttp::parser

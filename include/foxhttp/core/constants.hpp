@@ -1,9 +1,10 @@
 #pragma once
 
+#include <boost/beast/http.hpp>
 #include <chrono>
 #include <cstddef>
 
-namespace foxhttp::constants {
+namespace foxhttp::core {
 
 /* -------------------------------------------------------------------------- */
 /*                             Default Size Limits                            */
@@ -56,20 +57,20 @@ constexpr auto kDefaultGlobalTimeout = std::chrono::milliseconds(0);
 /*                          Connection Pool Defaults                          */
 /* -------------------------------------------------------------------------- */
 
-/// Default maximum connection pool size
+/// Default maximum Connection pool size
 constexpr std::size_t kDefaultMaxPoolSize = 100;
 
-/// Default connection idle timeout (60 seconds)
+/// Default Connection idle timeout (60 seconds)
 constexpr auto kDefaultConnectionIdleTimeout = std::chrono::seconds(60);
 
-/// Default connection cleanup interval (10 seconds)
+/// Default Connection cleanup interval (10 seconds)
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds(10);
 
 /* -------------------------------------------------------------------------- */
 /*                               Server Defaults                              */
 /* -------------------------------------------------------------------------- */
 
-/// Default maximum requests per connection (0 = unlimited)
+/// Default maximum requests per Connection (0 = unlimited)
 constexpr std::size_t kDefaultMaxRequestsPerConnection = 0;
 
 /// Default io_context pool size (0 = auto-detect based on hardware)
@@ -133,4 +134,34 @@ constexpr unsigned kHttp11Version = 11;
 /// Default temporary directory for multipart uploads
 constexpr const char* kDefaultTempDirectory = "/tmp";
 
-}  // namespace foxhttp::constants
+/* -------------------------------------------------------------------------- */
+/*                        HTTP Method Utility Functions                       */
+/* -------------------------------------------------------------------------- */
+
+/// Convert HTTP verb to uppercase string (e.g., "GET", "POST", "PUT", "DELETE")
+inline const char* verb_to_string(boost::beast::http::verb v) {
+  switch (v) {
+    case boost::beast::http::verb::get:
+      return "GET";
+    case boost::beast::http::verb::post:
+      return "POST";
+    case boost::beast::http::verb::put:
+      return "PUT";
+    case boost::beast::http::verb::delete_:
+      return "DELETE";
+    case boost::beast::http::verb::head:
+      return "HEAD";
+    case boost::beast::http::verb::options:
+      return "OPTIONS";
+    case boost::beast::http::verb::patch:
+      return "PATCH";
+    case boost::beast::http::verb::trace:
+      return "TRACE";
+    case boost::beast::http::verb::connect:
+      return "CONNECT";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+}  // namespace foxhttp::core

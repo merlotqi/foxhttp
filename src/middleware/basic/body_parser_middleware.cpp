@@ -8,7 +8,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 
-namespace foxhttp {
+namespace foxhttp::middleware {
 
 namespace {
 
@@ -22,14 +22,14 @@ std::string content_type_base(const std::string &raw) {
 
 }  // namespace
 
-body_parser_middleware::body_parser_middleware(std::string name, bool bad_request_on_parse_error)
+BodyParserMiddleware::BodyParserMiddleware(std::string name, bool bad_request_on_parse_error)
     : name_(std::move(name)), bad_request_on_error_(bad_request_on_parse_error) {}
 
-std::string body_parser_middleware::name() const { return name_; }
+std::string BodyParserMiddleware::name() const { return name_; }
 
-middleware_priority body_parser_middleware::priority() const { return middleware_priority::normal; }
+MiddlewarePriority BodyParserMiddleware::priority() const { return MiddlewarePriority::Normal; }
 
-bool body_parser_middleware::handle_body(request_context &ctx, http::response<http::string_body> &res) {
+bool BodyParserMiddleware::handle_body(RequestContext &ctx, http::response<http::string_body> &res) {
   const auto &req = ctx.raw_request();
   if (req.body().empty()) {
     return false;
@@ -44,7 +44,7 @@ bool body_parser_middleware::handle_body(request_context &ctx, http::response<ht
 
   try {
     if (base == "application/json") {
-      auto p = parser_factory::instance().get_best<nlohmann::json>(req);
+      auto p = parser::ParserFactory::instance().get_best<nlohmann::json>(req);
       if (!p->supports(req)) {
         return false;
       }
@@ -53,28 +53,29 @@ bool body_parser_middleware::handle_body(request_context &ctx, http::response<ht
     }
 
     if (base == "application/x-www-form-urlencoded") {
-      auto p = parser_factory::instance().get_best<form_data>(req);
+      auto p = parser::ParserFactory::instance().get_best<parser::FormData>(req);
       if (!p->supports(req)) {
         return false;
       }
       auto data = p->parse(req);
-      ctx.set<std::shared_ptr<form_data>>(body_parser_context_keys::form, std::make_shared<form_data>(std::move(data)));
+      ctx.set<std::shared_ptr<parser::FormData>>(
+          body_parser_context_keys::form, std::make_shared<parser::FormData>(std::move(data)));
       return false;
     }
 
     if (boost::algorithm::starts_with(base, "multipart/")) {
-      auto p = parser_factory::instance().get_best<multipart_data>(req);
+      auto p = parser::ParserFactory::instance().get_best<parser::MultipartData>(req);
       if (!p->supports(req)) {
         return false;
       }
       auto data = p->parse(req);
-      ctx.set<std::shared_ptr<multipart_data>>(body_parser_context_keys::multipart,
-                                               std::make_shared<multipart_data>(std::move(data)));
+      ctx.set<std::shared_ptr<parser::MultipartData>>(
+          body_parser_context_keys::multipart, std::make_shared<parser::MultipartData>(std::move(data)));
       return false;
     }
 
     if (boost::algorithm::starts_with(base, "text/")) {
-      auto p = parser_factory::instance().get_best<std::string>(req);
+      auto p = parser::ParserFactory::instance().get_best<std::string>(req);
       if (!p->supports(req)) {
         return false;
       }
@@ -95,7 +96,7 @@ bool body_parser_middleware::handle_body(request_context &ctx, http::response<ht
   return false;
 }
 
-void body_parser_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+void BodyParserMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
                                         std::function<void()> next) {
   if (handle_body(ctx, res)) {
     return;
@@ -103,14 +104,14 @@ void body_parser_middleware::operator()(request_context &ctx, http::response<htt
   next();
 }
 
-void body_parser_middleware::operator()(request_context &ctx, http::response<http::string_body> &res,
+void BodyParserMiddleware::operator()(RequestContext &ctx, http::response<http::string_body> &res,
                                         std::function<void()> next, async_middleware_callback callback) {
   if (handle_body(ctx, res)) {
-    callback(middleware_result::stop, "");
+    callback(MiddlewareResult::Stop, "");
     return;
   }
   next();
-  callback(middleware_result::continue_, "");
+  callback(MiddlewareResult::Continue, "");
 }
 
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware

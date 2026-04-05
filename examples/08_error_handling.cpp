@@ -54,10 +54,10 @@ int main() {
   ErrorLogger error_logger;
 
   try {
-    foxhttp::io_context_pool pool(1);
+    foxhttp::server::IoContextPool pool(1);
 
     // Setup signal handlers
-    auto sigs = std::make_shared<foxhttp::signal_set>(pool.get_io_context());
+    auto sigs = std::make_shared<foxhttp::server::SignalSet>(pool.get_io_context());
     sigs->register_handler(SIGINT, [&](int, const std::string &) {
       std::cerr << "\n[Signal] Stopping...\n";
       pool.stop();
@@ -72,12 +72,12 @@ int main() {
     sigs->start();
 
     // Create server
-    foxhttp::server server(pool, port);
+    foxhttp::server::Server server(pool, port);
     server.use(std::make_shared<foxhttp::examples::router_dispatch_middleware>());
 
     // Register routes
-    foxhttp::router::register_static_handler("/",
-      [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler("/",
+      [](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
         (void)ctx;
         res.result(http::status::ok);
         res.set(http::field::content_type, "text/plain");
@@ -86,8 +86,8 @@ int main() {
       });
 
     // Route that returns an error response
-    foxhttp::router::register_static_handler("/error",
-      [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler("/error",
+      [](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
         (void)ctx;
         res.result(http::status::internal_server_error);
         res.set(http::field::content_type, "application/json");
@@ -95,8 +95,8 @@ int main() {
       });
 
     // Route that throws an exception (demonstrates exception handling)
-    foxhttp::router::register_static_handler("/throw",
-      [&error_logger](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler("/throw",
+      [&error_logger](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
         (void)ctx;
         try {
           throw std::runtime_error("Intentional exception for demonstration");
@@ -109,8 +109,8 @@ int main() {
       });
 
     // Route that shows error statistics
-    foxhttp::router::register_static_handler("/stats",
-      [&error_logger](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler("/stats",
+      [&error_logger](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
         (void)ctx;
         res.result(http::status::ok);
         res.set(http::field::content_type, "application/json");
@@ -118,8 +118,8 @@ int main() {
       });
 
     // Route that demonstrates error callback usage
-    foxhttp::router::register_static_handler("/callback",
-      [&error_logger](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler("/callback",
+      [&error_logger](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
         (void)ctx;
         
         // This demonstrates how to use error callbacks in middleware

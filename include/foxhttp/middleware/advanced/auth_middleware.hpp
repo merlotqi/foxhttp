@@ -16,113 +16,112 @@
 
 namespace http = boost::beast::http;
 
-namespace foxhttp {
-namespace advanced {
+namespace foxhttp::middleware::advanced {
 
-struct auth_user {
+struct AuthUser {
   std::string id;
   std::vector<std::string> roles;
 };
 
-enum class auth_scheme {
-  bearer_jwt,
-  basic,
-  digest,
-  api_key,
-  oauth2,
-  session_cookie
+enum class AuthScheme {
+  BearerJwt,
+  Basic,
+  Digest,
+  ApiKey,
+  Oauth2,
+  SessionCookie
 };
 
-class auth_middleware : public middleware {
+class AuthMiddleware : public Middleware {
  public:
-  using jwt_validator = std::function<std::optional<auth_user>(const std::string &token)>;
+  using jwt_validator = std::function<std::optional<AuthUser>(const std::string &token)>;
   using basic_validator =
-      std::function<std::optional<auth_user>(const std::string &username, const std::string &password)>;
-  using digest_validator = std::function<std::optional<auth_user>(
+      std::function<std::optional<AuthUser>(const std::string &username, const std::string &password)>;
+  using digest_validator = std::function<std::optional<AuthUser>(
       const std::unordered_map<std::string, std::string> &params, const std::string &method)>;
-  using api_key_validator = std::function<std::optional<auth_user>(const std::string &api_key)>;
-  using oauth2_validator = std::function<std::optional<auth_user>(const std::string &access_token)>;
-  using session_lookup = std::function<std::optional<auth_user>(const std::string &session_id)>;
+  using api_key_validator = std::function<std::optional<AuthUser>(const std::string &api_key)>;
+  using oauth2_validator = std::function<std::optional<AuthUser>(const std::string &access_token)>;
+  using session_lookup = std::function<std::optional<AuthUser>(const std::string &session_id)>;
 
  public:
-  explicit auth_middleware(std::vector<auth_scheme> schemes) : schemes_(std::move(schemes)) {}
+  explicit AuthMiddleware(std::vector<AuthScheme> schemes) : schemes_(std::move(schemes)) {}
 
   // Builder-style configuration
-  auth_middleware &set_jwt_validator(jwt_validator v) {
+  AuthMiddleware &set_jwt_validator(jwt_validator v) {
     jwt_validator_ = std::move(v);
     return *this;
   }
-  auth_middleware &set_basic_validator(basic_validator v) {
+  AuthMiddleware &set_basic_validator(basic_validator v) {
     basic_validator_ = std::move(v);
     return *this;
   }
-  auth_middleware &set_digest_validator(digest_validator v) {
+  AuthMiddleware &set_digest_validator(digest_validator v) {
     digest_validator_ = std::move(v);
     return *this;
   }
-  auth_middleware &set_api_key_validator(api_key_validator v) {
+  AuthMiddleware &set_api_key_validator(api_key_validator v) {
     api_key_validator_ = std::move(v);
     return *this;
   }
-  auth_middleware &set_oauth2_validator(oauth2_validator v) {
+  AuthMiddleware &set_oauth2_validator(oauth2_validator v) {
     oauth2_validator_ = std::move(v);
     return *this;
   }
-  auth_middleware &set_session_lookup(session_lookup v) {
+  AuthMiddleware &set_session_lookup(session_lookup v) {
     session_lookup_ = std::move(v);
     return *this;
   }
 
-  auth_middleware &set_api_key_header(std::string name) {
+  AuthMiddleware &set_api_key_header(std::string name) {
     api_key_header_ = std::move(name);
     return *this;
   }
-  auth_middleware &set_api_keyquery_param(std::string name) {
+  AuthMiddleware &set_api_keyquery_param(std::string name) {
     api_keyquery_param_ = std::move(name);
     return *this;
   }
-  auth_middleware &set_session_cookie_name(std::string name) {
+  AuthMiddleware &set_session_cookie_name(std::string name) {
     session_cookie_name_ = std::move(name);
     return *this;
   }
-  auth_middleware &set_realm(std::string realm) {
+  AuthMiddleware &set_realm(std::string realm) {
     realm_ = std::move(realm);
     return *this;
   }
 
 #ifdef FOXHTTP_ENABLE_JWT
   // Built-in jwt-cpp verification helpers (optional)
-  auth_middleware &enable_jwt_hs256(const std::string &secret) {
+  AuthMiddleware &enable_jwt_hs256(const std::string &secret) {
     jwt_enabled_ = true;
     jwt_algo_ = jwt_algo::hs256;
     jwt_secret_ = secret;
     return *this;
   }
-  auth_middleware &enable_jwt_rs256_public_key(const std::string &public_key_pem) {
+  AuthMiddleware &enable_jwt_rs256_public_key(const std::string &public_key_pem) {
     jwt_enabled_ = true;
     jwt_algo_ = jwt_algo::rs256;
     jwt_public_key_ = public_key_pem;
     return *this;
   }
-  auth_middleware &set_jwt_issuer(std::string issuer) {
+  AuthMiddleware &set_jwt_issuer(std::string issuer) {
     jwt_issuer_ = std::move(issuer);
     return *this;
   }
-  auth_middleware &set_jwt_audience(std::string audience) {
+  AuthMiddleware &set_jwt_audience(std::string audience) {
     jwt_audience_ = std::move(audience);
     return *this;
   }
 #endif
 
   std::string name() const override { return "advanced_auth_middleware"; }
-  middleware_priority priority() const override { return middleware_priority::high; }
+  MiddlewarePriority priority() const override { return MiddlewarePriority::High; }
 
-  void operator()(request_context &ctx, http::response<http::string_body> &res, std::function<void()> next) override {
+  void operator()(RequestContext &ctx, http::response<http::string_body> &res, std::function<void()> next) override {
     try {
       for (auto scheme : schemes_) {
         auto user = authenticate(scheme, ctx);
         if (user.has_value()) {
-          ctx.set<auth_user>("auth.user", *user);
+          ctx.set<AuthUser>("auth.user", *user);
           next();
           return;
         }
@@ -210,7 +209,7 @@ class auth_middleware : public middleware {
     return out;
   }
 
-  static std::optional<std::string> query_param(const request_context &ctx, const std::string &key) {
+  static std::optional<std::string> query_param(const RequestContext &ctx, const std::string &key) {
     auto &q = ctx.query_parameters();
     auto it = q.find(key);
     if (it != q.end() && !it->second.empty()) return it->second.front();
@@ -223,9 +222,9 @@ class auth_middleware : public middleware {
     return {s.substr(0, p), s.substr(p + 1)};
   }
 
-  std::optional<auth_user> authenticate(auth_scheme scheme, request_context &ctx) const {
+  std::optional<AuthUser> authenticate(AuthScheme scheme, RequestContext &ctx) const {
     switch (scheme) {
-      case auth_scheme::bearer_jwt: {
+      case AuthScheme::BearerJwt: {
         auto h = ctx.header(http::field::authorization);
         if (h.size() < 8 || h.rfind("Bearer ", 0) != 0) return std::nullopt;
         auto token = h.substr(7);
@@ -257,7 +256,7 @@ class auth_middleware : public middleware {
               for (const auto &r : arr) roles.emplace_back(r.as_string());
             }
             if (sub.empty()) sub = "anonymous";
-            return auth_user{sub, roles};
+            return AuthUser{sub, roles};
           } catch (...) {
             return std::nullopt;
           }
@@ -265,7 +264,7 @@ class auth_middleware : public middleware {
 #endif
         return std::nullopt;
       }
-      case auth_scheme::basic: {
+      case AuthScheme::Basic: {
         if (!basic_validator_) return std::nullopt;
         auto h = ctx.header(http::field::authorization);
         if (h.rfind("Basic ", 0) == 0) {
@@ -276,7 +275,7 @@ class auth_middleware : public middleware {
         }
         return std::nullopt;
       }
-      case auth_scheme::digest: {
+      case AuthScheme::Digest: {
         if (!digest_validator_) return std::nullopt;
         auto h = ctx.header(http::field::authorization);
         if (h.rfind("Digest ", 0) == 0) {
@@ -285,7 +284,7 @@ class auth_middleware : public middleware {
         }
         return std::nullopt;
       }
-      case auth_scheme::api_key: {
+      case AuthScheme::ApiKey: {
         if (!api_key_validator_) return std::nullopt;
         // header first
         auto key = ctx.header(api_key_header_);
@@ -299,7 +298,7 @@ class auth_middleware : public middleware {
         }
         return std::nullopt;
       }
-      case auth_scheme::oauth2: {
+      case AuthScheme::Oauth2: {
         if (!oauth2_validator_) return std::nullopt;
         auto h = ctx.header(http::field::authorization);
         if (h.rfind("Bearer ", 0) == 0) {
@@ -308,7 +307,7 @@ class auth_middleware : public middleware {
         }
         return std::nullopt;
       }
-      case auth_scheme::session_cookie: {
+      case AuthScheme::SessionCookie: {
         if (!session_lookup_) return std::nullopt;
         auto sid = ctx.cookie(session_cookie_name_);
         if (!sid.empty()) return session_lookup_(sid);
@@ -323,20 +322,20 @@ class auth_middleware : public middleware {
     std::vector<std::string> parts;
     for (auto s : schemes_) {
       switch (s) {
-        case auth_scheme::bearer_jwt:
-        case auth_scheme::oauth2:
+        case AuthScheme::BearerJwt:
+        case AuthScheme::Oauth2:
           parts.emplace_back("Bearer realm=\"" + realm_ + "\"");
           break;
-        case auth_scheme::basic:
+        case AuthScheme::Basic:
           parts.emplace_back("Basic realm=\"" + realm_ + "\"");
           break;
-        case auth_scheme::digest:
+        case AuthScheme::Digest:
           parts.emplace_back("Digest realm=\"" + realm_ + "\"");
           break;
-        case auth_scheme::api_key:
+        case AuthScheme::ApiKey:
           parts.emplace_back("ApiKey");
           break;
-        case auth_scheme::session_cookie:
+        case AuthScheme::SessionCookie:
           // no standard header
           break;
       }
@@ -352,7 +351,7 @@ class auth_middleware : public middleware {
   }
 
  private:
-  std::vector<auth_scheme> schemes_;
+  std::vector<AuthScheme> schemes_;
   std::string api_key_header_ = "X-API-Key";
   std::string api_keyquery_param_ = "api_key";
   std::string session_cookie_name_ = "SESSIONID";
@@ -366,5 +365,4 @@ class auth_middleware : public middleware {
   session_lookup session_lookup_;
 };
 
-}  // namespace advanced
-}  // namespace foxhttp
+}  // namespace foxhttp::middleware::advanced

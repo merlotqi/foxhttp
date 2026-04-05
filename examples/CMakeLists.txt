@@ -7,6 +7,7 @@ set(FOXHTTP_EXAMPLES
     07_graceful_shutdown
     08_error_handling
     09_client_timeout
+    10_instance_router
 )
 
 foreach(name ${FOXHTTP_EXAMPLES})

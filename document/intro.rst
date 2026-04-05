@@ -8,11 +8,11 @@ FoxHttp targets applications that need an **asynchronous HTTP/HTTPS** stack in m
 What you get
 ------------
 
-* **I/O and threading**: ``io_context_pool`` runs worker ``io_context``\ s; ``run_blocking()`` (or ``start()``) blocks until ``stop()``.
-* **HTTP server**: ``server`` / ``ssl_server`` accept connections; each session runs the global middleware chain (via ``execute_async``, bridged from a **C++20 coroutine**) then dispatches to your routes.
+* **I/O and threading**: ``foxhttp::server::IoContextPool`` runs worker ``boost::asio::io_context``\ s; ``run_blocking()`` (or ``start()``) blocks until ``stop()``.
+* **HTTP server**: ``foxhttp::server::Server`` / ``foxhttp::server::SslServer`` accept connections; each session runs the global middleware chain (via ``execute_async``, bridged from a **C++20 coroutine**) then dispatches to your routes.
 * **Middleware**: ordered pipeline with priorities, optional timeouts, sync and async completion callbacks.
-* **Routing**: ``router`` registers handlers on a process-wide ``route_table``; static paths and patterns such as ``/api/users/{id}``.
-* **Parsers**: pluggable parsers registered in ``parser_factory``; optional ``body_parser_middleware`` fills ``request_context`` from ``Content-Type``.
+* **Routing**: ``foxhttp::router::Router`` registers handlers on a process-wide ``foxhttp::router::RouteTable``; static paths and patterns such as ``/api/users/{id}``.
+* **Parsers**: pluggable parsers registered in ``foxhttp::parser::ParserFactory``; optional ``foxhttp::middleware::BodyParserMiddleware`` fills ``foxhttp::server::RequestContext`` from ``Content-Type``.
 * **Optional features** (CMake-gated): OpenSSL TLS, WebSocket/WSS, Brotli, JWT-related auth middleware.
 
 Licensing

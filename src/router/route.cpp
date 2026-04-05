@@ -3,30 +3,37 @@
 #include <regex>
 #include <stdexcept>
 
-namespace foxhttp {
+namespace foxhttp::router {
 
-/* ------------------------- static_route ------------------------- */
-static_route::static_route(std::string pattern, std::shared_ptr<api_handler> handler)
-    : pattern_(std::move(pattern)), handler_(std::move(handler)) {}
+/* ------------------------- StaticRoute ------------------------- */
+StaticRoute::StaticRoute(std::string pattern, std::shared_ptr<ApiHandler> handler, http::verb method)
+    : pattern_(std::move(pattern)), handler_(std::move(handler)), method_(method) {}
 
-api_handler *static_route::match(const std::string &path, request_context &ctx) const {
+ApiHandler *StaticRoute::match(const std::string &path, server::RequestContext &ctx) const {
   (void)ctx;
   return (path == pattern_) ? handler_.get() : nullptr;
 }
 
-std::string static_route::pattern() const { return pattern_; }
+std::string StaticRoute::pattern() const { return pattern_; }
 
-std::shared_ptr<api_handler> static_route::handler() const { return handler_; }
+http::verb StaticRoute::method() const { return method_; }
 
-/* ------------------------- dynamic_route ------------------------- */
-dynamic_route::dynamic_route(std::string pattern, std::shared_ptr<api_handler> handler, std::regex regex_pattern,
-                             std::vector<std::string> param_names)
+bool StaticRoute::matches_method(http::verb method) const {
+  return method_ == http::verb::unknown || method_ == method;
+}
+
+std::shared_ptr<ApiHandler> StaticRoute::handler() const { return handler_; }
+
+/* ------------------------- DynamicRoute ------------------------- */
+DynamicRoute::DynamicRoute(std::string pattern, std::shared_ptr<ApiHandler> handler, std::regex regex_pattern,
+                             std::vector<std::string> param_names, http::verb method)
     : pattern_(std::move(pattern)),
       handler_(std::move(handler)),
       regex_pattern_(std::move(regex_pattern)),
-      param_names_(std::move(param_names)) {}
+      param_names_(std::move(param_names)),
+      method_(method) {}
 
-api_handler *dynamic_route::match(const std::string &path, request_context &ctx) const {
+ApiHandler *DynamicRoute::match(const std::string &path, server::RequestContext &ctx) const {
   std::smatch matches;
   if (std::regex_match(path, matches, regex_pattern_)) {
     extract_path_params(matches, ctx);
@@ -35,15 +42,21 @@ api_handler *dynamic_route::match(const std::string &path, request_context &ctx)
   return nullptr;
 }
 
-std::string dynamic_route::pattern() const { return pattern_; }
+std::string DynamicRoute::pattern() const { return pattern_; }
 
-const std::regex &dynamic_route::regex() const { return regex_pattern_; }
+http::verb DynamicRoute::method() const { return method_; }
 
-const std::vector<std::string> &dynamic_route::param_names() const { return param_names_; }
+bool DynamicRoute::matches_method(http::verb method) const {
+  return method_ == http::verb::unknown || method_ == method;
+}
 
-std::shared_ptr<api_handler> dynamic_route::handler() const { return handler_; }
+const std::regex &DynamicRoute::regex() const { return regex_pattern_; }
 
-void dynamic_route::extract_path_params(const std::smatch &matches, request_context &ctx) const {
+const std::vector<std::string> &DynamicRoute::param_names() const { return param_names_; }
+
+std::shared_ptr<ApiHandler> DynamicRoute::handler() const { return handler_; }
+
+void DynamicRoute::extract_path_params(const std::smatch &matches, server::RequestContext &ctx) const {
   std::unordered_map<std::string, std::string> params;
   for (size_t i = 1; i < matches.size() && i - 1 < param_names_.size(); ++i) {
     if (matches[i].matched) {
@@ -57,7 +70,7 @@ void dynamic_route::extract_path_params(const std::smatch &matches, request_cont
 
 /* ------------------------- route_builder ------------------------- */
 
-std::pair<std::regex, std::vector<std::string>> route_builder::parse_pattern(const std::string &pattern) {
+std::pair<std::regex, std::vector<std::string>> RouteBuilder::parse_pattern(const std::string &pattern) {
   std::vector<std::string> param_names;
   std::string regex_pattern;
   regex_pattern.reserve(pattern.size() * 2);
@@ -88,7 +101,7 @@ std::pair<std::regex, std::vector<std::string>> route_builder::parse_pattern(con
   return {std::regex(regex_pattern), param_names};
 }
 
-std::string route_builder::regex_escape(const std::string &str) {
+std::string RouteBuilder::regex_escape(const std::string &str) {
   // simple character-wise escape of regex special chars
   static const std::string special = R"(.^$|()[]{}*+?\)";
   std::string out;
@@ -102,4 +115,4 @@ std::string route_builder::regex_escape(const std::string &str) {
   return out;
 }
 
-}  // namespace foxhttp
+}  // namespace foxhttp::router

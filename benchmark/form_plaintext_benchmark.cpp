@@ -20,7 +20,7 @@ static void BM_FormParserUrlEncoded(benchmark::State &state) {
   const auto fields = static_cast<std::size_t>(state.range(0));
   const std::string body = make_url_encoded_form(fields);
 
-  foxhttp::form_parser parser;
+  foxhttp::parser::FormParser parser;
   http::request<http::string_body> req;
   req.method(http::verb::post);
   req.set(http::field::content_type, "application/x-www-form-urlencoded");
@@ -35,7 +35,7 @@ static void BM_FormParserUrlEncoded(benchmark::State &state) {
 BENCHMARK(BM_FormParserUrlEncoded)->Arg(4)->Arg(32)->Arg(128);
 
 static void BM_FormParserSupports(benchmark::State &state) {
-  foxhttp::form_parser parser;
+  foxhttp::parser::FormParser parser;
   http::request<http::string_body> req;
   req.set(http::field::content_type, "application/x-www-form-urlencoded");
 
@@ -47,7 +47,7 @@ static void BM_FormParserSupports(benchmark::State &state) {
 BENCHMARK(BM_FormParserSupports);
 
 static void BM_PlaintextParserSmall(benchmark::State &state) {
-  foxhttp::plain_text_parser parser;
+  foxhttp::parser::PlainTextParser parser;
   http::request<http::string_body> req;
   req.set(http::field::content_type, "text/plain");
   req.body() = std::string(4096, 'x');
@@ -61,7 +61,7 @@ static void BM_PlaintextParserSmall(benchmark::State &state) {
 BENCHMARK(BM_PlaintextParserSmall);
 
 static void BM_PlaintextParserSupports(benchmark::State &state) {
-  foxhttp::plain_text_parser parser;
+  foxhttp::parser::PlainTextParser parser;
   http::request<http::string_body> req;
   req.set(http::field::content_type, "text/markdown");
 

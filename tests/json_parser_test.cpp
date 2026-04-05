@@ -6,7 +6,7 @@
 namespace http = boost::beast::http;
 
 TEST(JsonParser, SupportsApplicationJson) {
-  foxhttp::json_parser p;
+  foxhttp::parser::JsonParser p;
   http::request<http::string_body> req;
   req.set(http::field::content_type, "application/json");
   req.body() = "{}";
@@ -19,7 +19,7 @@ TEST(JsonParser, SupportsApplicationJson) {
 }
 
 TEST(JsonParser, ParseObject) {
-  foxhttp::json_parser p;
+  foxhttp::parser::JsonParser p;
   http::request<http::string_body> req;
   req.set(http::field::content_type, "application/json");
   req.body() = R"({"ok":true,"n":3})";
@@ -30,7 +30,7 @@ TEST(JsonParser, ParseObject) {
 }
 
 TEST(JsonParser, RejectsNonJsonContentType) {
-  foxhttp::json_parser p;
+  foxhttp::parser::JsonParser p;
   http::request<http::string_body> req;
   req.set(http::field::content_type, "text/plain");
   req.body() = "{}";

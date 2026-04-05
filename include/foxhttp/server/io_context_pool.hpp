@@ -6,12 +6,12 @@
 #include <thread>
 #include <vector>
 
-namespace foxhttp {
+namespace foxhttp::server {
 
-class io_context_pool {
+class IoContextPool {
  public:
-  explicit io_context_pool(std::size_t pool_size = std::thread::hardware_concurrency());
-  ~io_context_pool();
+  explicit IoContextPool(std::size_t pool_size = std::thread::hardware_concurrency());
+  ~IoContextPool();
 
   /// Runs worker threads and blocks the calling thread until stop() is invoked elsewhere.
   void run_blocking();
@@ -32,4 +32,4 @@ class io_context_pool {
   std::atomic<bool> stopped_;
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::server

@@ -15,7 +15,7 @@ namespace asio = boost::asio;
 asio::awaitable<void> demo_default_timeout() {
   std::cout << "\n=== Demo 1: Default Timeout (30s) ===\n";
 
-  foxhttp::client::http_client client(co_await asio::this_coro::executor,
+  foxhttp::client::HttpClient client(co_await asio::this_coro::executor,
                                       "http://httpbin.org");
 
   try {
@@ -29,11 +29,11 @@ asio::awaitable<void> demo_default_timeout() {
 asio::awaitable<void> demo_custom_client_timeout() {
   std::cout << "\n=== Demo 2: Custom Client Timeout ===\n";
 
-  foxhttp::client::http_client client(co_await asio::this_coro::executor,
+  foxhttp::client::HttpClient client(co_await asio::this_coro::executor,
                                       "http://httpbin.org");
 
   // Configure client-wide timeout options
-  foxhttp::client::client_options opts;
+  foxhttp::client::ClientOptions opts;
   opts.set_connection_timeout(std::chrono::milliseconds(5000))  // 5 seconds
       .set_request_timeout(std::chrono::milliseconds(10000))    // 10 seconds
       .set_user_agent("FoxHttp-Timeout-Example/1.0");
@@ -51,7 +51,7 @@ asio::awaitable<void> demo_custom_client_timeout() {
 asio::awaitable<void> demo_per_request_timeout() {
   std::cout << "\n=== Demo 3: Per-Request Timeout ===\n";
 
-  foxhttp::client::http_client client(co_await asio::this_coro::executor,
+  foxhttp::client::HttpClient client(co_await asio::this_coro::executor,
                                       "http://httpbin.org");
 
   try {
@@ -69,11 +69,11 @@ asio::awaitable<void> demo_per_request_timeout() {
 asio::awaitable<void> demo_timeout_with_options() {
   std::cout << "\n=== Demo 4: Request Timeout with Options ===\n";
 
-  foxhttp::client::http_client client(co_await asio::this_coro::executor,
+  foxhttp::client::HttpClient client(co_await asio::this_coro::executor,
                                       "http://httpbin.org");
 
   // Create timeout options for this request
-  foxhttp::client::request_timeout_options timeout_opts;
+  foxhttp::client::RequestTimeoutOptions timeout_opts;
   timeout_opts.set_connection_timeout(std::chrono::milliseconds(2000))
       .set_request_timeout(std::chrono::milliseconds(4000));
 
@@ -90,7 +90,7 @@ asio::awaitable<void> demo_timeout_with_options() {
 asio::awaitable<void> demo_short_timeout() {
   std::cout << "\n=== Demo 5: Very Short Timeout (Expected to Fail) ===\n";
 
-  foxhttp::client::http_client client(co_await asio::this_coro::executor,
+  foxhttp::client::HttpClient client(co_await asio::this_coro::executor,
                                       "http://httpbin.org");
 
   try {

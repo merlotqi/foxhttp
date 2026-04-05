@@ -37,11 +37,11 @@ TEST(StaticMiddleware, GetServesFileAndStopsChain) {
     f << "hello";
   }
 
-  foxhttp::static_middleware mw("/assets", td.path());
+  foxhttp::middleware::StaticMiddleware mw("/assets", td.path());
   http::request<http::string_body> req;
   req.method(http::verb::get);
   req.target("/assets/a.txt");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   http::response<http::string_body> res;
   bool next_called = false;
   mw(ctx, res, [&] { next_called = true; });
@@ -59,11 +59,11 @@ TEST(StaticMiddleware, HeadHasLengthAndEmptyBody) {
     f << "12345";
   }
 
-  foxhttp::static_middleware mw("/s", td.path());
+  foxhttp::middleware::StaticMiddleware mw("/s", td.path());
   http::request<http::string_body> req;
   req.method(http::verb::head);
   req.target("/s/b.bin");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   http::response<http::string_body> res;
   mw(ctx, res, [] {});
 
@@ -74,11 +74,11 @@ TEST(StaticMiddleware, HeadHasLengthAndEmptyBody) {
 
 TEST(StaticMiddleware, PostDelegatesToNext) {
   TempDir td("static_post");
-  foxhttp::static_middleware mw("/assets", td.path());
+  foxhttp::middleware::StaticMiddleware mw("/assets", td.path());
   http::request<http::string_body> req;
   req.method(http::verb::post);
   req.target("/assets/x");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   http::response<http::string_body> res;
   bool next_called = false;
   mw(ctx, res, [&] { next_called = true; });
@@ -87,11 +87,11 @@ TEST(StaticMiddleware, PostDelegatesToNext) {
 
 TEST(StaticMiddleware, PrefixMismatchDelegatesToNext) {
   TempDir td("static_nomatch");
-  foxhttp::static_middleware mw("/assets", td.path());
+  foxhttp::middleware::StaticMiddleware mw("/assets", td.path());
   http::request<http::string_body> req;
   req.method(http::verb::get);
   req.target("/other/file");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   http::response<http::string_body> res;
   bool next_called = false;
   mw(ctx, res, [&] { next_called = true; });
@@ -106,12 +106,12 @@ TEST(StaticMiddleware, PayloadTooLarge) {
     for (int i = 0; i < 20; ++i) f << chunk;
   }
 
-  foxhttp::static_middleware mw("/x", td.path());
+  foxhttp::middleware::StaticMiddleware mw("/x", td.path());
   mw.set_max_file_size(1000);
   http::request<http::string_body> req;
   req.method(http::verb::get);
   req.target("/x/big.bin");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   http::response<http::string_body> res;
   mw(ctx, res, [] { FAIL() << "next should not run"; });
   EXPECT_EQ(res.result(), http::status::payload_too_large);
@@ -124,11 +124,11 @@ TEST(StaticMiddleware, ServesIndexHtmlForDirectory) {
     f << "<html/>";
   }
 
-  foxhttp::static_middleware mw("/pub", td.path());
+  foxhttp::middleware::StaticMiddleware mw("/pub", td.path());
   http::request<http::string_body> req;
   req.method(http::verb::get);
   req.target("/pub");
-  foxhttp::request_context ctx(req);
+  foxhttp::server::RequestContext ctx(req);
   http::response<http::string_body> res;
   mw(ctx, res, [] { FAIL() << "next"; });
   EXPECT_EQ(res.result(), http::status::ok);

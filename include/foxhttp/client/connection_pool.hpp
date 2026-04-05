@@ -12,27 +12,27 @@
 
 namespace foxhttp::client {
 
-/// Represents a reusable TCP connection
-class connection {
+/// Represents a reusable TCP Connection
+class Connection {
  public:
   using socket_type = boost::asio::ip::tcp::socket;
 
-  explicit connection(socket_type socket);
-  ~connection() = default;
+  explicit Connection(socket_type socket);
+  ~Connection() = default;
 
   /// Get the underlying socket
   socket_type &socket() { return socket_; }
 
-  /// Check if connection is still alive (socket is open)
+  /// Check if Connection is still alive (socket is open)
   bool is_alive() const;
 
-  /// Mark connection as in use
+  /// Mark Connection as in use
   void mark_in_use();
 
-  /// Mark connection as idle
+  /// Mark Connection as idle
   void mark_idle();
 
-  /// Check if connection is currently in use
+  /// Check if Connection is currently in use
   bool is_in_use() const { return in_use_; }
 
   /// Get last activity time
@@ -45,32 +45,32 @@ class connection {
 };
 
 /// Connection pool for reusing TCP connections
-class connection_pool : public std::enable_shared_from_this<connection_pool> {
+class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
  public:
   /// Constructor
   /// @param max_size Maximum number of connections to pool
   /// @param idle_timeout How long to keep idle connections alive
   /// @param cleanup_interval How often to cleanup expired connections
-  explicit connection_pool(std::size_t max_size = 100, std::chrono::seconds idle_timeout = std::chrono::seconds(60),
+  explicit ConnectionPool(std::size_t max_size = 100, std::chrono::seconds idle_timeout = std::chrono::seconds(60),
                            std::chrono::seconds cleanup_interval = std::chrono::seconds(10));
 
-  ~connection_pool();
+  ~ConnectionPool();
 
   /// Start periodic cleanup timer
   /// @param io IO context for the timer
   void start_cleanup_timer(boost::asio::io_context &io);
 
-  /// Acquire a connection from the pool
+  /// Acquire a Connection from the pool
   /// @param host Target hostname
   /// @param port Target port
   /// @return Connection if available, nullptr otherwise
-  std::shared_ptr<connection> acquire(const std::string &host, uint16_t port);
+  std::shared_ptr<Connection> acquire(const std::string &host, uint16_t port);
 
-  /// Release a connection back to the pool
+  /// Release a Connection back to the pool
   /// @param conn Connection to release
   /// @param host Target hostname
   /// @param port Target port
-  void release(std::shared_ptr<connection> conn, const std::string &host, uint16_t port);
+  void release(std::shared_ptr<Connection> conn, const std::string &host, uint16_t port);
 
   /// Get total number of connections in pool
   std::size_t size() const;
@@ -89,7 +89,7 @@ class connection_pool : public std::enable_shared_from_this<connection_pool> {
   void cleanup_expired();
 
   /// Remove expired connections from a specific pool
-  void cleanup_pool(std::queue<std::shared_ptr<connection>> &pool);
+  void cleanup_pool(std::queue<std::shared_ptr<Connection>> &pool);
 
  private:
   std::size_t max_size_;
@@ -97,7 +97,7 @@ class connection_pool : public std::enable_shared_from_this<connection_pool> {
   std::chrono::seconds cleanup_interval_;
 
   mutable std::mutex mutex_;
-  std::unordered_map<std::string, std::queue<std::shared_ptr<connection>>> pools_;
+  std::unordered_map<std::string, std::queue<std::shared_ptr<Connection>>> pools_;
   std::size_t total_connections_{0};
   std::size_t active_connections_{0};
 

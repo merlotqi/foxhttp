@@ -22,14 +22,14 @@ int main() {
   const unsigned short port = 8080;
 
   try {
-    foxhttp::io_context_pool pool(1);
+    foxhttp::server::IoContextPool pool(1);
 
     // Create server
-    foxhttp::server server(pool, port);
+    foxhttp::server::Server server(pool, port);
     server.use(std::make_shared<foxhttp::examples::router_dispatch_middleware>());
 
     // Setup signal handlers for graceful shutdown
-    auto sigs = std::make_shared<foxhttp::signal_set>(pool.get_io_context());
+    auto sigs = std::make_shared<foxhttp::server::SignalSet>(pool.get_io_context());
     
     sigs->register_handler(SIGINT, [&](int, const std::string &) {
       std::cerr << "\n[Signal] SIGINT received, initiating graceful shutdown...\n";
@@ -60,8 +60,8 @@ int main() {
     sigs->start();
 
     // Register some example routes
-    foxhttp::router::register_static_handler("/",
-      [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler("/",
+      [](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
         (void)ctx;
         res.result(http::status::ok);
         res.set(http::field::content_type, "text/plain");
@@ -69,8 +69,8 @@ int main() {
                      "Press Ctrl+C to see graceful shutdown in action.\n";
       });
 
-    foxhttp::router::register_static_handler("/slow",
-      [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler("/slow",
+      [](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
         (void)ctx;
         // Simulate a slow request
         std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -79,8 +79,8 @@ int main() {
         res.body() = "This was a slow request (5 seconds).\n";
       });
 
-    foxhttp::router::register_static_handler("/health",
-      [](foxhttp::request_context &ctx, http::response<http::string_body> &res) {
+    foxhttp::router::Router::register_static_handler("/health",
+      [](foxhttp::server::RequestContext &ctx, http::response<http::string_body> &res) {
         (void)ctx;
         res.result(http::status::ok);
         res.set(http::field::content_type, "application/json");

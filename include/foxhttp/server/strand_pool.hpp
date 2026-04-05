@@ -11,11 +11,12 @@
 #include <shared_mutex>
 #include <vector>
 
-namespace foxhttp {
+namespace foxhttp::server {
 
-using strand_pool_config = ::foxhttp::strand_pool_config;
+using StrandPoolConfig = config::StrandPoolConfig;
+using LoadBalanceStrategy = config::LoadBalanceStrategy;
 
-struct strand_stats {
+struct StrandStats {
   std::atomic<std::size_t> total_requests{0};
   std::atomic<std::size_t> active_requests{0};
   std::atomic<std::size_t> completed_requests{0};
@@ -24,22 +25,22 @@ struct strand_stats {
   std::atomic<std::chrono::steady_clock::time_point> last_used{std::chrono::steady_clock::now()};
   std::atomic<bool> is_healthy{true};
 
-  strand_stats() = default;
-  strand_stats(const strand_stats &other);
-  strand_stats &operator=(const strand_stats &other);
+  StrandStats() = default;
+  StrandStats(const StrandStats &other);
+  StrandStats &operator=(const StrandStats &other);
   std::chrono::microseconds average_execution_time() const;
   double load_factor() const;
 };
 
-class strand_pool {
+class StrandPool {
  public:
-  using metrics_callback = std::function<void(const std::string &, const std::string &, double)>;
-  using health_check_callback = std::function<bool(std::size_t strand_index)>;
+  using MetricsCallback = std::function<void(const std::string &, const std::string &, double)>;
+  using HealthCheckCallback = std::function<bool(std::size_t strand_index)>;
   using executor_type = boost::asio::io_context::executor_type;
   using strand_ptr = std::shared_ptr<boost::asio::strand<executor_type>>;
 
-  explicit strand_pool(boost::asio::io_context &io_context, const strand_pool_config &config = {});
-  ~strand_pool();
+  explicit StrandPool(boost::asio::io_context &io_context, const StrandPoolConfig &config = {});
+  ~StrandPool();
 
   void start();
   void stop();
@@ -49,15 +50,15 @@ class strand_pool {
   strand_ptr strand_by_hash(std::size_t hash);
 
   void resize(std::size_t new_size);
-  void set_load_balance_strategy(load_balance_strategy strategy);
-  void set_metrics_callback(metrics_callback callback);
-  void set_health_check_callback(health_check_callback callback);
-  std::vector<strand_stats> statistics() const;
+  void set_load_balance_strategy(LoadBalanceStrategy strategy);
+  void set_metrics_callback(MetricsCallback callback);
+  void set_health_check_callback(HealthCheckCallback callback);
+  std::vector<StrandStats> statistics() const;
 
   std::size_t size() const;
 
-  const strand_pool_config &config() const;
-  void update_config(const strand_pool_config &new_config);
+  const StrandPoolConfig &config() const;
+  void update_config(const StrandPoolConfig &new_config);
 
   void perform_health_check();
   void report_metrics();
@@ -82,11 +83,11 @@ class strand_pool {
 
  private:
   boost::asio::io_context &io_context_;
-  strand_pool_config config_;
+  StrandPoolConfig config_;
 
   mutable std::shared_mutex strands_mutex_;
   std::vector<strand_ptr> strands_;
-  std::vector<strand_stats> strands_stats_;
+  std::vector<StrandStats> strands_stats_;
   std::size_t current_size_;
 
   std::atomic<std::size_t> round_robin_index_{0};
@@ -97,12 +98,12 @@ class strand_pool {
   boost::asio::steady_timer health_check_timer_;
 
   mutable std::mutex metrics_mutex_;
-  metrics_callback metrics_callback_;
+  MetricsCallback metrics_callback_;
 
   mutable std::mutex health_check_mutex_;
-  health_check_callback health_check_callback_;
+  HealthCheckCallback health_check_callback_;
 
   std::atomic<bool> is_running_;
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::server

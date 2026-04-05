@@ -3,7 +3,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <foxhttp/config/configs.hpp>
-#include <foxhttp/config/details/config_watcher.hpp>
+#include <foxhttp/config/detail/config_watcher.hpp>
 #include <functional>
 #include <map>
 #include <mutex>
@@ -12,24 +12,24 @@
 #include <shared_mutex>
 #include <string>
 
-namespace foxhttp {
+namespace foxhttp::config {
 
-class config_manager {
+class ConfigManager {
  public:
   using loader_fn = std::function<std::optional<nlohmann::json>(const std::string &path)>;
   using log_fn = std::function<void(const std::string &)>;
 
-  struct snapshot {
+  struct ConfigSnapshot {
     uint64_t version{0};  // Config version number for change detection
-    json_config json;
-    multipart_config multipart;
-    form_config form;
-    plain_text_config plain;
-    strand_pool_config strand_pool;
-    timer_manager_config timer_mgr;
+    JsonConfig json;
+    MultipartConfig multipart;
+    FormConfig form;
+    PlainTextConfig plain;
+    StrandPoolConfig strand_pool;
+    TimerManagerConfig timer_mgr;
   };
 
-  static config_manager &instance();
+  static ConfigManager &instance();
   bool initialize(const std::string &path, bool enable_watch = true,
                   std::chrono::milliseconds interval = std::chrono::seconds(2));
 
@@ -37,13 +37,13 @@ class config_manager {
   bool load_file(const std::string &path);
   bool reload();
 
-  json_config get_json_config() const;
-  multipart_config get_multipart_config() const;
-  form_config get_form_config() const;
-  plain_text_config get_plain_text_config() const;
+  JsonConfig get_json_config() const;
+  MultipartConfig get_multipart_config() const;
+  FormConfig get_form_config() const;
+  PlainTextConfig get_plain_text_config() const;
   const nlohmann::json &document() const;
 
-  std::shared_ptr<const snapshot> get_snapshot() const;
+  std::shared_ptr<const ConfigSnapshot> get_snapshot() const;
   using diff_callback = std::function<void(const nlohmann::json &new_val, const nlohmann::json &old_val)>;
   void subscribe(const std::string &path, diff_callback cb);
 
@@ -56,12 +56,12 @@ class config_manager {
   void set_validator(validate_fn v);
 
  private:
-  json_config json_from_doc() const;
-  multipart_config multipart_from_doc() const;
-  form_config form_from_doc() const;
-  plain_text_config plain_from_doc() const;
-  strand_pool_config strand_pool_from_doc() const;
-  timer_manager_config timer_from_doc() const;
+  JsonConfig json_from_doc() const;
+  MultipartConfig multipart_from_doc() const;
+  FormConfig form_from_doc() const;
+  PlainTextConfig plain_from_doc() const;
+  StrandPoolConfig strand_pool_from_doc() const;
+  TimerManagerConfig timer_from_doc() const;
 
   // Helpers
   static void deep_merge(nlohmann::json &dst, const nlohmann::json &src);
@@ -71,7 +71,7 @@ class config_manager {
   void log(const std::string &msg) const;
 
  private:
-  config_manager() = default;
+  ConfigManager() = default;
 
  private:
   std::string config_path_;
@@ -80,8 +80,8 @@ class config_manager {
   mutable std::shared_mutex mutex_;
   std::mutex loader_mutex_;
   std::map<std::string, loader_fn> loaders_;
-  std::unique_ptr<details::config_watcher> watcher_;
-  std::shared_ptr<snapshot> snapshot_;
+  std::unique_ptr<detail::ConfigWatcher> watcher_;
+  std::shared_ptr<ConfigSnapshot> snapshot_;
 
   // subscriptions
   std::mutex sub_mutex_;
@@ -130,7 +130,7 @@ class config_manager {
                                                         {"allowedContentTypes", nlohmann::json::array()},
                                                         {"strict", false}}}},
                                                      {"core",
-                                                      {{"strand_pool",
+                                                      {{"StrandPool",
                                                         {{"initialSize", (int)std::thread::hardware_concurrency()},
                                                          {"minSize", 1},
                                                          {"maxSize", 64},
@@ -139,7 +139,7 @@ class config_manager {
                                                          {"autoScaling", true},
                                                          {"loadThreshold", 0.8},
                                                          {"idleThreshold", 0.2}}},
-                                                       {"timer_manager",
+                                                       {"TimerManager",
                                                         {{"bucketCount", 16},
                                                          {"cleanupIntervalMs", 60000},
                                                          {"statisticsIntervalMs", 30000},
@@ -147,4 +147,4 @@ class config_manager {
                                                          {"enableCleanup", true}}}}}}};
 };
 
-}  // namespace foxhttp
+}  // namespace foxhttp::config

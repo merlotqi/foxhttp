@@ -4,12 +4,14 @@
 
 namespace foxhttp::examples {
 
-/// Same behavior as ``cors_middleware`` but with ``middleware_priority::lowest`` so it runs before
+/// Same behavior as ``CorsMiddleware`` but with ``MiddlewarePriority::Lowest`` so it runs before
 /// other stock middleware (logger ``high``, ``response_time`` ``low``) when the chain auto-sorts.
-class first_cors_middleware : public cors_middleware {
+class first_cors_middleware : public middleware::CorsMiddleware {
  public:
-  using cors_middleware::cors_middleware;
-  middleware_priority priority() const override { return middleware_priority::lowest; }
+  using middleware::CorsMiddleware::CorsMiddleware;
+  middleware::MiddlewarePriority priority() const override {
+    return middleware::MiddlewarePriority::Lowest;
+  }
 };
 
 }  // namespace foxhttp::examples

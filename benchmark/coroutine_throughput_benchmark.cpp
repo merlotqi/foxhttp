@@ -38,10 +38,10 @@ using tcp = asio::ip::tcp;
 
 namespace {
 
-std::shared_ptr<foxhttp::middleware_chain> make_ok_chain(asio::io_context &ioc) {
-  auto c = std::make_shared<foxhttp::middleware_chain>(ioc);
-  c->use(std::make_shared<foxhttp::functional_middleware>(
-      "bench_ok", [](foxhttp::request_context &, http::response<http::string_body> &res, std::function<void()> next) {
+std::shared_ptr<foxhttp::middleware::MiddlewareChain> make_ok_chain(asio::io_context &ioc) {
+  auto c = std::make_shared<foxhttp::middleware::MiddlewareChain>(ioc);
+  c->use(std::make_shared<foxhttp::middleware::FunctionalMiddleware>(
+      "bench_ok", [](foxhttp::server::RequestContext &, http::response<http::string_body> &res, std::function<void()> next) {
         res.result(http::status::ok);
         res.set(http::field::content_type, "text/plain");
         res.body() = "ok";
@@ -50,10 +50,10 @@ std::shared_ptr<foxhttp::middleware_chain> make_ok_chain(asio::io_context &ioc) 
   return c;
 }
 
-asio::awaitable<void> accept_forever(tcp::acceptor acc, std::shared_ptr<foxhttp::middleware_chain> chain) {
+asio::awaitable<void> accept_forever(tcp::acceptor acc, std::shared_ptr<foxhttp::middleware::MiddlewareChain> chain) {
   for (;;) {
     tcp::socket sock = co_await acc.async_accept(asio::use_awaitable);
-    std::make_shared<foxhttp::session>(std::move(sock), chain)->start();
+    std::make_shared<foxhttp::server::Session>(std::move(sock), chain)->start();
   }
 }
 
@@ -79,7 +79,7 @@ class LoopbackServer {
 
  private:
   asio::io_context ioc_;
-  std::shared_ptr<foxhttp::middleware_chain> chain_;
+  std::shared_ptr<foxhttp::middleware::MiddlewareChain> chain_;
   std::thread thread_;
   std::uint16_t port_{};
 };
@@ -153,7 +153,7 @@ static void BM_AwaitMiddlewareBridge(benchmark::State &state) {
         ioc,
         [&]() -> asio::awaitable<void> {
           for (int i = 0; i < inner; ++i) {
-            foxhttp::request_context ctx(req);
+            foxhttp::server::RequestContext ctx(req);
             http::response<http::string_body> res{http::status::internal_server_error, 11};
             co_await foxhttp::detail::await_middleware_chain_async(ioc.get_executor(), chain, ctx, res);
           }
@@ -167,7 +167,7 @@ BENCHMARK(BM_AwaitMiddlewareBridge)->Arg(32)->Arg(256)->Arg(2048);
 
 #if !defined(_WIN32)
 
-/// One new TCP connection per request (HTTP/1.0); exercises full coroutine session path + accept loop.
+/// One new TCP Connection per request (HTTP/1.0); exercises full coroutine session path + accept loop.
 static void BM_SessionCoroutine_HTTP10_cold(benchmark::State &state) {
   const int reqs = static_cast<int>(state.range(0));
   LoopbackServer srv;
@@ -187,7 +187,7 @@ static void BM_SessionCoroutine_HTTP10_cold(benchmark::State &state) {
 }
 BENCHMARK(BM_SessionCoroutine_HTTP10_cold)->Arg(8)->Arg(32);
 
-/// Single connection, many HTTP/1.1 keep-alive requests; coroutine session loop reuse.
+/// Single Connection, many HTTP/1.1 keep-alive requests; coroutine session loop reuse.
 static void BM_SessionCoroutine_HTTP11_keepalive(benchmark::State &state) {
   const int reqs = static_cast<int>(state.range(0));
   LoopbackServer srv;

@@ -17,12 +17,12 @@
 
 namespace http = boost::beast::http;
 
-namespace foxhttp {
+namespace foxhttp::server {
 
-class request_context {
+class RequestContext {
  public:
-  explicit request_context(const http::request<http::string_body> &req);
-  ~request_context() = default;
+  explicit RequestContext(const http::request<http::string_body> &req);
+  ~RequestContext() = default;
 
   const http::request<http::string_body> &raw_request() const;
 
@@ -75,13 +75,13 @@ class request_context {
 };
 
 template <typename T>
-void request_context::set(const std::string &key, T value) {
+void RequestContext::set(const std::string &key, T value) {
   std::unique_lock lock(items_mutex_);
   items_[key] = std::move(value);
 }
 
 template <typename T>
-T request_context::get(const std::string &key, const T &default_value) const {
+T RequestContext::get(const std::string &key, const T &default_value) const {
   std::shared_lock lock(items_mutex_);
   auto it = items_.find(key);
   if (it != items_.end()) {
@@ -95,13 +95,13 @@ T request_context::get(const std::string &key, const T &default_value) const {
 }
 
 template <typename T>
-void request_context::set_parsed_body(T value) {
+void RequestContext::set_parsed_body(T value) {
   std::unique_lock lock(parsed_body_mutex_);
   parsed_body_cache_[std::type_index(typeid(T))] = std::move(value);
 }
 
 template <typename T>
-T request_context::parsed_body() const {
+T RequestContext::parsed_body() const {
   std::shared_lock lock(parsed_body_mutex_);
   auto it = parsed_body_cache_.find(std::type_index(typeid(T)));
   if (it != parsed_body_cache_.end()) {
@@ -114,4 +114,4 @@ T request_context::parsed_body() const {
   throw std::runtime_error("parsed_body not found");
 }
 
-}  // namespace foxhttp
+}  // namespace foxhttp::server
